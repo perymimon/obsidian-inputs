@@ -9,6 +9,8 @@ if you want to view the source, please visit the github repository of this plugi
 */
 `;
 
+
+
 const prod = (process.argv[2] === "production");
 
 const context = await esbuild.context({
@@ -43,7 +45,7 @@ const context = await esbuild.context({
 			resolveFrom: "cwd",
 			assets: [
 				{ from: "./src/styles.css", to: `release/styles.css` },
-				{ from: ".src/styles.css", to: `styles.css` },
+				{ from: "./src/styles.css", to: `styles.css` },
 				{ from: "./manifest.json", to: `release/manifest.json` },
 				{ from: "./data.json", to: `release/data.json` }
 			],

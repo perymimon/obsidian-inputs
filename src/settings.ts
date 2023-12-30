@@ -1,7 +1,12 @@
 import {App, Modal, PluginSettingTab, Setting} from "obsidian";
 import LiveFormPlugin from "./main";
 
-export const DEFAULT_SETTINGS = {
+export interface MyPluginSettings {
+	inputTypes: {
+		[prefix: string]: string;
+	};
+}
+export const DEFAULT_SETTINGS:MyPluginSettings = {
 	inputTypes: {
 		'': 'text',
 		'//': 'date',

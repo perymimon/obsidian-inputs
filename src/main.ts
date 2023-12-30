@@ -2,97 +2,61 @@ import {
 	MarkdownView,
 	Plugin,
 } from 'obsidian';
-import {LiveFormSettingTab, DEFAULT_SETTINGS} from "./setting";
-const INPUT_PATTERN = /\s*(?<type>.*?)__+(?<placeholder>.*?)__+(\((?<options>[^)]+?)\))?\s*/
+import {LiveFormSettingTab, DEFAULT_SETTINGS} from "./settings";
+import {codesElements2Inputs, getNextId, markInputNotations} from "./util";
+// test pattern : https://regex101.com/r/OvbwyE/1
+export const INPUT_PATTERN = /(?<type>[^_`]*?)__+(?<placeholder>[^_`]*)__+(?<options>\([^)]+?\))?(?<id> -\d+-)?/
+export const CODE_MARK = new RegExp(`\`${INPUT_PATTERN.toString().slice(1,-1)}\``, 'g')
+
+console.log(CODE_MARK)
+/*
+
+לבדוק אם רדיו גם עובד
+ואז לעשות קומיט םוש
+
+לבדוק אם מותקן dataview
+אם כן לקחת ממנו את התבנית של שאילתה
+להשתמש בזה כדי לזהות אופציות כאלו.
+
+להריץ אותם כדי לקבל את הפלט ( רשימה של קבצים)
+להשתמש ברשימה כדי ליצור autocomplate או בעזרת dataset אם אי אפשר ליצור בapi
+
+האם אפשר לקבל שורות מרשימות ישר מquert ?
+איך עושים input שהיוזר רק מסמן עבור dataview
+*/
 
 export default class LiveFormPlugin extends Plugin {
 	settings = {};
+	id = 1;
 
 	async onload() {
 		console.log('loading live-form plugin');
-		const view = this.app.workspace.getActiveViewOfType(MarkdownView);
-		debugger
+
+		/* find the higher id in open file and save it */
+		this.registerEvent(this.app.workspace.on('file-open', async (file) => {
+			let content = await this.app.vault.read(file);
+			this.id = getNextId(content)
+			console.log('next id for file', file.name, ':', this.id)
+		}))
+
+		this.registerEvent(this.app.workspace.on('editor-change',
+			editor => this.id = markInputNotations(editor, this.id))
+		)
+
+		this.registerMarkdownPostProcessor(
+			editor => codesElements2Inputs(editor, this.settings, this.app.workspace)
+		)
+
 		await this.loadSettings();
-		this.registerMarkdownPostProcessor(this.codes2Inputs.bind(this))
+
 		// This adds a settings tab so the user can configure various aspects of the plugin
 		this.addSettingTab(new LiveFormSettingTab(this.app, this));
 
 		// this.app.workspace.on('editor-change',(editor) => console.log('editor-change', editor) )
 	}
 
-	refresh() {
-		this.app.workspace.updateOptions();
-		// Trigger a re-render of the current note when the settings change
-		// to force the registerMarkdownPostProcessor to reprocess the Markdown.
-		const view = this.app.workspace.getActiveViewOfType(MarkdownView);
-		if (view) {
-			view.previewMode.rerender(true);
-		}
-	}
 
-	codes2Inputs(element, context) {
-		const codes = element.findAll('code')
-		debugger
-		const {inputTypes} = this.settings;
 
-		for (let [index, code] of codes.entries()) {
-			const text = code.innerText
-			const inputNotation = text.match(INPUT_PATTERN)
-			if (inputNotation) {
-				const {type, placeholder, options} = inputNotation.groups
-
-				if (options) {
-
-					let opts = options.split(',')
-					this.createRadioOptions(code, opts, index, placeholder)
-
-				} else {
-
-					let input = code.createEl('input', {
-						cls:'live-form',
-						type: inputTypes[type],
-						placeholder: `${type}${placeholder}`,
-						attr: {name: index}
-					})
-					input.addEventListener('change', this.saveValue.bind(this))
-					code.replaceWith(input)
-
-				}
-			}
-
-		}
-	}
-
-	createRadioOptions(element, options, index, placeholder) {
-		const form = element.createEl('form',{cls:'live-form'})
-		if(placeholder) form.createSpan({text:placeholder, cls:'placeholder'})
-		const type = 'radio'
-		for (let option of options) {
-			let [text, value] = option.split('=')
-			let label = form.createEl('label')
-			label.createEl('input', {type, attr: {name: index}, value: value ?? text})
-			label.createSpan({text})
-		}
-		form.addEventListener('change', this.saveValue.bind(this))
-		element.replaceWith(form)
-	}
-
-	async saveValue(event) {
-		let file = this.app.workspace.activeEditor.file
-		let index = event.target.name
-		let value = event.target.value
-		let isCodeMark = /`([^`\n]+)`/g
-		await this.app.vault.process(file, data => {
-			let count = -1;
-			return data.replace(isCodeMark, (match,text) => {
-				if(!INPUT_PATTERN.test(text)) return match
-				count++
-				return count == index ? value : match;
-			})
-		})
-		this.refresh()
-
-	}
 
 	onunload() {
 

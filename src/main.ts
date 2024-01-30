@@ -3,17 +3,13 @@ import {
 	Plugin,
 } from 'obsidian';
 import {LiveFormSettingTab, DEFAULT_SETTINGS} from "./settings";
-import {codesElements2Inputs, getNextId, markInputNotations} from "./util";
+import {code2Inputs, getNextId, identifyInputNotations} from "./util";
 // test pattern : https://regex101.com/r/OvbwyE/1
-export const INPUT_PATTERN = /(?<type>[^_`]*?)__+(?<placeholder>[^_`]*)__+(?<options>\([^)]+?\))?(?<id> -\d+-)?/
+export const INPUT_PATTERN = /(?<type>[^_`]*?)__+(?<placeholder>[^_`]*)__+(\((?<options>[^)]+?)\))?(?<id> -\d+-)?/
 export const CODE_MARK = new RegExp(`\`${INPUT_PATTERN.toString().slice(1,-1)}\``, 'g')
 
 console.log(CODE_MARK)
 /*
-
-לבדוק אם רדיו גם עובד
-ואז לעשות קומיט םוש
-
 לבדוק אם מותקן dataview
 אם כן לקחת ממנו את התבנית של שאילתה
 להשתמש בזה כדי לזהות אופציות כאלו.
@@ -40,11 +36,11 @@ export default class LiveFormPlugin extends Plugin {
 		}))
 
 		this.registerEvent(this.app.workspace.on('editor-change',
-			editor => this.id = markInputNotations(editor, this.id))
+			editor => this.id = identifyInputNotations(editor, this.id))
 		)
 
 		this.registerMarkdownPostProcessor(
-			editor => codesElements2Inputs(editor, this.settings, this.app.workspace)
+			editor => code2Inputs(editor, this.settings, this.app)
 		)
 
 		await this.loadSettings();
@@ -54,9 +50,6 @@ export default class LiveFormPlugin extends Plugin {
 
 		// this.app.workspace.on('editor-change',(editor) => console.log('editor-change', editor) )
 	}
-
-
-
 
 	onunload() {
 

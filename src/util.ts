@@ -1,12 +1,13 @@
 import {CODE_MARK, INPUT_PATTERN} from "./main";
-import {Editor, MarkdownView, TFile, Workspace} from "obsidian";
+import {App, Editor, MarkdownView, TFile, Workspace, AbstractTextComponent, DropdownComponent} from "obsidian";
 import {MyPluginSettings} from "./settings";
+import {FileSuggest, InputSuggest} from "./FileSuggester";
 
 
 export function getNextId(fileContent: string) {
 	let maxId = 1;
 	fileContent.replace(CODE_MARK, (...args) => {
-		const {id = ''} = args.at(-1)
+		const {id = ''} = args.at(-1)  //groups
 		maxId = Math.max(id.match(/\d+/), maxId)
 	})
 	return maxId + 1;
@@ -16,7 +17,7 @@ export function getNextId(fileContent: string) {
 /**
  * mark input user pattern with id `____ -id-`
  */
-export function markInputNotations(editor: Editor, nextId: number) {
+export function identifyInputNotations(editor: Editor, nextId: number) {
 	let cur = editor.getCursor()
 	let text = editor.getLine(cur.line)
 	let dirt = false
@@ -37,70 +38,91 @@ export function markInputNotations(editor: Editor, nextId: number) {
 	return nextId
 }
 
-export function codesElements2Inputs(element: HTMLElement, settings: MyPluginSettings, workspace: Workspace) {
+export function code2Inputs(element: HTMLElement, settings: MyPluginSettings, app: App) {
 	const codes = element.findAll('code')
-
+	const {workspace} = app
 	for (let code of codes) {
 		const text = code.innerText
 		const inputNotation = text.match(INPUT_PATTERN)
 		if (!inputNotation) continue;
-		const pattern = `\`${text}\``
-		createInput(pattern, code, settings, inputNotation.groups, workspace,)
-
+		const input = createInput(code, settings, inputNotation.groups, app)
+		input.dataset.pattern = '`' + text + '`'
+		input.addEventListener('save', async event => {
+			await saveValue(event, app)
+			await refresh(app)
+		})
 	}
 }
 
-function createInput(textPattern:string, element: Element, settings: MyPluginSettings, notationAttributes, workspace) {
+
+async function createInput(element: Element, settings: MyPluginSettings, fields, app) {
 	let input = null
-	if (notationAttributes.options) {
-		input = createRadioElements(element, settings, notationAttributes)
+
+	if (fields.options) {
+		if (fields.options.startsWith(DataviewAPI.settings.inlineQueryPrefix)) {
+			input = await CreateInputSuggester(app, element, settings, fields)
+		} else {
+			input = createRadioElements(element, settings, fields)
+		}
 	} else {
-		input = createInputElement(element, settings, notationAttributes)
+		input = createInputElement(element, settings, fields)
 	}
-	input.dataset.pattern = textPattern;
-	input.addEventListener('change', async event => {
-		await saveValue(event, workspace)
-		await refresh(workspace)
-	})
+
 	element.replaceWith(input)
+	return input
 }
-async function saveValue(event: Event, workspace: Workspace) {
+
+async function saveValue(event: Event, app) {
+	let workspace = app.workspace
 	let file: TFile = workspace.activeEditor!.file!
 	let {value} = event.target
 	let {dataset: {pattern}} = event.currentTarget
-	await this.app.vault.process(file, (data:string) => data.replace(pattern, value))
+	await app.vault.process(file, (data: string) => data.replace(pattern, value))
 }
 
-function createInputElement(baseElm:HTMLElement, settings, notationAttributes) {
+function CreateInputSuggester(app, baseElm: HTMLElement, settings, fields) {
+	let options = fields.options
+	let query = options.replace(DataviewAPI.settings.inlineQueryPrefix, '')
+
+	let input = createInputElement(baseElm, settings, fields)
+	let inputSuggest = new InputSuggest(app, input, query)
+	input.addEventListener('change', event => event.target.value = '')
+	input.addEventListener('select', event => event.target.trigger("save"))
+	return input
+}
+
+function createInputElement(baseElm: HTMLElement, settings: MyPluginSettings, fields) {
 	const {inputTypes} = settings;
-	const {type = '', placeholder = ''} = notationAttributes
-	debugger
-	return baseElm.createEl('input', {
+	const {type = '', placeholder = ''} = fields
+	const input = baseElm.createEl('input', {
 		cls: 'live-form',
 		type: inputTypes[type],
 		placeholder: `${type}${placeholder}`,
 	})
+	input.addEventListener('change', event => event.target.trigger('save'))
+	return input
 }
 
-function createRadioElements(element: HTMLElement, settings: MyPluginSettings, notationAttributes) {
-	const {placeholder = '', options = '', id} = notationAttributes
-	let opts = options.slice(1, -1).split(',')
+function createRadioElements(element: HTMLElement, settings: MyPluginSettings, fieldNotations: any) {
+	const {placeholder = '', options = '', id} = fieldNotations
+	let opts = options.split(',')
 
-	const form = element.createEl('form', {cls: 'live-form',title:placeholder})
+	const form = element.createEl('form', {cls: 'live-form', title: placeholder})
 	const type = 'radio'
 	for (let option of opts) {
+
 		let [text, value = text] = option.split('=')
 		let label = form.createEl('label')
 		label.createEl('input', {type, value})
 		label.createSpan({text})
 	}
+	form.addEventListener('change', event => event.target.trigger('save'))
 	return form
 }
 
 
-
-export function refresh(workspace:Workspace) {
-	workspace.updateOptions();
+export function refresh(app: App) {
+	app.workspace.updateOptions();
 	// Trigger a re-render of the current note when the settings change
 	// to force the registerMarkdownPostProcessor to reprocess the Markdown.
 	const view = workspace.getActiveViewOfType(MarkdownView);

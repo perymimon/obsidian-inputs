@@ -1,13 +1,56 @@
-# Obsidian Sample Plugin
+# Obsidian live-form
 
-This is a sample plugin for Obsidian (https://obsidian.md).
+This is a live-form for Obsidian (https://obsidian.md).
 
 This project uses Typescript to provide type checking and documentation.
 The repo depends on the latest plugin API (obsidian.d.ts) in Typescript Definition format, which contains TSDoc comments describing what it does.
 
 **Note:** The Obsidian API is still in early alpha and is subject to change at any time!
 
-This sample plugin demonstrates some of the basic functionality the plugin API can do.
+`= List From pages Flatten file.list as T Where meta(T.section).subpath = "somthing"`
+[`= List 'pages/somthing `]
+
+Ability:
+- make inline input on preview mode that change the content of the actual note
+- make inline button that inject text in some place (replacement for quickAdd + button)
+- simple syntax that not required pair characters like '(' ')' to define things
+- readblity syntax that can read easily in the plain text file
+
+`(? pretext)( ____|==== )(? deimiter)(? ++)(?,options)(? :frontmatter) -id- `
+
+Input spec:
+- 4 underscore define input
+  - each another underscore wider the input by 1em
+- 4 [____] define textarea 100 wider 3 line height
+  - after content of textarea will come new line char
+- for make the input *not* auto replace by the value, put `++` after ____
+  - text between ___ and ++ will come after user value
+
+- pretext will inject before user-value when user put enter value
+  - some magic-word allowed in the pretext like `time` or `date` that put time or date
+
+- Options: is a comma separated value, start with a comma.
+  - value can be dataview query (if it start with data-query mark for inline-query)
+  - value can be fixed value 
+    - in this case it appear as radio button
+    - unless ++ appear then it appear as checkbox values options that already appear
+  - if there is a mix of dataview and fixed value, radio button will appear and input with auto complete
+
+- Front-matter: is define the value will save in the frontmatter path
+  - the input will not disapear after value enterd, but change style to view-mode
+    - click on it will open it to edite
+  - if continues mark add with fronmatter the value will saved as array 
+    - view for that bevihur will be `value, value [input]`
+
+
+`Button:scripts/file.js => page/header-location, top|bottom`
+`Button:: template string => page/header-location, top|bottom`
+
+Button spec:
+- ``	
+
+
+This live-form demonstrates some of the basic functionality the plugin API can do.
 - Adds a ribbon icon, which shows a Notice when clicked.
 - Adds a command "Open Sample Modal" which opens a Modal.
 - Adds a plugin setting tab to the settings page.

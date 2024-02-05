@@ -41,7 +41,7 @@ Input spec:
     - click on it will open it to edite
   - if continues mark add with fronmatter the value will saved as array 
     - view for that bevihur will be `value, value [input]`
-
+- Input type is only text for now
 
 `Button:scripts/file.js => page/header-location, top|bottom`
 `Button:: template string => page/header-location, top|bottom`

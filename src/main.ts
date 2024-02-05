@@ -3,45 +3,54 @@ import {
 	Plugin,
 } from 'obsidian';
 import {LiveFormSettingTab, DEFAULT_SETTINGS} from "./settings";
-import {code2Inputs, getNextId, identifyInputNotations} from "./util";
+import {replaceCode2Inputs, reformatAnotation, getMaxAnotationId, refresh} from "./util";
 // test pattern : https://regex101.com/r/OvbwyE/1
-export const INPUT_PATTERN = /(?<type>[^_`]*?)__+(?<placeholder>[^_`]*)__+(\((?<options>[^)]+?)\))?(?<id> -\d+-)?/
-export const CODE_MARK = new RegExp(`\`${INPUT_PATTERN.toString().slice(1,-1)}\``, 'g')
+// https://regex101.com/r/jC824J/1
 
-console.log(CODE_MARK)
-/*
-לבדוק אם מותקן dataview
-אם כן לקחת ממנו את התבנית של שאילתה
-להשתמש בזה כדי לזהות אופציות כאלו.
+const BASE_MARK = new RegExp([
 
-להריץ אותם כדי לקבל את הפלט ( רשימה של קבצים)
-להשתמש ברשימה כדי ליצור autocomplate או בעזרת dataset אם אי אפשר ליצור בapi
+	/(?<type>[^_`]*?)/, 								// input type
+	/(?<input>__+(?<placeholder>[^_`]*)__+)/, 		// mandatory input pattern
+	/(?<continue>(?<delimiter>.+(?=\+\+))?(\+\+))?/,	// continue mark
+	// /(?<options>,[-\w= ,#@$]+)?/,
+	/(?<options>,.+?)?/,
+	/(?<yaml>:[\w.]+)?/,
+	/(?<id> -\d+-)?/
 
-האם אפשר לקבל שורות מרשימות ישר מquert ?
-איך עושים input שהיוזר רק מסמן עבור dataview
-*/
+].map(r => r.source).join('\\s*?'), '')
 
+export const CODE_ELEMENT_MARK = new RegExp(`${BASE_MARK.source}$`)
+export const INPUT_PATTERN = new RegExp(`\`${BASE_MARK.source}\``, 'g')
+
+export let app = null;
 export default class LiveFormPlugin extends Plugin {
 	settings = {};
 	id = 1;
 
 	async onload() {
+		app = this.app;
 		console.log('loading live-form plugin');
 
-		/* find the higher id in open file and save it */
-		this.registerEvent(this.app.workspace.on('file-open', async (file) => {
-			let content = await this.app.vault.read(file);
-			this.id = getNextId(content)
-			console.log('next id for file', file.name, ':', this.id)
+		this.registerEvent(this.app.workspace.on('editor-change', async editor => {
+			let cur = editor.getCursor()
+			let textLine = editor.getLine(cur.line)
+			let fileContent = editor.getValue()
+			let reformatText = reformatAnotation(fileContent, textLine)
+			if (textLine === reformatText) return;
+			editor.setLine(cur.line, reformatText)
+			editor.setCursor(cur)
 		}))
 
-		this.registerEvent(this.app.workspace.on('editor-change',
-			editor => this.id = identifyInputNotations(editor, this.id))
-		)
+		this.registerEvent(this.registerMarkdownPostProcessor(
+			(root, ctx) => {
+				return replaceCode2Inputs(root, ctx, this.settings, this.app)
+			}
+		))
+		this.registerEvent(this.app.metadataCache.on("changed", async (path, data, cache) => {
+			await refresh(this.app)
 
-		this.registerMarkdownPostProcessor(
-			editor => code2Inputs(editor, this.settings, this.app)
-		)
+		}),)
+
 
 		await this.loadSettings();
 

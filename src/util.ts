@@ -1,123 +1,126 @@
-import {CODE_MARK, INPUT_PATTERN} from "./main";
+import {CODE_ELEMENT_MARK, INPUT_PATTERN} from "./main";
 import {App, Editor, MarkdownView, TFile, Workspace, AbstractTextComponent, DropdownComponent} from "obsidian";
 import {MyPluginSettings} from "./settings";
 import {FileSuggest, InputSuggest} from "./FileSuggester";
+import {objectGet, objectSet} from "./objects";
 
 
-export function getNextId(fileContent: string) {
+export function getMaxAnotationId(fileContent: string) {
 	let maxId = 1;
-	fileContent.replace(CODE_MARK, (...args) => {
-		const {id = ''} = args.at(-1)  //groups
-		maxId = Math.max(id.match(/\d+/), maxId)
-	})
-	return maxId + 1;
-
+	for (let anotation of fileContent.matchAll(INPUT_PATTERN)) {
+		let inputFields = anotation.groups
+		let id = inputFields.id?.match(/\d+/) ?? 0
+		maxId = Math.max(id, maxId)
+	}
+	return maxId;
 }
 
 /**
- * mark input user pattern with id `____ -id-`
+ * mark input Anotation pattern with -id- if need : `____ -id-`
  */
-export function identifyInputNotations(editor: Editor, nextId: number) {
-	let cur = editor.getCursor()
-	let text = editor.getLine(cur.line)
-	let dirt = false
-
-	let reformatText = text.replace(CODE_MARK, (...args) => {
-		const {type = '', placeholder = '', options = '', id} = args.at(-1)
-		if (id) return args[0]
-
-		dirt = true
-		let reformat = `\`${type}__${placeholder}__${options} -${nextId++}-\``;
-		return reformat
+export function reformatAnotation(fileContent: string, textLine: string) {
+	let maxId = 0
+	return textLine.replace(INPUT_PATTERN, (...match) => {
+		let group = match.at(-1)
+		if (group.id) return match[0]
+		let content = match[0].slice(1, -1)
+		maxId = 1 + (maxId || getMaxAnotationId(fileContent))
+		return `\`${content} -${maxId}-\``
 	})
-	if (dirt) {
-		editor.setLine(cur.line, reformatText)
-		editor.setCursor(cur)
-	}
-
-	return nextId
 }
 
-export function code2Inputs(element: HTMLElement, settings: MyPluginSettings, app: App) {
-	const codes = element.findAll('code')
+export function replaceCode2Inputs(root: HTMLElement, ctx, settings: MyPluginSettings, app: App) {
+	const codesEl = root.findAll('code')
 	const {workspace} = app
-	for (let code of codes) {
-		const text = code.innerText
-		const inputNotation = text.match(INPUT_PATTERN)
+	for (let codeEl of codesEl) {
+		const text = codeEl.innerText.trim()
+		const inputNotation = text.match(CODE_ELEMENT_MARK)
 		if (!inputNotation) continue;
-		const input = createInput(code, settings, inputNotation.groups, app)
-		input.dataset.pattern = '`' + text + '`'
-		input.addEventListener('save', async event => {
-			await saveValue(event, app)
-			await refresh(app)
+		const inputFields = inputNotation.groups;
+		const formEl = createForm(app, ctx.frontmatter, inputFields)
+		inputFields!.pattern = '`' + text + '`'
+		formEl.addEventListener('save', async event => {
+			await saveValue(event, app, inputFields)
 		})
+		codeEl.replaceWith(formEl)
 	}
 }
 
+function generatePlaceholder(inputFields, frontmatter) {
+	let {type, placeholder, yaml} = inputFields
+	let yamlPlaceholder = ''
+	if (inputFields.yaml) {
+		let yamlValue = JSON.stringify(objectGet(frontmatter, inputFields.yaml))
+		yamlPlaceholder = `:${yaml} (= ${yamlValue ?? 'empty'})`
+	}
+	let typeAndHolder = [type.slice(0, 3), placeholder].filter(Boolean).join(', ')
+	return `${typeAndHolder} ${yamlPlaceholder}`
+}
 
-async function createInput(element: Element, settings: MyPluginSettings, fields, app) {
-	let input = null
+function createForm(app: App, frontmatter, inputFields) {
+	const DataviewAPI = app.plugins!.plugins.dataview
+	inputFields.yaml = inputFields.yaml?.replace(/^:/, '')
+	const formEl = createEl('form', {cls: 'live-form', title: ''})
+	let {options = '', isTextarea = false, type, placeholder, yaml} = inputFields
+	const inputEl =
+		createEl(
+			isTextarea ? 'textarea' : 'input',
+			{type: 'text', placeholder: generatePlaceholder(inputFields, frontmatter)}
+		)
 
-	if (fields.options) {
-		if (fields.options.startsWith(DataviewAPI.settings.inlineQueryPrefix)) {
-			input = await CreateInputSuggester(app, element, settings, fields)
-		} else {
-			input = createRadioElements(element, settings, fields)
+	const queries = []
+	const {inlineQueryPrefix} = DataviewAPI.settings
+	options = options.slice(1).trim()
+	if (options) {
+		const inputOptions = options.split(',')
+		for (let opt of inputOptions) {
+			opt = opt.trim()
+			if (opt.startsWith(inlineQueryPrefix)) {
+				let query = opt.replace(DataviewAPI.settings.inlineQueryPrefix, '')
+				queries.push(query)
+			} else {
+				let [text, value = text] = opt.split('=')
+				let label = formEl.createEl('label')
+				label.createEl('input', {type: 'radio', value})
+				label.createSpan({text})
+			}
 		}
-	} else {
-		input = createInputElement(element, settings, fields)
 	}
 
-	element.replaceWith(input)
-	return input
+	if (queries.length) {
+		new InputSuggest(app, inputEl, queries)
+	}
+	if (queries.length || !options) {
+		formEl.append(inputEl)
+	}
+
+	formEl.addEventListener('change', event => event.target.trigger('save'))
+	formEl.addEventListener('select', event => event.target.trigger('save'))
+	formEl.addEventListener('submit', event => {
+		event.preventDefault();
+	})
+	return formEl
 }
 
-async function saveValue(event: Event, app) {
+async function saveValue(event: Event, app, inputFields) {
+	const {pattern, continues, delimiter, yaml, isTextarea} = inputFields
 	let workspace = app.workspace
 	let file: TFile = workspace.activeEditor!.file!
 	let {value} = event.target
-	let {dataset: {pattern}} = event.currentTarget
-	await app.vault.process(file, (data: string) => data.replace(pattern, value))
-}
+	if (yaml) {
+		await app.fileManager.processFrontMatter(file, front => {
+			let key = inputFields.yaml
+			objectSet(front, key, value)
+			return front
+		})
+	} else {
+		await app.vault.process(file, (data: string) => {
+			if (delimiter) value += delimiter
+			if (continues) value += pattern
 
-function CreateInputSuggester(app, baseElm: HTMLElement, settings, fields) {
-	let options = fields.options
-	let query = options.replace(DataviewAPI.settings.inlineQueryPrefix, '')
-
-	let input = createInputElement(baseElm, settings, fields)
-	let inputSuggest = new InputSuggest(app, input, query)
-	input.addEventListener('change', event => event.target.value = '')
-	input.addEventListener('select', event => event.target.trigger("save"))
-	return input
-}
-
-function createInputElement(baseElm: HTMLElement, settings: MyPluginSettings, fields) {
-	const {inputTypes} = settings;
-	const {type = '', placeholder = ''} = fields
-	const input = baseElm.createEl('input', {
-		cls: 'live-form',
-		type: inputTypes[type],
-		placeholder: `${type}${placeholder}`,
-	})
-	input.addEventListener('change', event => event.target.trigger('save'))
-	return input
-}
-
-function createRadioElements(element: HTMLElement, settings: MyPluginSettings, fieldNotations: any) {
-	const {placeholder = '', options = '', id} = fieldNotations
-	let opts = options.split(',')
-
-	const form = element.createEl('form', {cls: 'live-form', title: placeholder})
-	const type = 'radio'
-	for (let option of opts) {
-
-		let [text, value = text] = option.split('=')
-		let label = form.createEl('label')
-		label.createEl('input', {type, value})
-		label.createSpan({text})
+			return data.replace(pattern, value)
+		})
 	}
-	form.addEventListener('change', event => event.target.trigger('save'))
-	return form
 }
 
 
@@ -125,7 +128,7 @@ export function refresh(app: App) {
 	app.workspace.updateOptions();
 	// Trigger a re-render of the current note when the settings change
 	// to force the registerMarkdownPostProcessor to reprocess the Markdown.
-	const view = workspace.getActiveViewOfType(MarkdownView);
+	const view = app.workspace.getActiveViewOfType(MarkdownView);
 	if (view) {
 		view.previewMode.rerender(true);
 	}

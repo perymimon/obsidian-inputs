@@ -10,9 +10,11 @@ export enum FileSuggestMode {
 export class InputSuggest extends AbstractInputSuggest<TFile> {
 	query: string
 
-	constructor(app: App, textInputEl: HTMLInputElement | HTMLDivElement, query: string) {
+	constructor(app: App, textInputEl: HTMLInputElement | HTMLDivElement, queries: string[]) {
 		super(app, textInputEl);
-		this.query = query;
+
+		this.queries = queries.map(q => q.trim());
+		textInputEl.addEventListener('change', (event) => event.stopPropagation())
 	}
 
 	renderSuggestion(file, el: HTMLElement) {
@@ -28,17 +30,22 @@ export class InputSuggest extends AbstractInputSuggest<TFile> {
 		this.textInputEl.value = file.path;
 		this.textInputEl.trigger("input");
 		this.textInputEl.trigger("select");
+		this.textInputEl.value = '';
 		this.close();
 	}
 
 	async getSuggestions(input_str: string) {
 		const lower_input_str = input_str.toLowerCase();
-		let result = await DataviewAPI.query(this.query)
+		let querying = this.queries.map(query => DataviewAPI.query(query))
+		let results = await Promise.all(querying)
 		let fuzzy = prepareFuzzySearch(lower_input_str)
-		let sorted = result.value.values.map(ft => {
-			let result = fuzzy(ft.path);
-			console.log(ft.path, result?.score ?? -Infinity);
-			return {...ft, ...result};
+		let sorted = results.flatMap(result => {
+			return result.value.values.map(ft => {
+				let result = fuzzy(ft.path);
+				console.log(ft.path, result?.score ?? -Infinity);
+				//todo:filtr out infinity
+				return {...ft, ...result};
+			})
 		}).sort(ft => ft?.score ?? -Infinity)
 		console.log('----------');
 		return sorted

@@ -53,7 +53,7 @@ function unflattenObject(flattenObject) {
 }
 
 
-export function objectSet(root, path, value) {
+export function objectSet(root, path, value, isPush) {
 	let paths = path.split(/\[(\w+)\]|\.|\["(\w+)"\]/).filter(Boolean)
 	let obj = root;
 	while (paths.length > 1) {
@@ -61,14 +61,20 @@ export function objectSet(root, path, value) {
 		obj[p] = typeof obj[p] == 'object' ? obj[p] : {};
 		obj = obj[p]
 	}
-	obj[paths[0]] = value
-}
+	let p = paths[0]
 
+	if (isPush) {
+		obj[p] = Array.isArray(obj[p]) ? obj[p] : []
+		obj[p].push(value)
+	}else {
+		obj[p] = value
+	}
+}
 export function objectGet(root, path) {
 	let paths = path.split(/\[(\w+)\]|\.|\["(\w+)"\]/).filter(Boolean)
 	let current = root;
 	do {
-		if(current == void 0) return void 0;
+		if (current == void 0) return void 0;
 		let p = paths.shift()
 		current = current[p]
 	} while (paths.length)

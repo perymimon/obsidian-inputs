@@ -6,9 +6,51 @@ available in the app when your plugin is enabled.
 If your plugin does not need CSS, delete this file.
 
 */
-.live-form{
+form.live-form {
+	/*--input-height: 1em;*/
+	/*--input-border-width: 0.1em;*/
+	/*--input-radius: 0;*/
+	margin-inline-start: 0.3em;
+	/*--background-modifier-border-focus: */
+
 	display: inline-block;
 
-	& .placeholder{
-	font-size:0.9em;
+	& .placeholder {
+		font-size: 0.9em;
+	}
+
+	& textarea {
+		height: 6em;
+	}
+
+	& > input {
+		width: calc(var(--widther) * 3em);
+		border-radius: 0;
+		border: none;
+	}
+	& > :where(input):has(+ button) {
+		padding-inline-end: 3em;
+		margin-inline-end: -3.3em;
+	}
+	& > input + .buttons{
+		display: inline-grid;
+		min-width: 8em;
+		grid-template-columns: 1fr 1fr;
+	}
+	& > textarea + .buttons{
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+	}
+}
+
+
+form.live-form:has(textarea) {
+	display: flex;
+	align-items: stretch;
+	flex-direction: column;
+}
+
+form.live-form :where(input) + button {
+	border-top-left-radius: 0;
+	border-bottom-left-radius: 0;
 }

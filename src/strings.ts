@@ -12,3 +12,10 @@ export const modifications = {
 	date:(format='yyyy-MM-DD')=> moment().format(format),
 	time:(format = 'HH:mm') => moment().format(format)
 }
+
+export const typeMap = {
+	date: '📅',
+	number:'🔢',
+	textarea:'💬',
+	time:'⌚'
+}

@@ -5,15 +5,17 @@ import {
 } from 'obsidian';
 import {LiveFormSettingTab, DEFAULT_SETTINGS} from "./settings";
 import {replaceCode2Inputs, reformatAnotation, getMaxAnotationId, refresh} from "./util";
+import {replaceCode2Buttons} from "./buttons";
 
 // https://regex101.com/r/FhEQ2Z/1
 // https://regex101.com/r/jC824J/1
 
 /*
 missing:
-0) input list
-3) all textarea stuff
-4) css for inputs
+1) x for list
+-- buttons for add text
+
+
 
 */
 const BASE_MARK = new RegExp([
@@ -51,7 +53,8 @@ export default class LiveFormPlugin extends Plugin {
 
 		this.registerMarkdownPostProcessor(
 			(root, ctx) => {
-				return replaceCode2Inputs(root, ctx, this.settings, this.app)
+				replaceCode2Inputs(root, ctx, this.settings, this.app)
+				replaceCode2Buttons(root, ctx, this.settings, this.app)
 			}
 		)
 		// this.registerEvent(this.app.metadataCache.on("changed",

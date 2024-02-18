@@ -1,4 +1,6 @@
 export function stringTemplate(template, modifationObject){
+	if(!String.isString(template)) return template;
+
 	return template.replace(/\{(?<key>[^}]+)}/, (_,aaa)=>{
 		let [key, arg] = aaa.split(':')
 		let replacement = modifationObject[key]

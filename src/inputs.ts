@@ -1,46 +1,40 @@
-import {CODE_ELEMENT_MARK, INPUT_PATTERN} from "./main";
+import {CODE_ELEMENT_MARK, INPUT_PATTERN_MARK} from "./main";
 import {App, Editor, MarkdownView, TFile, Workspace, AbstractTextComponent, DropdownComponent} from "obsidian";
 import {MyPluginSettings} from "./settings";
 import {FileSuggest, InputSuggest} from "./FileSuggester";
 import {objectGet, objectPush, objectSet} from "./objects";
 import {modifications, stringTemplate, typeMap} from "./strings";
 
+export const BASE_MARK = new RegExp([
+	/(?<pretext>.*)\b(?<type>[^_`]*?)/, 	 			// input type
+	/(?<input>__+(?<placeholder>[^_`]*)__+)/, 			// mandatory input pattern
+	/(?<continues>(?<delimiter>.+(?=\+\+))?(\+\+))?/,	// continue mark
+	// /(?<options>,[-\w= ,#@$]+)?/,
+	/(?<options>,.+?)?/,
+	/(?<yaml>:[\w.]+)?/,
+	/(?<id> -\d+-)/
+].map(r => r.source).join('\\s*?'), '')
 
-export function getMaxAnotationId(fileContent: string) {
-	let maxId = 1;
-	for (let anotation of fileContent.matchAll(INPUT_PATTERN)) {
-		let inputFields = anotation.groups
-		let id = inputFields.id?.match(/\d+/) ?? 0
-		maxId = Math.max(id, maxId)
-	}
-	return maxId;
-}
+export const INPUT_PATTERN = new RegExp(`${BASE_MARK.source}$`)
+export const INPUT_PATTERN_MARK = new RegExp(`\`${BASE_MARK.source}\``, 'g')
 
 /**
  * mark input Anotation pattern with -id- if need : `____ -id-`
  */
-export function reformatAnotation(fileContent: string, textLine: string) {
-	let maxId = 0
-	return textLine.replace(INPUT_PATTERN, (...match) => {
-		let group = match.at(-1)
-		if (group.id) return match[0]
-		let content = match[0].slice(1, -1)
-		maxId = 1 + (maxId || getMaxAnotationId(fileContent))
-		return `\`${content} -${maxId}-\``
-	})
-}
-
 export function replaceCode2Inputs(root: HTMLElement, ctx, settings: MyPluginSettings, app: App) {
 	const codesEl = root.findAll('code')
 	for (let codeEl of codesEl) {
 		const text = codeEl.innerText.trim()
-		const inputNotation = text.match(CODE_ELEMENT_MARK)
+		const inputNotation = text.match(INPUT_PATTERN)
 		if (!inputNotation) continue;
 		const fields = inputNotation.groups;
 		fields!.pattern = '`' + text + '`'
 		const formEl = createForm(app, ctx.frontmatter, fields)
 		formEl.addEventListener('save', async event => {
-			await saveValue(event, app, fields)
+			if (event.target.value == '') return;
+			let {value} = event.target
+			event.target.value = ''
+			await saveValue(value, app, fields)
 			setTimeout(_ => {
 				let {id} = fields
 				let element = document.getElementById(id)
@@ -64,7 +58,6 @@ function createForm(app: App, frontmatter, inputFields) {
 	inputEl.style.setProperty('--widther', input.match(/_/g).length)
 	inputEl.id = id
 	inputEl.placeholder = generatePlaceholder(inputFields, frontmatter)
-	debugger
 	inputEl.title = generateTitle(inputFields)
 
 	const queries = []
@@ -117,10 +110,7 @@ function createForm(app: App, frontmatter, inputFields) {
 	return formEl
 }
 
-async function saveValue(event: Event, app, inputFields) {
-	if (event.target.value == '') return;
-	let {value} = event.target
-	event.target.value = ''
+async function saveValue(value:string, app, inputFields) {
 	const {pattern, continues, delimiter, yaml, type, pretext} = inputFields
 	let file: TFile = app.workspace.activeEditor!.file!
 
@@ -173,15 +163,3 @@ async function remove(event, app, inputFields) {
 	})
 }
 
-export async function refresh(app: App) {
-	let focusElement = document.activeElement;
-	app.workspace.updateOptions();
-	// Trigger a re-render of the current note when the settings change
-	// to force the registerMarkdownPostProcessor to reprocess the Markdown.
-	const view = app.workspace.getActiveViewOfType(MarkdownView);
-	if (view) {
-		await view.previewMode.rerender(true);
-		debugger
-		focusElement.focus()
-	}
-}

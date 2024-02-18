@@ -4,8 +4,10 @@ import {
 	App,
 } from 'obsidian';
 import {LiveFormSettingTab, DEFAULT_SETTINGS} from "./settings";
-import {replaceCode2Inputs, reformatAnotation, getMaxAnotationId, refresh} from "./util";
-import {replaceCode2Buttons} from "./buttons";
+import {replaceCode2Inputs} from "./inputs";
+import {BUTTON_PATTERN_TEXT, replaceCode2Buttons} from "./buttons";
+import {identifyAnnotation} from "./internalApi";
+import {INPUT_PATTERN_MARK} from "./inputs";
 
 // https://regex101.com/r/FhEQ2Z/1
 // https://regex101.com/r/jC824J/1
@@ -18,20 +20,6 @@ missing:
 
 
 */
-const BASE_MARK = new RegExp([
-	/(?<pretext>.*)\b(?<type>[^_`]*?)/, 	 		// input type
-	/(?<input>__+(?<placeholder>[^_`]*)__+)/, 			// mandatory input pattern
-	/(?<continues>(?<delimiter>.+(?=\+\+))?(\+\+))?/,	// continue mark
-	// /(?<options>,[-\w= ,#@$]+)?/,
-	/(?<options>,.+?)?/,
-	/(?<yaml>:[\w.]+)?/,
-	/(?<id> -\d+-)?/
-
-].map(r => r.source).join('\\s*?'), '')
-
-export const CODE_ELEMENT_MARK = new RegExp(`${BASE_MARK.source}$`)
-export const INPUT_PATTERN = new RegExp(`\`${BASE_MARK.source}\``, 'g')
-console.log('INPUT_PATTERN',INPUT_PATTERN)
 
 export let app:App
 export default class LiveFormPlugin extends Plugin {
@@ -45,7 +33,8 @@ export default class LiveFormPlugin extends Plugin {
 			let cur = editor.getCursor()
 			let textLine = editor.getLine(cur.line)
 			let fileContent = editor.getValue()
-			let reformatText = reformatAnotation(fileContent, textLine)
+			let reformatText = identifyAnnotation(INPUT_PATTERN_MARK, fileContent, textLine)
+				reformatText = identifyAnnotation(BUTTON_PATTERN_TEXT, fileContent, textLine)
 			if (textLine === reformatText) return;
 			editor.setLine(cur.line, reformatText)
 			editor.setCursor(cur)

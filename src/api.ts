@@ -1,6 +1,9 @@
 import {App, TFile} from "obsidian";
+import {objectSet} from "./objects";
+import * as api from './api';
+import {asyncEval, getActiveFile, getDVInlineFields, parseTarget, setPrototype} from "./internalApi";
+import {stringTemplate} from "./strings";
 
-export * from "./logs";
 var app = global.app
 
 
@@ -8,9 +11,6 @@ export function getLinkToFile(file: TFile) {
 	return app.metadataCache.fileToLinktext(file, '', true)
 }
 
-function getActiveFile(): TFile {
-	return app.workspace.activeEditor?.file ?? app.workspace.getActiveFile();
-}
 
 export function getTFile(path?: TFile | string): TFile {
 	if (!path) return getActiveFile()
@@ -44,23 +44,28 @@ export async function importJs(path: string): Promise<unknown> {
 	return import(busterPath);
 }
 
-export async function executeCode(code, fileContext?: string | TFile) {
-	const AsyncFunction = Object.getPrototypeOf(async function () {
-	}).constructor
-	const getDataFields = getDataFields(fileContext)
-	const func = new AsyncFunction('dataFields', `with(dataFields){ return ${code} }`)
-	return await func.call(this, getDataFields)
+export async function executeCode(code: string, contextFile?: string | TFile, priority?: string) {
+	var fields = await getFileData(contextFile, priority)
+	return asyncEval(code, fields, api)
 }
 
-export async function getDataFields(file: string | TFile) {
+/**
+ *
+ * @param file
+ * @param priority 'yaml'|'field'
+ */
+export async function getFileData(file?: string | TFile, priority?: 'yaml' | 'field' | string = 'field') {
 	const dv = getPlugin('dataview')
 	file = getTFile(file)
 	if (dv) {
 		return dv.api.page(file.path)
 	}
 	const {frontmatter} = getStructure(file)
-	const inlineFields = getDVInlineFields(file)
-	return {...frontmatter, ...inlineFields}
+	const inlineFields = await getDVInlineFields(file)
+	const fieldsObject = inlineFields.reduce((obj, line) => (obj[line.key] = line.content, obj), {})
+	if (priority == 'field') return setPrototype(fieldsObject, frontmatter)
+	if (priority == 'yaml') return setPrototype(frontmatter, fieldsObject)
+	return setPrototype(fieldsObject, frontmatter)
 }
 
 // https://github.com/SilentVoid13/Templater/blob/26c35559bd63765f6078d43f6febd53435530741/src/core/Templater.ts#L110
@@ -94,46 +99,128 @@ export function getPlugin(pluginId: string) {
 	return app.plugins.getPlugin(pluginId);
 }
 
-
-export async function getDVInlineFields(file: TFile) {
-	if (!file) file = getActiveFile()
-
-	const content = await this.app.vault.cachedRead(file);
-	const regex = /[\[\(]?([^\n\r\(\[]*)::[ ]*([^\)\]\n\r]*)[\]\)]?/g;
-	const properties = [];
-
-	let match;
-	while ((match = regex.exec(content)) !== null) {
-		const key: string = match[1].trim();
-		const value: string = match[2].trim();
-
-		properties.push({key, content: value});
-	}
-
-	return properties;
+export async function setFrontmatter(value, path, method, file) {
+	file = getTFile(file)
+	await app.fileManager.processFrontMatter(file, obj => {
+		return objectSet(obj, path, value, method)
+	})
 }
 
 //\[(.+?::.+?)\]|\((.+?::.+?)\)|\b(\S+?::.+?)$
 // https://regex101.com/r/BExhmA/1
-export async function setDVInlineFields(key, value, file?) {
+export async function setDVInlineFields(value, key, method = 'replace', file?) {
 	file = getTFile(file)
 	const findNotation = [
-		new RegExp(`\\[(${key})::(.+?)\\]`),
-		new RegExp(`\\((${key})::(.+?)\\)`),
-		new RegExp(`\\b(${key})::(.+?)$`)
+		new RegExp(`\\[(${key})::(.*?)\\]`),
+		new RegExp(`\\((${key})::(.*?)\\)`),
+		new RegExp(`\\b(${key})::(.*?)$`, 'm')
 	]
 
 	await app.vault.process(file, (content: string) => {
-		for( let notation of findNotation){
+		for (let notation of findNotation) {
 			const match = content.match(notation)
-			if(!match ) continue
-			const [field,key] = match
-			const newField = field.replace(/(?<=::).*?(?=[\])])/, value)
+			if (!match) continue
+			const [field, key, oldValue] = match
+			switch (method) {
+				case 'replace':
+				case 'append':
+				case 'prepend':
+					let demi = {[key]: oldValue.split(',').filter(Boolean)}
+					objectSet(demi, key, value, method)
+					value = demi[key].join(',')
+					break;
+				case 'delete':
+					return content.replace(field, '')
+				case 'clear':
+					value = ''
+					break;
+				default:
+					throw new Error('Invalid method');
+			}
+			const newField = field.replace(/(?<=::).*?(?=\]|\)|$)/, value)
 			return content.replace(field, newField)
 		}
+		// not found case, so add new field on top of the file
 		var {frontmatterPosition} = getStructure(file)
 		var offset = frontmatterPosition.end.offset
-		// append to top of file.
-		return [content.slice(0,offset),`\n[${key}::${value}]`,content.slice(offset)].join('\n')
+		return [
+			content.slice(0, offset),
+			`\n[${key}::${value}]`,
+			content.slice(offset)
+		].join('\n')
 	})
+}
+
+
+/**
+ * @param text
+ * @param location filename#heading | filename | #heading | pattern
+ * @param method append|prepend|replace
+ * @param file
+ */
+async function quickText(text: string, location: string, method = "append", file?) {
+	if (method == 'replace') {
+		return await app.vault.process(file, (content: string) => {
+			return content.replace(location, text)
+		})
+	}
+	const [filename, heading] = location.split(/#/);
+	file = getTFile(filename);
+	if (heading) {
+		var {headings, sections, frontmatterPosition} = getStructure(file);
+		var header = headings.find((item) => item.heading == heading);
+	}
+	return await app.vault.process(file, (content) => {
+		let lines = content.split("\n");
+		var pos = 0;
+		if (method == "prepend") {
+			pos = header ? header.position.start.line : frontmatterPosition.end.line;
+		}
+		if (method == "append") {
+			pos = header ? header.position.end.line : lines.length;
+		}
+		lines.splice(pos + 1, 0, text);
+		return lines.join("\n");
+	});
+}
+
+/**
+ * text run over string template the reuslt is check again some rules
+ * if expression surround by [[]] it is a file to import and run
+ * if expression can run without exception it JS and evaluates value is return
+ * if it throw it return as literal text
+ * @param expression
+ * @param file
+ */
+export async function decodeAndRun(expression: string, priority: string, file?: TFile,) {
+	const data = await getFileData(file, priority)
+	const prerun = (await stringTemplate(expression.trim(), data)).trim()
+	try {
+		if (prerun.startsWith('[[') && prerun.endsWith(']]')) {
+			global.live = api
+			const ret = await importJs(prerun)
+			return ret.default ?? void 0
+		}
+		return await executeCode(prerun, file)
+	} catch {
+		// literal string
+		return prerun
+	} finally {
+		delete global.live
+	}
+}
+
+export async function saveValue(value: string, target: string = "", file?: TFile) {
+	file = getTFile(file)
+	target = target.trim()
+	const {targetType, path, method} = parseTarget(target)
+	switch (targetType) {
+		case 'field':
+			return await setDVInlineFields(value, path, method, file)
+		case 'yaml':
+			return await setFrontmatter(value, path, method, file)
+		case 'header':
+		default:
+			return await quickText(value, path, method, file)
+	}
 }

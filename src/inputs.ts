@@ -1,9 +1,9 @@
-import {CODE_ELEMENT_MARK, INPUT_PATTERN_MARK} from "./main";
-import {App, Editor, MarkdownView, TFile, Workspace, AbstractTextComponent, DropdownComponent} from "obsidian";
+import {App, Editor, TFile} from "obsidian";
 import {MyPluginSettings} from "./settings";
-import {FileSuggest, InputSuggest} from "./FileSuggester";
-import {objectGet, objectPush, objectSet} from "./objects";
+import {InputSuggest} from "./FileSuggester";
+import {objectGet} from "./objects";
 import {modifications, stringTemplate, typeMap} from "./strings";
+import {setFrontmatter} from "./api";
 
 export const BASE_MARK = new RegExp([
 	/(?<pretext>.*)\b(?<type>[^_`]*?)/, 	 			// input type
@@ -15,8 +15,7 @@ export const BASE_MARK = new RegExp([
 	/(?<id> -\d+-)/
 ].map(r => r.source).join('\\s*?'), '')
 
-export const INPUT_PATTERN = new RegExp(`${BASE_MARK.source}$`)
-export const INPUT_PATTERN_MARK = new RegExp(`\`${BASE_MARK.source}\``, 'g')
+export const INPUT_PATTERN = new RegExp(`${BASE_MARK.source}`)
 
 /**
  * mark input Anotation pattern with -id- if need : `____ -id-`
@@ -61,13 +60,13 @@ function createForm(app: App, frontmatter, inputFields) {
 	inputEl.title = generateTitle(inputFields)
 
 	const queries = []
-	const {inlineQueryPrefix} = DataviewAPI.settings
+	const {inlineQueryPrefix} = DataviewAPI?.settings
 	options = options.slice(1).trim()
 	if (options) {
 		const inputOptions = options.split(',')
 		for (let opt of inputOptions) {
 			opt = opt.trim()
-			if (opt.startsWith(inlineQueryPrefix)) {
+			if (inlineQueryPrefix && opt.startsWith(inlineQueryPrefix)) {
 				let query = opt.replace(DataviewAPI.settings.inlineQueryPrefix, '')
 				queries.push(query)
 			} else {
@@ -115,11 +114,8 @@ async function saveValue(value:string, app, inputFields) {
 	let file: TFile = app.workspace.activeEditor!.file!
 
 	if (yaml) {
-		await app.fileManager.processFrontMatter(file, front => {
-			let key = inputFields.yaml
-			objectSet(front, key, value, !!continues)
-			return front
-		})
+		let key = inputFields.yaml
+		await setFrontmatter(file,key,value, !!continues )
 	} else {
 		await app.vault.process(file, (data: string) => {
 			// let line = data.split('\n').filter( line => line.contains(pattern) ).pop()
@@ -151,7 +147,6 @@ function generatePlaceholder(inputFields, frontmatterValues) {
 
 function generateTitle(inputFields) {
 	let {pattern} = inputFields
-
 	return pattern
 }
 

@@ -1,27 +1,13 @@
-import {
-	MarkdownView,
-	Plugin,
-	App,
-} from 'obsidian';
+import {Plugin, App,} from 'obsidian';
 import {LiveFormSettingTab, DEFAULT_SETTINGS} from "./settings";
-import {replaceCode2Inputs} from "./inputs";
-import {BUTTON_PATTERN_TEXT, replaceCode2Buttons} from "./buttons";
+import {INPUT_PATTERN, replaceCode2Inputs} from "./inputs";
+import {BUTTON_PATTERN, generateButtonNotation, replaceCode2Buttons} from "./buttons";
 import {identifyAnnotation} from "./internalApi";
-import {INPUT_PATTERN_MARK} from "./inputs";
 
 // https://regex101.com/r/FhEQ2Z/1
 // https://regex101.com/r/jC824J/1
 
-/*
-missing:
-1) x for list
--- buttons for add text
-
-
-
-*/
-
-export let app:App
+export let app: App
 export default class LiveFormPlugin extends Plugin {
 	settings = {};
 	id = 1;
@@ -33,8 +19,8 @@ export default class LiveFormPlugin extends Plugin {
 			let cur = editor.getCursor()
 			let textLine = editor.getLine(cur.line)
 			let fileContent = editor.getValue()
-			let reformatText = identifyAnnotation(INPUT_PATTERN_MARK, fileContent, textLine)
-				reformatText = identifyAnnotation(BUTTON_PATTERN_TEXT, fileContent, textLine)
+			// let reformatText = identifyAnnotation(INPUT_PATTERN, fileContent, textLine)
+			let reformatText = identifyAnnotation(BUTTON_PATTERN, fileContent, textLine, generateButtonNotation)
 			if (textLine === reformatText) return;
 			editor.setLine(cur.line, reformatText)
 			editor.setCursor(cur)
@@ -42,7 +28,7 @@ export default class LiveFormPlugin extends Plugin {
 
 		this.registerMarkdownPostProcessor(
 			(root, ctx) => {
-				replaceCode2Inputs(root, ctx, this.settings, this.app)
+				// replaceCode2Inputs(root, ctx, this.settings, this.app)
 				replaceCode2Buttons(root, ctx, this.settings, this.app)
 			}
 		)

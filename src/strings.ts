@@ -1,23 +1,25 @@
-export function stringTemplate(template, modifationObject){
-	if(!String.isString(template)) return template;
+import {asyncEval, replaceAsync} from "./internalApi";
 
-	return template.replace(/\{(?<key>[^}]+)}/, (_,aaa)=>{
-		let [key, arg] = aaa.split(':')
-		let replacement = modifationObject[key]
-		let value = typeof replacement == 'function'? replacement(arg):replacement;
+export async function stringTemplate(template: string, fields) {
+	if (!String.isString(template)) return template;
+	return await replaceAsync(template, /\{(?<key>[^}]+)}/g, async (_, expr) => {
+		let [exec, arg] = expr.split(':')
+		var replacement:any = await asyncEval(exec, fields, modifications)
+		let value = typeof replacement == 'function' ? replacement(arg) : replacement;
 
 		return value
-	} )
+	})
+
 }
 
 export const modifications = {
-	date:(format='yyyy-MM-DD')=> moment().format(format),
-	time:(format = 'HH:mm') => moment().format(format)
+	date: (format = 'yyyy-MM-DD') => moment().format(format),
+	time: (format = 'HH:mm') => moment().format(format)
 }
 
 export const typeMap = {
 	date: '📅',
-	number:'🔢',
-	textarea:'💬',
-	time:'⌚'
+	number: '🔢',
+	textarea: '💬',
+	time: '⌚'
 }

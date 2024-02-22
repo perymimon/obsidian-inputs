@@ -52,8 +52,14 @@ function unflattenObject(flattenObject) {
 	return unFlatten;
 }
 
-
-export function objectSet(root, path, value, isPush) {
+/**
+ *
+ * @param root
+ * @param path
+ * @param value
+ * @param method replace|append|prepend|delete|clear
+ */
+export function objectSet(root, path, value, method = 'replace') {
 	let paths = path.split(/\[(\w+)\]|\.|\["(\w+)"\]/).filter(Boolean)
 	let obj = root;
 	while (paths.length > 1) {
@@ -62,14 +68,30 @@ export function objectSet(root, path, value, isPush) {
 		obj = obj[p]
 	}
 	let p = paths[0]
-
-	if (isPush) {
-		obj[p] = Array.isArray(obj[p]) ? obj[p] : []
-		obj[p].push(value)
-	}else {
-		obj[p] = value
+	let oldValue = obj[p];
+	switch (method) {
+		case 'replace':
+			obj[p] = value;
+			break;
+		case 'append':
+			obj[p] = Array.isArray(obj[p]) ? [...obj[p], value] : [oldValue, value];
+			break;
+		case 'prepend':
+			obj[p] = Array.isArray(obj[p]) ? [value, ...obj[p]] : [value, oldValue];
+			break;
+		case 'delete':
+			delete obj[p];
+			break;
+		case 'clear':
+			obj[p] = Array.isArray(obj[p]) ? [] : {};
+			break;
+		default:
+			throw new Error('Invalid method');
 	}
+	return root;
+
 }
+
 export function objectGet(root, path) {
 	let paths = path.split(/\[(\w+)\]|\.|\["(\w+)"\]/).filter(Boolean)
 	let current = root;

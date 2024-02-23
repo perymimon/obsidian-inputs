@@ -1,7 +1,7 @@
 import {App, TFile} from "obsidian";
 import {objectSet} from "./objects";
 import * as api from './api';
-import {asyncEval, getActiveFile, getDVInlineFields, parseTarget, setPrototype} from "./internalApi";
+import {asyncEval, getActiveFile, getDVInlineFields, parseTarget, setPrototype, Target} from "./internalApi";
 import {stringTemplate} from "./strings";
 
 var app = global.app
@@ -13,7 +13,7 @@ export function getLinkToFile(file: TFile) {
 
 
 export function getTFile(path?: TFile | string): TFile {
-	if (!path) return getActiveFile()
+	if (!path || path == 'activeFile') return getActiveFile()
 	if (path instanceof TFile) return path as TFile;
 	path = (path.startsWith('[[') && path.endsWith(']]')) ? path.slice(2, -2) : path
 	let tFile = app.metadataCache.getFirstLinkpathDest(path, "")
@@ -60,7 +60,7 @@ export async function getFileData(file?: string | TFile, priority?: 'yaml' | 'fi
 	if (dv) {
 		return dv.api.page(file.path)
 	}
-	const {frontmatter} = getStructure(file)
+	const {frontmatter = {}} = getStructure(file)
 	const inlineFields = await getDVInlineFields(file)
 	const fieldsObject = inlineFields.reduce((obj, line) => (obj[line.key] = line.content, obj), {})
 	if (priority == 'field') return setPrototype(fieldsObject, frontmatter)
@@ -123,6 +123,7 @@ export async function setDVInlineFields(value, key, method = 'replace', file?) {
 			const [field, key, oldValue] = match
 			switch (method) {
 				case 'replace':
+					break;
 				case 'append':
 				case 'prepend':
 					let demi = {[key]: oldValue.split(',').filter(Boolean)}
@@ -142,7 +143,7 @@ export async function setDVInlineFields(value, key, method = 'replace', file?) {
 		}
 		// not found case, so add new field on top of the file
 		var {frontmatterPosition} = getStructure(file)
-		var offset = frontmatterPosition.end.offset
+		var offset = frontmatterPosition?.end.offset ?? 0
 		return [
 			content.slice(0, offset),
 			`\n[${key}::${value}]`,
@@ -153,35 +154,62 @@ export async function setDVInlineFields(value, key, method = 'replace', file?) {
 
 
 /**
+ * - if there is no header or file method related to textInput|button himself
+ * append - add text after the current textInput|button
+ * prepend - add text before the current textInput|button
+ * replace - replace the notation of textInput|button with the given text
+ *
+ * - if there is header without file. file implicit is activefile
+ * append - add text at the end of the header section
+ * prepend - add text at the top of the header section
+ * replace - replace the text of the under the section header
+ * - if there is file without header.
+ * append - add text at the bottom of the file
+ * prepend - add text at the top of the file, under the section of frontmatter
+ * replace - not care what it's do
  * @param text
- * @param location filename#heading | filename | #heading | pattern
- * @param method append|prepend|replace
+ * @param location file#header|or replacement text activeFile#header is related to current file
+ * @param method append|preprd|replace(default)
  * @param file
+ * @returns {Promise<string>}
  */
-async function quickText(text: string, location: string, method = "append", file?) {
-	if (method == 'replace') {
-		return await app.vault.process(file, (content: string) => {
-			return content.replace(location, text)
+// location: string, method = "append"
+async function quickText(text: string, target: Target) {
+	const {file, path, method = 'replace', targetType} = target
+	const {headings = [], sections, frontmatterPosition} = getStructure(file);
+	const tFile = getTFile(file)
+	var content = await app.vault.read(tFile)
+	let lines = content.split("\n");
+	var pos, delCount = 0;
+	if (targetType == 'header') {
+		const headerIndex = headings?.findIndex((item) => item.heading.replace(/^#+/,'').trim() == path.trim())
+		const [start,end] = [
+			headings[headerIndex]?.position.end.offset ?? frontmatterPosition?.end.offset ?? 0,
+			headings[headerIndex+1]?.position.start.offset ?? content.length
+		]
+		const startHeader = headings[headerIndex]?.position.end.line ?? frontmatterPosition?.end.line ?? 0
+		const endHeader = startHeader + content.slice(start,end).trim().split('\n').length
+
+		if(headerIndex == -1) text = `## ${path}\n${text}`
+		if (["prepend","replace"].includes(method) ) pos = startHeader
+		if (method == "append") pos = endHeader
+		if (method == "replace") delCount = endHeader - startHeader
+
+		content = lines.toSpliced(pos + 1, delCount, text).join("\n");
+	} else if (file) {
+		if (method == "prepend") pos = frontmatterPosition.end.line
+		if (method == "append") pos = lines.length
+		content = lines.toSpliced(pos + 1, delCount, text).join("\n");
+	} else{
+		content = content.replace(path, (match) => {
+			if (method == "append") return `${match}${text}`
+			if (method == "prepend") return `${text}${match}`
+			if (method == "replace") return text
+			return `${method} method is not legal here`
 		})
 	}
-	const [filename, heading] = location.split(/#/);
-	file = getTFile(filename);
-	if (heading) {
-		var {headings, sections, frontmatterPosition} = getStructure(file);
-		var header = headings.find((item) => item.heading == heading);
-	}
-	return await app.vault.process(file, (content) => {
-		let lines = content.split("\n");
-		var pos = 0;
-		if (method == "prepend") {
-			pos = header ? header.position.start.line : frontmatterPosition.end.line;
-		}
-		if (method == "append") {
-			pos = header ? header.position.end.line : lines.length;
-		}
-		lines.splice(pos + 1, 0, text);
-		return lines.join("\n");
-	});
+	await app.vault.modify(tFile, content)
+
 }
 
 /**
@@ -190,6 +218,7 @@ async function quickText(text: string, location: string, method = "append", file
  * if expression can run without exception it JS and evaluates value is return
  * if it throw it return as literal text
  * @param expression
+ * @param priority
  * @param file
  */
 export async function decodeAndRun(expression: string, priority: string, file?: TFile,) {
@@ -210,17 +239,18 @@ export async function decodeAndRun(expression: string, priority: string, file?: 
 	}
 }
 
-export async function saveValue(value: string, target: string = "", file?: TFile) {
-	file = getTFile(file)
-	target = target.trim()
-	const {targetType, path, method} = parseTarget(target)
+
+export async function saveValue(text: string, target: Target) {
+	const {file, targetType, path, method} = target
 	switch (targetType) {
 		case 'field':
-			return await setDVInlineFields(value, path, method, file)
+			return await setDVInlineFields(text, path, method, file)
 		case 'yaml':
-			return await setFrontmatter(value, path, method, file)
+			return await setFrontmatter(text, path, method, file)
+		case 'text':
 		case 'header':
+			return await quickText(text, target)
 		default:
-			return await quickText(value, path, method, file)
+
 	}
 }

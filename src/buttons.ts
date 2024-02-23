@@ -1,17 +1,18 @@
 import {App, setTooltip, TFile} from "obsidian";
 import {MyPluginSettings} from "./settings";
-import {decodeAndRun, executeCode, getFileData, importJs, saveValue} from "./api";
+import {decodeAndRun, saveValue} from "./api";
 import * as api from "./api"
-import {parseTarget, refresh, replaceAndSave} from "./internalApi";
+import {parseTarget, refresh} from "./internalApi";
 import {stringTemplate} from "./strings";
 
 // export const BUTTON_PATTERN = /button\|(?<name>.+)\|(?<expression>.+?)(?<target>(?::|::|##).+)?(?<id> -\d+-)/i
-export const BUTTON_PATTERN = /(?:^|`)button\|(?<name>.+)\|\s*(?<expression>.+?)\s*(?<target>>(?::|::|##)\D.*?)?\s*(?<id>-\d+-)?(?:$|`)/i
+export const BUTTON_PATTERN = /(?:^|`)button\|(?<name>.+)\|\s*(?<expression>.+?)\s*(?<target>>.*?)?\s*(?<id>-\d+-)?(?:$|`)/i
 
-export function generateButtonNotation(fields, id = 0){
+export function generateButtonNotation(fields, id = 0) {
 	const {name = '', expression = '', target = ''} = fields
 	return `\`Button|${name}| ${expression} ${target} -${id}-\``
 }
+
 // https://regex101.com/r/AN0SOC/1
 export function replaceCode2Buttons(root: HTMLElement, ctx, settings: MyPluginSettings, app: App) {
 	const codesEl = root.findAll('code')
@@ -33,9 +34,10 @@ function createButton(rootEl, app: App, frontmatter, fields) {
 	rootEl.replaceWith(buttonEl)
 
 	buttonEl.onclick = async (event) => {
-		var {targetType} = parseTarget(target)
-		let textValue = await decodeAndRun(expression, targetType)
-		if (textValue) await saveValue(textValue, target.trim() || `${pattern} replace`)
+		var targetObject = parseTarget(target)
+		targetObject.path ??= pattern
+		let newText = await decodeAndRun(expression, targetObject.targetType)
+		if (newText) await saveValue(newText, targetObject)
 	}
 
 }

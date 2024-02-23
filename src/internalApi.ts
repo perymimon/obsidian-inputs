@@ -81,21 +81,31 @@ export async function replaceAsync(string: string, regexp: RegExp, replacer: rep
 	let i = 0;
 	return string.replace(regexp, () => replacements[i++]);
 }
+export type Target = {
+	file: TFile | string,
+	targetType: 'yaml' | 'field' | 'header' | 'text',
+	path: string,
+	method: 'append' | 'prepend' | 'replace'
+}
 
-export function parseTarget(target) {
-	const targetPattern = />(::|:|#)?(.+?)(?:\s+(append|prepend|replace))?$/
-	const fields = target.match(targetPattern)
-	var [, targetType, path, method] = fields
+export function parseTarget(target: string):Target {
+	const catchSquareContent = /\[\[(.*)\]\]/
+	const targetPattern = />(?:(?:\[\[)?([\w.\s]*?)(::|:|#)(.*?)(?:\]\])?)?(?:\s*(append|prepend|replace))?$/
+	const fields = target
+		.replace(catchSquareContent,'$1')
+		.match(targetPattern) ?? []
+	var [,file, targetType='', path, method = 'replace'] = fields
 	const typeMap = {
 		':': 'yaml',
 		'::': 'field',
-		'#': 'header'
+		'#': 'header',
+		'':'text'
 	}
 	targetType = typeMap[targetType] ?? ''
-	return {targetType, path, method}
+	return {file,targetType, path, method}
 }
 
-export function setPrototype(a,proto){
+export function setPrototype(a:object, proto:object) {
 	a.__proto__ = proto
 	return a;
 }

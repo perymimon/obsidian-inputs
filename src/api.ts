@@ -1,7 +1,7 @@
-import {App, TFile} from "obsidian";
+import {TFile} from "obsidian";
 import {objectSet} from "./objects";
 import * as api from './api';
-import {asyncEval, getActiveFile, getDVInlineFields, parseTarget, setPrototype, Target} from "./internalApi";
+import {asyncEval, getActiveFile, getDVInlineFields, setPrototype, Target} from "./internalApi";
 import {stringTemplate} from "./strings";
 
 var app = global.app
@@ -138,7 +138,7 @@ export async function setDVInlineFields(value, key, method = 'replace', file?) {
 				default:
 					throw new Error('Invalid method');
 			}
-			const newField = field.replace(/(?<=::).*?(?=\]|\)|$)/, value)
+			const newField = field.replace(/(?<=::).*?(?=]|\)|$)/, value)
 			return content.replace(field, newField)
 		}
 		// not found case, so add new field on top of the file
@@ -168,9 +168,7 @@ export async function setDVInlineFields(value, key, method = 'replace', file?) {
  * prepend - add text at the top of the file, under the section of frontmatter
  * replace - not care what it's do
  * @param text
- * @param location file#header|or replacement text activeFile#header is related to current file
- * @param method append|preprd|replace(default)
- * @param file
+ * @param target
  * @returns {Promise<string>}
  */
 // location: string, method = "append"

@@ -1,8 +1,4 @@
-import {App, MarkdownView, TFile} from "obsidian";
-import {modifications, stringTemplate} from "./strings";
-import {getFileData, getTFile} from "./api";
-import {BUTTON_PATTERN} from "./buttons";
-import * as api from "./api";
+import {MarkdownView, TFile} from "obsidian";
 
 export function getMaxAnnotationId(pattern: RegExp, fileContent: string) {
 	let maxId = 1;
@@ -48,7 +44,7 @@ export async function getDVInlineFields(file: TFile) {
 	if (!file) file = getActiveFile()
 
 	const content = await this.app.vault.cachedRead(file);
-	const regex = /\[(.*)::(.*)\]|\((.*)::(.*)\)|(\w+?)::(.*?)$/g;
+	const regex = /\[(.*)::(.*)]|\((.*)::(.*)\)|(\w+?)::(.*?)$/g;
 	const properties = [];
 
 	let match;
@@ -89,8 +85,8 @@ export type Target = {
 }
 
 export function parseTarget(target: string):Target {
-	const catchSquareContent = /\[\[(.*)\]\]/
-	const targetPattern = />(?:(?:\[\[)?([\w.\s]*?)(::|:|#)(.*?)(?:\]\])?)?(?:\s*(append|prepend|replace))?$/
+	const catchSquareContent = /\[\[(.*)]]/
+	const targetPattern = />(?:(?:\[\[)?([\w.\s]*?)(::|:|#)(.*?)(?:]])?)?(?:\s*(append|prepend|replace))?$/
 	const fields = target
 		.replace(catchSquareContent,'$1')
 		.match(targetPattern) ?? []

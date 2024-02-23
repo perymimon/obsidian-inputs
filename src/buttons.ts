@@ -1,11 +1,8 @@
-import {App, setTooltip, TFile} from "obsidian";
+import {App} from "obsidian";
 import {MyPluginSettings} from "./settings";
 import {decodeAndRun, saveValue} from "./api";
-import * as api from "./api"
-import {parseTarget, refresh} from "./internalApi";
-import {stringTemplate} from "./strings";
+import {parseTarget} from "./internalApi";
 
-// export const BUTTON_PATTERN = /button\|(?<name>.+)\|(?<expression>.+?)(?<target>(?::|::|##).+)?(?<id> -\d+-)/i
 export const BUTTON_PATTERN = /(?:^|`)button\|(?<name>.+)\|\s*(?<expression>.+?)\s*(?<target>>.*?)?\s*(?<id>-\d+-)?(?:$|`)/i
 
 export function generateButtonNotation(fields, id = 0) {

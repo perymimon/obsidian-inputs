@@ -44,9 +44,9 @@ export async function importJs(path: string): Promise<unknown> {
 	return import(busterPath);
 }
 
-export async function executeCode(code: string, contextFile?: string | TFile, priority?: string) {
+export async function executeCode(code: string, vars, contextFile?: string | TFile, priority?: string) {
 	var fields = await getFileData(contextFile, priority)
-	return asyncEval(code, fields, api)
+	return asyncEval(code, {...fields,...vars}, api)
 }
 
 /**
@@ -215,23 +215,23 @@ async function quickText(text: string, target: Target) {
  * if expression surround by [[]] it is a file to import and run
  * if expression can run without exception it JS and evaluates value is return
  * if it throw it return as literal text
- * @param expression
+ * @param preExpression
  * @param priority
  * @param file
  */
-export async function decodeAndRun(expression: string, priority: string, file?: TFile,) {
-	const data = await getFileData(file, priority)
-	const prerun = (await stringTemplate(expression.trim(), data)).trim()
+export async function decodeAndRun(preExpression: string, priority: string, vars, file?: TFile,) {
+	const data = {...await getFileData(file, priority),...vars}
+	const expression = (await stringTemplate(preExpression.trim(), data)).trim()
 	try {
-		if (prerun.startsWith('[[') && prerun.endsWith(']]')) {
+		if (expression.startsWith('[[') && expression.endsWith(']]')) {
 			global.live = api
-			const ret = await importJs(prerun)
+			const ret = await importJs(expression)
 			return ret.default ?? void 0
 		}
-		return await executeCode(prerun, file)
+		return await executeCode(expression,vars, file)
 	} catch {
 		// literal string
-		return prerun
+		return expression
 	} finally {
 		delete global.live
 	}

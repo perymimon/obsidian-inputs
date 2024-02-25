@@ -3,136 +3,128 @@ import {MyPluginSettings} from "./settings";
 import {InputSuggest} from "./FileSuggester";
 import {objectGet} from "./objects";
 import {modifications, stringTemplate, typeMap} from "./strings";
-import {setFrontmatter} from "./api";
+import {decodeAndRun, getPlugin, saveValue, setFrontmatter} from "./api";
+import {parseTarget} from "./internalApi";
 
-export const BASE_MARK = new RegExp([
-	/(?<pretext>.*)\b(?<type>[^_`]*?)/, 	 			// input type
-	/(?<input>__+(?<placeholder>[^_`]*)__+)/, 			// mandatory input pattern
-	/(?<continues>(?<delimiter>.+(?=\+\+))?(\+\+))?/,	// continue mark
-	// /(?<options>,[-\w= ,#@$]+)?/,
-	/(?<options>,.+?)?/,
-	/(?<yaml>:[\w.]+)?/,
-	/(?<id> -\d+-)/
-].map(r => r.source).join('\\s*?'), '')
+export const INPUT_PATTERN = new RegExp([
+	/(?:`|^)/,
+	/(?<type>\w+?)\|/,
+	/(?<expression>.*?__+(?<placeholder>.*?)__+.*?)/,
+	/(?:\|(?<options>.+?))?/,
+	/(?<target>>.*?)?/,
+	/(?<id>-\d+-)?/,
+	/(?:$|`)/
+].map(r => r.source).join(''), '')
 
-export const INPUT_PATTERN = new RegExp(`${BASE_MARK.source}`)
-
+//https://regex101.com/r/ouJ4cb/1
 /**
  * mark input Anotation pattern with -id- if need : `____ -id-`
  */
-export function replaceCode2Inputs(root: HTMLElement, ctx, settings: MyPluginSettings, app: App) {
-	const codesEl = root.findAll('code')
+export function replaceCode2Inputs(rootEl: HTMLElement, ctx, settings: MyPluginSettings, app: App) {
+	const codesEl = rootEl.findAll('code')
 	for (let codeEl of codesEl) {
 		const text = codeEl.innerText.trim()
 		const inputNotation = text.match(INPUT_PATTERN)
 		if (!inputNotation) continue;
 		const fields = inputNotation.groups;
 		fields!.pattern = '`' + text + '`'
-		const formEl = createForm(app, ctx.frontmatter, fields)
-		formEl.addEventListener('save', async event => {
-			if (event.target.value == '') return;
-			let {value} = event.target
-			event.target.value = ''
-			await saveValue(value, app, fields)
-			setTimeout(_ => {
-				let {id} = fields
-				let element = document.getElementById(id)
-				element?.focus()
-			}, 10)
-
-		})
-		codeEl.replaceWith(formEl)
+		createForm(codeEl, app, ctx.frontmatter, fields)
 	}
 }
 
-function createForm(app: App, frontmatter, inputFields) {
-	const DataviewAPI = app.plugins!.plugins.dataview
-	inputFields.yaml = inputFields.yaml?.replace(/^:/, '')
-	const formEl = createEl('form', {cls: 'live-form', title: ''})
-	let {options = '', type, continues, input, id} = inputFields
-
+function createInputEl(fields, queries) {
+	const {type, expression, id, placeholder, pattern} = fields
 	const inputEl = createEl(
 		type == 'textarea' ? 'textarea' : 'input', {type}
 	)
-	inputEl.style.setProperty('--widther', input.match(/_/g).length)
+	inputEl.style.setProperty('--widther', expression.match(/_/g).length)
 	inputEl.id = id
-	inputEl.placeholder = generatePlaceholder(inputFields, frontmatter)
-	inputEl.title = generateTitle(inputFields)
+	inputEl.placeholder = placeholder || expression.replace(/^_+$/,'')
+	inputEl.title = pattern
+	if (queries.length) new InputSuggest(app, inputEl, queries)
+	return inputEl
+}
 
-	const queries = []
-	const {inlineQueryPrefix} = DataviewAPI?.settings
-	options = options.slice(1).trim()
-	if (options) {
-		const inputOptions = options.split(',')
-		for (let opt of inputOptions) {
-			opt = opt.trim()
-			if (inlineQueryPrefix && opt.startsWith(inlineQueryPrefix)) {
-				let query = opt.replace(DataviewAPI.settings.inlineQueryPrefix, '')
-				queries.push(query)
-			} else {
-				let [text, value = text] = opt.split('=')
-				let label = formEl.createEl('label')
-				label.createEl('input', {type: 'radio', value})
-				label.createSpan({text})
-			}
-		}
+function createRadioEls(pairs) {
+	const fragment = createFragment()
+	for (const {text, value} of pairs) {
+		let label = fragment.createEl('label')
+		label.createEl('input', {type: 'radio', value})
+		label.createSpan({text})
 	}
+	return fragment
+}
 
-	if (queries.length) {
-		new InputSuggest(app, inputEl, queries)
-	}
-	if (queries.length || !options) {
+function createHelperButtons() {
+	let divEl = createEl('div', {cls: 'buttons'})
+	let submitEl = divEl.createEl('input', {cls: 'submit', value: 'save', type: 'submit'})
+	submitEl.tabIndex = -1
+	let btnEl = divEl.createEl('button', {title: 'close', cls: 'close', text: '🗑'})
+	btnEl.tabIndex = -1
+	btnEl.addEventListener('click', e => e.target.trigger('remove'))
+	return divEl
+}
+
+function createForm(rootEl, app: App, frontmatter, fields) {
+	const formEl = createEl('form', {cls: 'live-form', title: ''})
+	let {expression, options, target = '',pattern} = fields
+	var targetObject = parseTarget(target)
+	targetObject.path ??= pattern
+	formEl.title = pattern
+	formEl.addEventListener('save', async e => {
+		let {value} = e.target
+		if (value == '') return;
+		e.target.value = ''
+		const run = expression.replace(/__+.*?__+/, `{input}`)
+		const text = await decodeAndRun(run, targetObject.targetType,{input:value})
+		if (text) await saveValue(text, targetObject)
+		setTimeout(_ => document.getElementById(fields.id)?.focus(), 10)
+	})
+	formEl.addEventListener('remove', event =>
+		saveValue('',{path: pattern, method:'replace', targetType:'text'})
+	)
+
+	const {textsValues, queries} = parseOptions(options)
+	formEl.append(createRadioEls(textsValues))
+	if (queries.length || textsValues.length == 0) {
+		const inputEl = createInputEl(fields, queries)
 		formEl.append(inputEl)
 	}
-	if (continues) {
-		let divEl = formEl.createEl('div', {cls: 'buttons'})
-		// close btn
-		let submitEl = divEl.createEl('input', {
-			cls: 'submit', value: 'save', type: 'submit'
-		})
-		submitEl.tabIndex = -1
-		let btnEl = divEl.createEl('button', {
-			cls: 'close', text: '🗑', title: 'close'
-		})
-		btnEl.tabIndex = -1
-		btnEl.addEventListener('click', event => remove(event, app, inputFields))
-	}
+	if (targetObject.method != 'replace')
+		formEl.append(createHelperButtons())
 
-	formEl.addEventListener('change', event => event.target.trigger('save'))
-	formEl.addEventListener('select', event => event.target.trigger('save'))
-	formEl.addEventListener('submit', event => event.preventDefault())
-	formEl.addEventListener('keydown', event => {
-		if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) {
-			event.target.trigger('save')
-		}
+	const cbTriggerSave = (e) => e.target.trigger('save')
+	formEl.addEventListener('change', cbTriggerSave)
+	formEl.addEventListener('select', cbTriggerSave)
+	formEl.addEventListener('submit', e => e.preventDefault())
+	formEl.addEventListener('keydown', e => {
+		if (!(e.key == "Enter" && (e.metaKey || e.ctrlKey))) return
+		cbTriggerSave(e)
 	})
-	return formEl
+
+	rootEl.replaceWith(formEl)
 }
 
-async function saveValue(value:string, app, inputFields) {
-	const {pattern, continues, delimiter, yaml, type, pretext} = inputFields
-	let file: TFile = app.workspace.activeEditor!.file!
+function parseOptions(options:strings) {
+	const dv = getPlugin('dataview')?.api
+	const queryPrefix = dv?.settings.inlineQueryPrefix
+	const queries = []
+	const textsValues = []
+	if(!options) return {textsValues, queries}
+	for (let opt of options.split(',')) {
+		opt = opt.trim()
+		if (queryPrefix && opt.startsWith(queryPrefix)) {
+			let query = opt.replace(queryPrefix, '')
+			queries.push(query)
+		} else {
+			let [text, value = text] = opt.split(/:/)
+			textsValues.push({text, value})
 
-	if (yaml) {
-		let key = inputFields.yaml
-		await setFrontmatter(file,key,value, !!continues )
-	} else {
-		await app.vault.process(file, (data: string) => {
-			// let line = data.split('\n').filter( line => line.contains(pattern) ).pop()
-			// let beforePattern = line.split(pattern).shift()
-			// let endWithDelimiter = beforePattern.endsWith(delimiter)
-			// let thereIsDelimiter = !!beforePattern.match(delimiter)
-			// let isTheFirstOne = !thereIsDelimiter
-
-			if (pretext) value = stringTemplate(pretext, modifications) + value
-			if (delimiter) value += delimiter
-			if (type == 'textarea') value += '\n'
-			if (continues) value += pattern
-
-			return data.replace(pattern, value)
-		})
+		}
 	}
+	return {textsValues, queries}
 }
+
 
 function generatePlaceholder(inputFields, frontmatterValues) {
 	let {type, placeholder, yaml, continues} = inputFields

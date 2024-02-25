@@ -4,7 +4,7 @@ import {decodeAndRun, saveValue} from "./api";
 import {parseTarget} from "./internalApi";
 
 export const BUTTON_PATTERN = /(?:^|`)button\|(?<name>.+)\|\s*(?<expression>.+?)\s*(?<target>>.*?)?\s*(?<id>-\d+-)?(?:$|`)/i
-
+// https://regex101.com/r/osbDKH/1
 export function generateButtonNotation(fields, id = 0) {
 	const {name = '', expression = '', target = ''} = fields
 	return `\`Button|${name}| ${expression} ${target} -${id}-\``

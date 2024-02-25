@@ -28,7 +28,7 @@ export default class LiveFormPlugin extends Plugin {
 
 		this.registerMarkdownPostProcessor(
 			(root, ctx) => {
-				// replaceCode2Inputs(root, ctx, this.settings, this.app)
+				replaceCode2Inputs(root, ctx, this.settings, this.app)
 				replaceCode2Buttons(root, ctx, this.settings, this.app)
 			}
 		)

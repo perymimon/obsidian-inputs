@@ -11,8 +11,46 @@ export function getLinkToFile(file: TFile) {
 	return app.metadataCache.fileToLinktext(file, '', true)
 }
 
+export async function inlineField(key: string, file?: TFile) {
+	const tFile = getTFile(file)
+	const findNotation = [
+		new RegExp(`\\[(${key})::(.*?)\\]`),
+		new RegExp(`\\((${key})::(.*?)\\)`),
+		new RegExp(`\\b(${key})::(.*?)$`, 'm')
+	]
+	var content = await app.vault.read(tFile)
+	for (let notation of findNotation) {
+		const match = content.match(notation)
+		if (match) {
+			const [field, key, value] = match
+			let textBefore = content.slice(0, match.index)
+			let line = textBefore.match(/\n/g).length
+			let ch = match.index - textBefore.lastIndexOf('\n') - 1
+			return {
+				field,
+				key,
+				value,
+				start: {
+					line: line,
+					offset: match.index,
+					ch: ch
+				},
+				end: {
+					line: line + field.match(/\n/g)?.length ?? 0,
+					offset: match!.index + field.length,
+					ch: ch + field.length // can be worng if there \n in the match
+				}
+
+			}
+		}
+	}
+	return null
+
+}
+
 
 export function getTFile(path?: TFile | string): TFile {
+	if (String.isString(path)) path = path.trim()
 	if (!path || path == 'activeFile') return getActiveFile()
 	if (path instanceof TFile) return path as TFile;
 	path = (path.startsWith('[[') && path.endsWith(']]')) ? path.slice(2, -2) : path
@@ -46,7 +84,7 @@ export async function importJs(path: string): Promise<unknown> {
 
 export async function executeCode(code: string, vars, contextFile?: string | TFile, priority?: string) {
 	var fields = await getFileData(contextFile, priority)
-	return asyncEval(code, {...fields,...vars}, api)
+	return asyncEval(code, {...fields, ...vars}, api)
 }
 
 /**
@@ -108,15 +146,16 @@ export async function setFrontmatter(value, path, method, file) {
 
 //\[(.+?::.+?)\]|\((.+?::.+?)\)|\b(\S+?::.+?)$
 // https://regex101.com/r/BExhmA/1
-export async function setDVInlineFields(value, key, method = 'replace', file?) {
+export async function setInlineField(value, key, method = 'replace', file?) {
 	file = getTFile(file)
 	const findNotation = [
 		new RegExp(`\\[(${key})::(.*?)\\]`),
 		new RegExp(`\\((${key})::(.*?)\\)`),
 		new RegExp(`\\b(${key})::(.*?)$`, 'm')
 	]
+	var isValueUpdated = false
 
-	await app.vault.process(file, (content: string) => {
+	var content = await app.vault.process(file, (content: string) => {
 		for (let notation of findNotation) {
 			const match = content.match(notation)
 			if (!match) continue
@@ -126,9 +165,9 @@ export async function setDVInlineFields(value, key, method = 'replace', file?) {
 					break;
 				case 'append':
 				case 'prepend':
-					let demi = {[key]: oldValue.split(',').filter(Boolean)}
-					objectSet(demi, key, value, method)
-					value = demi[key].join(',')
+					var array = oldValue.split(',').filter(Boolean)
+					if(method == 'append') array.push(value); else array.unshift(value)
+					value = array.join(',')
 					break;
 				case 'delete':
 					return content.replace(field, '')
@@ -138,9 +177,14 @@ export async function setDVInlineFields(value, key, method = 'replace', file?) {
 				default:
 					throw new Error('Invalid method');
 			}
-			const newField = field.replace(/(?<=::).*?(?=]|\)|$)/, value)
-			return content.replace(field, newField)
+			if (oldValue != value) {
+				isValueUpdated = true
+				const newField = field.replace(/(?<=::).*?(?=]|\)|$)/, value)
+				return content.replace(field, newField)
+			}
+			return content
 		}
+		isValueUpdated = true
 		// not found case, so add new field on top of the file
 		var {frontmatterPosition} = getStructure(file)
 		var offset = frontmatterPosition?.end.offset ?? 0
@@ -150,6 +194,7 @@ export async function setDVInlineFields(value, key, method = 'replace', file?) {
 			content.slice(offset)
 		].join('\n')
 	})
+	return isValueUpdated
 }
 
 
@@ -180,16 +225,16 @@ async function quickText(text: string, target: Target) {
 	let lines = content.split("\n");
 	var pos, delCount = 0;
 	if (targetType == 'header') {
-		const headerIndex = headings?.findIndex((item) => item.heading.replace(/^#+/,'').trim() == path.trim())
-		const [start,end] = [
+		const headerIndex = headings?.findIndex((item) => item.heading.replace(/^#+/, '').trim() == path.trim())
+		const [start, end] = [
 			headings[headerIndex]?.position.end.offset ?? frontmatterPosition?.end.offset ?? 0,
-			headings[headerIndex+1]?.position.start.offset ?? content.length
+			headings[headerIndex + 1]?.position.start.offset ?? content.length
 		]
 		const startHeader = headings[headerIndex]?.position.end.line ?? frontmatterPosition?.end.line ?? 0
-		const endHeader = startHeader + content.slice(start,end).trim().split('\n').length
+		const endHeader = startHeader + content.slice(start, end).trim().split('\n').length
 
-		if(headerIndex == -1) text = `## ${path}\n${text}`
-		if (["prepend","replace"].includes(method) ) pos = startHeader
+		if (headerIndex == -1) text = `## ${path}\n${text}`
+		if (["prepend", "replace"].includes(method)) pos = startHeader
 		if (method == "append") pos = endHeader
 		if (method == "replace") delCount = endHeader - startHeader
 
@@ -198,7 +243,7 @@ async function quickText(text: string, target: Target) {
 		if (method == "prepend") pos = frontmatterPosition.end.line
 		if (method == "append") pos = lines.length
 		content = lines.toSpliced(pos + 1, delCount, text).join("\n");
-	} else{
+	} else {
 		content = content.replace(path, (match) => {
 			if (method == "append") return `${match}${text}`
 			if (method == "prepend") return `${text}${match}`
@@ -219,8 +264,10 @@ async function quickText(text: string, target: Target) {
  * @param priority
  * @param file
  */
-export async function decodeAndRun(preExpression: string, priority: string, vars, file?: TFile,) {
-	const data = {...await getFileData(file, priority),...vars}
+export async function decodeAndRun(preExpression: string, priority: string, vars? = {}, file?: TFile,) {
+	if(preExpression.trim() == '') return ''
+
+	const data = {...await getFileData(file, priority), ...vars}
 	const expression = (await stringTemplate(preExpression.trim(), data)).trim()
 	try {
 		if (expression.startsWith('[[') && expression.endsWith(']]')) {
@@ -228,7 +275,7 @@ export async function decodeAndRun(preExpression: string, priority: string, vars
 			const ret = await importJs(expression)
 			return ret.default ?? void 0
 		}
-		return await executeCode(expression,vars, file)
+		return await executeCode(expression, vars, file)
 	} catch {
 		// literal string
 		return expression
@@ -242,7 +289,7 @@ export async function saveValue(text: string, target: Target) {
 	const {file, targetType, path, method} = target
 	switch (targetType) {
 		case 'field':
-			return await setDVInlineFields(text, path, method, file)
+			return await setInlineField(text, path, method, file)
 		case 'yaml':
 			return await setFrontmatter(text, path, method, file)
 		case 'text':

@@ -1,4 +1,6 @@
 import {MarkdownView, TFile} from "obsidian";
+import {getTFile} from "./api";
+var app = global.app
 
 export function getMaxAnnotationId(pattern: RegExp, fileContent: string) {
 	let maxId = 1;
@@ -105,3 +107,4 @@ export function setPrototype(a:object, proto:object) {
 	a.__proto__ = proto
 	return a;
 }
+

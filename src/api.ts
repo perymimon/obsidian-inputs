@@ -155,7 +155,7 @@ export async function setInlineField(value, key, method = 'replace', file?) {
 	]
 	var isValueUpdated = false
 
-	var content = await app.vault.process(file, (content: string) => {
+	await app.vault.process(file, (content: string) => {
 		for (let notation of findNotation) {
 			const match = content.match(notation)
 			if (!match) continue
@@ -262,6 +262,7 @@ async function quickText(text: string, target: Target) {
  * if it throw it return as literal text
  * @param preExpression
  * @param priority
+ * @param vars
  * @param file
  */
 export async function decodeAndRun(preExpression: string, priority: string, vars? = {}, file?: TFile,) {

@@ -1,5 +1,4 @@
 import {MarkdownView, TFile} from "obsidian";
-import {getTFile} from "./api";
 var app = global.app
 
 export function getMaxAnnotationId(pattern: RegExp, fileContent: string) {

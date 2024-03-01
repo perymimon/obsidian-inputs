@@ -1,53 +1,30 @@
 import {TFile} from "obsidian";
 import {objectSet} from "./objects";
 import * as api from './api';
-import {asyncEval, getActiveFile, getDVInlineFields, setPrototype, Target} from "./internalApi";
+import {
+	asyncEval, extractInlineField,
+	getActiveFile,
+	getBracketContent,
+	getContentEol,
+	getDVInlineFields, log, manipulateValue,
+	setPrototype,
+	Target
+} from "./internalApi";
 import {stringTemplate} from "./strings";
 
 var app = global.app
 
-
-export function getLinkToFile(file: TFile) {
-	return app.metadataCache.fileToLinktext(file, '', true)
+export function link(file: TFile | string) {
+	file = getTFile(file?.path || file)
+	var filename = app.metadataCache.fileToLinktext(file, '', true)
+	return `[[${filename}]]`
 }
 
-export async function inlineField(key: string, file?: TFile) {
-	const tFile = getTFile(file)
-	const findNotation = [
-		new RegExp(`\\[(${key})::(.*?)\\]`),
-		new RegExp(`\\((${key})::(.*?)\\)`),
-		new RegExp(`\\b(${key})::(.*?)$`, 'm')
-	]
-	var content = await app.vault.read(tFile)
-	for (let notation of findNotation) {
-		const match = content.match(notation)
-		if (match) {
-			const [field, key, value] = match
-			let textBefore = content.slice(0, match.index)
-			let line = textBefore.match(/\n/g).length
-			let ch = match.index - textBefore.lastIndexOf('\n') - 1
-			return {
-				field,
-				key,
-				value,
-				start: {
-					line: line,
-					offset: match.index,
-					ch: ch
-				},
-				end: {
-					line: line + field.match(/\n/g)?.length ?? 0,
-					offset: match!.index + field.length,
-					ch: ch + field.length // can be worng if there \n in the match
-				}
-
-			}
-		}
-	}
-	return null
-
+export function duration(start, end, format = 'HH:mm', as = 'hours') {
+	var from = moment(start, format)
+	var to = moment(end, format)
+	return moment.duration(to.diff(from)).humanize()
 }
-
 
 export function getTFile(path?: TFile | string): TFile {
 	if (String.isString(path)) path = path.trim()
@@ -62,10 +39,6 @@ export function getTFile(path?: TFile | string): TFile {
 export function getStructure(path?: string | TFile) {
 	let file = getTFile(path)
 	return this.app.metadataCache.getFileCache(file)
-	// if (path instanceof TFile)
-	// 	return this.app.metadataCache.getFileCache(path)
-	// if (!path.endsWith('.md')) path += '.md'
-	// return app.metadataCache.getCache(path)
 }
 
 export async function importJs(path: string): Promise<unknown> {
@@ -75,20 +48,18 @@ export async function importJs(path: string): Promise<unknown> {
 		if (!TFile) throw `${path} file is not exist`
 		path = TFile.path
 	}
-
 	let fullPath = app.vault.adapter.getResourcePath(path);
 	let timestamp = new Date().getTime();
 	let busterPath = fullPath.replace(/\?.*$/, `?${timestamp}`)
 	return import(busterPath);
 }
 
-export async function executeCode(code: string, vars, contextFile?: string | TFile, priority?: string) {
+export async function executeCode(code: string, vars, contextFile?: string | TFile, priority?: string, debug?: boolean) {
 	var fields = await getFileData(contextFile, priority)
-	return asyncEval(code, {...fields, ...vars}, api)
+	return asyncEval(code, {...fields, ...vars}, api, 'api', debug)
 }
 
 /**
- *
  * @param file
  * @param priority 'yaml'|'field'
  */
@@ -137,7 +108,7 @@ export function getPlugin(pluginId: string) {
 	return app.plugins.getPlugin(pluginId);
 }
 
-export async function setFrontmatter(value, path, method, file) {
+export async function setFrontmatter(value, path, method = 'replace', file) {
 	file = getTFile(file)
 	await app.fileManager.processFrontMatter(file, obj => {
 		return objectSet(obj, path, value, method)
@@ -146,55 +117,29 @@ export async function setFrontmatter(value, path, method, file) {
 
 //\[(.+?::.+?)\]|\((.+?::.+?)\)|\b(\S+?::.+?)$
 // https://regex101.com/r/BExhmA/1
-export async function setInlineField(value, key, method = 'replace', file?) {
-	file = getTFile(file)
-	const findNotation = [
-		new RegExp(`\\[(${key})::(.*?)\\]`),
-		new RegExp(`\\((${key})::(.*?)\\)`),
-		new RegExp(`\\b(${key})::(.*?)$`, 'm')
-	]
-	var isValueUpdated = false
-
-	await app.vault.process(file, (content: string) => {
-		for (let notation of findNotation) {
-			const match = content.match(notation)
-			if (!match) continue
-			const [field, key, oldValue] = match
-			switch (method) {
-				case 'replace':
-					break;
-				case 'append':
-				case 'prepend':
-					var array = oldValue.split(',').filter(Boolean)
-					if(method == 'append') array.push(value); else array.unshift(value)
-					value = array.join(',')
-					break;
-				case 'delete':
-					return content.replace(field, '')
-				case 'clear':
-					value = ''
-					break;
-				default:
-					throw new Error('Invalid method');
-			}
-			if (oldValue != value) {
-				isValueUpdated = true
-				const newField = field.replace(/(?<=::).*?(?=]|\)|$)/, value)
-				return content.replace(field, newField)
-			}
-			return content
+export async function setInlineField(value: string, key: string, method = 'replace', file?) {
+	const tFile = getTFile(file)
+	var content = await app.vault.read(tFile)
+	var fieldDesc = extractInlineField(key, content)
+	var newContent = ''
+	if (fieldDesc) {
+		let {field, key, value: oldValue, startIndex, endIndex} = fieldDesc
+		var newField
+		if (method == 'delete') newField = ''
+		else {
+			value = manipulateValue(oldValue, value, method)
+			newField = field.replace(`::${oldValue}`, `::${value}`)
 		}
-		isValueUpdated = true
-		// not found case, so add new field on top of the file
+		if (field == newField) return false
+		newContent = [content.slice(0, startIndex), newField, content.slice(endIndex)].join('')
+	} else {
+		if (method == 'delete') return 'no field detected'
 		var {frontmatterPosition} = getStructure(file)
 		var offset = frontmatterPosition?.end.offset ?? 0
-		return [
-			content.slice(0, offset),
-			`\n[${key}::${value}]`,
-			content.slice(offset)
-		].join('\n')
-	})
-	return isValueUpdated
+		let field = `[${key}::${value}]`
+		newContent = [content.slice(0, offset), field, content.slice(offset)].join('\n')
+	}
+	await app.vault.modify(tFile, newContent)
 }
 
 
@@ -224,26 +169,26 @@ async function quickText(text: string, target: Target) {
 	var content = await app.vault.read(tFile)
 	let lines = content.split("\n");
 	var pos, delCount = 0;
-	if (targetType == 'header') {
-		const headerIndex = headings?.findIndex((item) => item.heading.replace(/^#+/, '').trim() == path.trim())
+	if (targetType == 'header') {// top,bottom, replace header content
+		const index = headings?.findIndex((item) => item.heading.replace(/^#+/, '').trim() == path.trim())
 		const [start, end] = [
-			headings[headerIndex]?.position.end.offset ?? frontmatterPosition?.end.offset ?? 0,
-			headings[headerIndex + 1]?.position.start.offset ?? content.length
+			headings[index]?.position.end.offset ?? frontmatterPosition?.end.offset ?? 0,
+			headings[index + 1]?.position.start.offset ?? content.length
 		]
-		const startHeader = headings[headerIndex]?.position.end.line ?? frontmatterPosition?.end.line ?? 0
+		const startHeader = headings[index]?.position.end.line ?? frontmatterPosition?.end.line ?? 0
 		const endHeader = startHeader + content.slice(start, end).trim().split('\n').length
 
-		if (headerIndex == -1) text = `## ${path}\n${text}`
+		if (index == -1) text = `## ${path}\n${text}`
 		if (["prepend", "replace"].includes(method)) pos = startHeader
 		if (method == "append") pos = endHeader
 		if (method == "replace") delCount = endHeader - startHeader
 
 		content = lines.toSpliced(pos + 1, delCount, text).join("\n");
-	} else if (file) {
+	} else if (file) {// top,bottom, replace file content
 		if (method == "prepend") pos = frontmatterPosition.end.line
 		if (method == "append") pos = lines.length
 		content = lines.toSpliced(pos + 1, delCount, text).join("\n");
-	} else {
+	} else { // append,prepend,replace pattern content
 		content = content.replace(path, (match) => {
 			if (method == "append") return `${match}${text}`
 			if (method == "prepend") return `${text}${match}`
@@ -252,7 +197,39 @@ async function quickText(text: string, target: Target) {
 		})
 	}
 	await app.vault.modify(tFile, content)
+}
 
+async function quickHeader(text: string, target: Target) {
+	var {file, path, method = 'append'} = target
+	const {headings = [], frontmatterPosition} = getStructure(file);
+	const tFile = getTFile(file)
+	var content = await app.vault.read(tFile)
+	let lines = content.split("\n");
+	var pos, delCount = 0;
+
+	var index = headings?.findIndex((item) => item.heading == path.trim())
+	//if header not exist default is to add to start of file,unless method is append
+	if (index == -1) text = `## ${path}\n${text}`
+	if (index == -1 && method == 'replace') method = 'prepend'
+	if (index == -1 && method == 'append') index = headings.length - 1
+	const [startLine, endLine] = [
+		(headings[index]?.position.end.line ?? frontmatterPosition?.end.line ?? -1) + 1,
+		(headings[index + 1]?.position.start.line ?? lines.length) - 1
+	]
+	const headerContentLines = lines.slice(startLine, endLine+1)
+	while(headerContentLines.length){
+		let line = headerContentLines.at(-1).trim()
+		if(line) break;
+		headerContentLines.pop()
+	}
+
+	if (["prepend", "replace"].includes(method)) pos = startLine
+	if (method == "append") pos = startLine + headerContentLines.length
+	if (method == "replace") delCount = headerContentLines.length
+
+	content = lines.toSpliced(pos, delCount, text).join("\n");
+	await app.vault.modify(tFile, content)
+	log('quickHeader',`${file} ${path} ${method}`)
 }
 
 /**
@@ -265,20 +242,34 @@ async function quickText(text: string, target: Target) {
  * @param vars
  * @param file
  */
-export async function decodeAndRun(preExpression: string, priority: string, vars? = {}, file?: TFile,) {
-	if(preExpression.trim() == '') return ''
+type decodeAndRunOpts = {
+	priority?: string,
+	vars?: {},
+	file?: TFile | string,
+	literalExpression?: boolean
+	notImport: boolean
+}
 
+export async function decodeAndRun(preExpression: string, opts: decodeAndRunOpts = {}) {
+	const {priority, vars = {}, file, literalExpression = false, importJs = true} = opts
+	if (preExpression.trim() == '') return ''
+	log('decodeAndRun', 'preExpression', preExpression)
 	const data = {...await getFileData(file, priority), ...vars}
 	const expression = (await stringTemplate(preExpression.trim(), data)).trim()
+	log('decodeAndRun', 'expression', expression)
 	try {
-		if (expression.startsWith('[[') && expression.endsWith(']]')) {
+		if (literalExpression) throw 'ask for literal expression string'
+		if (importJs && expression.startsWith('[[') && expression.endsWith(']]')) {
 			global.live = api
+			log('decodeAndRun', 'importJs', expression)
 			const ret = await importJs(expression)
 			return ret.default ?? void 0
 		}
+		log('decodeAndRun', 'executeCode', expression, vars, file)
 		return await executeCode(expression, vars, file)
 	} catch {
 		// literal string
+		log('decodeAndRun', 'ret literal string', expression)
 		return expression
 	} finally {
 		delete global.live
@@ -294,8 +285,12 @@ export async function saveValue(text: string, target: Target) {
 		case 'yaml':
 			return await setFrontmatter(text, path, method, file)
 		case 'text':
+			if (!method) {
+				console.log('save', text, target)
+				break;
+			}
 		case 'header':
-			return await quickText(text, target)
+			return await quickHeader(text, target)
 		default:
 
 	}

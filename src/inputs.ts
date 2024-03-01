@@ -5,6 +5,9 @@ import {objectGet} from "./objects";
 import {modifications, stringTemplate, typeMap} from "./strings";
 import {decodeAndRun, getPlugin, saveValue, setFrontmatter} from "./api";
 import {parseTarget} from "./internalApi";
+import {BUTTON_PATTERN} from "./buttons";
+
+var app = global.app
 
 export const INPUT_PATTERN = new RegExp([
 	/(?:`|^)/,
@@ -23,24 +26,72 @@ export const INPUT_PATTERN = new RegExp([
 export function replaceCode2Inputs(rootEl: HTMLElement, ctx, settings: MyPluginSettings, app: App) {
 	const codesEl = rootEl.findAll('code')
 	for (let codeEl of codesEl) {
-		const text = codeEl.innerText.trim()
-		const inputNotation = text.match(INPUT_PATTERN)
+		const pattern = codeEl.innerText.trim()
+		const inputNotation = pattern.match(INPUT_PATTERN)
 		if (!inputNotation) continue;
 		const fields = inputNotation.groups;
-		fields!.pattern = '`' + text + '`'
-		createForm(codeEl, app, ctx.frontmatter, fields)
+		createForm(codeEl, app, ctx.frontmatter, pattern, fields)
 	}
 }
 
+
+const cbTriggerSave = (e, delegateTarget) => e.target.trigger('save', e)
+global.document.on('change', 'form.live-form', cbTriggerSave)
+global.document.on('select', 'form.live-form', cbTriggerSave)
+global.document.on('submit', 'form.live-form', e => e.preventDefault())
+global.document.on('keydown', 'form.live-form', (e, delegateTarget) => {
+	if (!(e.key == "Enter" && (e.metaKey || e.ctrlKey))) return
+	cbTriggerSave(e, delegateTarget)
+})
+
+global.document.on('save', 'form.live-form', async function (e, delegateTarget) {
+	const pattern = delegateTarget.title
+	const fields = pattern.match(INPUT_PATTERN).groups;
+	let {expression, options, target = ''} = fields
+	var targetObject = parseTarget(target, pattern)
+	let {value} = e.target
+	if (value == '') return;
+	e.target.value = ''
+	const run = expression.replace(/__+.*?__+/, `input`)
+	const text = await decodeAndRun(run, {
+		priority: targetObject.targetType,
+		importJs: false,
+		vars: {input: value}
+	})
+	if (text) await saveValue(text, targetObject)
+	setTimeout(_ => document.getElementById(fields.id)?.focus(), 10)
+})
+global.document.on('remove', 'form.live-form', async function (e, delegateTarget) {
+	const pattern = delegateTarget.title
+	saveValue('', {path: pattern, method: 'replace', targetType: 'text'})
+})
+
+function createForm(rootEl, app: App, frontmatter, pattern, fields) {
+	const formEl = createEl('form', {cls: 'live-form', title: ''})
+	let {expression, options, target = ''} = fields
+	var targetObject = parseTarget(target, pattern)
+	formEl.title = pattern
+
+	const {textsValues, queries} = parseOptions(options)
+	formEl.append(createRadioEls(textsValues))
+	if (queries.length || textsValues.length == 0) {
+		const inputEl = createInputEl(fields, queries)
+		formEl.append(inputEl)
+	}
+	if (targetObject.method != 'replace')
+		formEl.append(createHelperButtons())
+
+	rootEl.replaceWith(formEl)
+}
+
 function createInputEl(fields, queries) {
-	const {type, expression, id, placeholder, pattern} = fields
+	const {type, expression, id, placeholder} = fields
 	const inputEl = createEl(
 		type == 'textarea' ? 'textarea' : 'input', {type}
 	)
 	inputEl.style.setProperty('--widther', expression.match(/_/g).length)
 	inputEl.id = id
-	inputEl.placeholder = placeholder || expression.replace(/^_+$/,'')
-	inputEl.title = pattern
+	inputEl.placeholder = placeholder || expression.replace(/^_+$/, '')
 	if (queries.length) new InputSuggest(app, inputEl, queries)
 	return inputEl
 }
@@ -65,52 +116,12 @@ function createHelperButtons() {
 	return divEl
 }
 
-function createForm(rootEl, app: App, frontmatter, fields) {
-	const formEl = createEl('form', {cls: 'live-form', title: ''})
-	let {expression, options, target = '',pattern} = fields
-	var targetObject = parseTarget(target)
-	targetObject.path ??= pattern
-	formEl.title = pattern
-	formEl.addEventListener('save', async e => {
-		let {value} = e.target
-		if (value == '') return;
-		e.target.value = ''
-		const run = expression.replace(/__+.*?__+/, `{input}`)
-		const text = await decodeAndRun(run, targetObject.targetType,{input:value})
-		if (text) await saveValue(text, targetObject)
-		setTimeout(_ => document.getElementById(fields.id)?.focus(), 10)
-	})
-	formEl.addEventListener('remove', event =>
-		saveValue('',{path: pattern, method:'replace', targetType:'text'})
-	)
-
-	const {textsValues, queries} = parseOptions(options)
-	formEl.append(createRadioEls(textsValues))
-	if (queries.length || textsValues.length == 0) {
-		const inputEl = createInputEl(fields, queries)
-		formEl.append(inputEl)
-	}
-	if (targetObject.method != 'replace')
-		formEl.append(createHelperButtons())
-
-	const cbTriggerSave = (e) => e.target.trigger('save')
-	formEl.addEventListener('change', cbTriggerSave)
-	formEl.addEventListener('select', cbTriggerSave)
-	formEl.addEventListener('submit', e => e.preventDefault())
-	formEl.addEventListener('keydown', e => {
-		if (!(e.key == "Enter" && (e.metaKey || e.ctrlKey))) return
-		cbTriggerSave(e)
-	})
-
-	rootEl.replaceWith(formEl)
-}
-
-function parseOptions(options:strings) {
+function parseOptions(options: string) {
 	const dv = getPlugin('dataview')?.api
 	const queryPrefix = dv?.settings.inlineQueryPrefix
 	const queries = []
 	const textsValues = []
-	if(!options) return {textsValues, queries}
+	if (!options) return {textsValues, queries}
 	for (let opt of options.split(',')) {
 		opt = opt.trim()
 		if (queryPrefix && opt.startsWith(queryPrefix)) {

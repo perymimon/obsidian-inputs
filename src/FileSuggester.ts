@@ -1,6 +1,7 @@
 // Credits go to Liam's Periodic Notes Plugin: https://github.com/liamcain/obsidian-periodic-notes
 
 import {AbstractInputSuggest, App, TFile, fuzzySearch, getAllTags, prepareFuzzySearch} from "obsidian";
+import {link} from "./api";
 
 export enum FileSuggestMode {
 	TemplateFiles,
@@ -22,32 +23,37 @@ export class InputSuggest extends AbstractInputSuggest<TFile> {
 		for (let vec of matches.reverse()) {
 			path = path.slice(0, vec[0]) + '<b>' + path.slice(vec[0], vec[1]) + '</b>' + path.slice(vec[1])
 		}
-		el.setHTML(path);
+		el.setHTML(link(file));
 	}
 
 	selectSuggestion(file: TFile, evt: MouseEvent | KeyboardEvent): void {
 
 		this.textInputEl.value = file.path;
-		this.textInputEl.trigger("input");
-		this.textInputEl.trigger("select");
+		// this.textInputEl.trigger("input");
+		this.textInputEl.trigger("select", file);
 		this.textInputEl.value = '';
 		this.close();
 	}
 
 	async getSuggestions(input_str: string) {
 		const lower_input_str = input_str.toLowerCase();
+		let fuzzy = prepareFuzzySearch(lower_input_str)
 		let querying = this.queries.map(query => DataviewAPI.query(query))
 		let results = await Promise.all(querying)
-		let fuzzy = prepareFuzzySearch(lower_input_str)
 		let sorted = results.flatMap(result => {
-			return result.value.values.map(ft => {
-				let result = fuzzy(ft.path);
-				console.log(ft.path, result?.score ?? -Infinity);
-				//todo:filtr out infinity
-				return {...ft, ...result};
-			})
-		}).sort(ft => ft?.score ?? -Infinity)
-		console.log('----------');
+			const primaryMeaning = result.value.primaryMeaning.type
+			return result.value.values
+				.map(ft => {
+					let result = fuzzy(ft[primaryMeaning]);
+					// console.log(ft.path, result?.score ?? -Infinity);
+					//todo:filter out infinity
+					let [,extension] = ft.path.match(/\.(.*)$/) ?? ''
+					return {...ft,primaryMeaning,extension, ...result};
+				})
+		})
+			.filter(ft => Math.abs(ft.score) < Infinity)
+			.sort(ft => ft?.score ?? -Infinity)
+		// console.log('----------');
 		return sorted
 
 		// return result.value.values.filter( ft=> ft.path.contains(input_str))

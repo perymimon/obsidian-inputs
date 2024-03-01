@@ -3,6 +3,8 @@ import {MyPluginSettings} from "./settings";
 import {decodeAndRun, saveValue} from "./api";
 import {parseTarget} from "./internalApi";
 
+const $BUTTONS_MAP = new WeakMap()
+
 export const BUTTON_PATTERN = /(?:^|`)button\|(?<name>.+)\|\s*(?<expression>.+?)\s*(?<target>>.*?)?\s*(?<id>-\d+-)?(?:$|`)/i
 // https://regex101.com/r/osbDKH/1
 export function generateButtonNotation(fields, id = 0) {
@@ -14,28 +16,29 @@ export function generateButtonNotation(fields, id = 0) {
 export function replaceCode2Buttons(root: HTMLElement, ctx, settings: MyPluginSettings, app: App) {
 	const codesEl = root.findAll('code')
 	for (let codeEl of codesEl) {
-		const text = codeEl.innerText.trim()
-		const buttonNotation = text.match(BUTTON_PATTERN)
+		const pattern = codeEl.innerText.trim()
+		const buttonNotation = pattern.match(BUTTON_PATTERN)
 		if (!buttonNotation) continue;
 		const fields = buttonNotation.groups;
-		fields!.pattern = '`' + text + '`'
-		createButton(codeEl, app, ctx.frontmatter, fields)
+		// fields!.pattern = '`' + pattern + '`'
+		createButton(codeEl, app, ctx.frontmatter, pattern, fields)
 	}
 }
-
-function createButton(rootEl, app: App, frontmatter, fields) {
+function createButton(rootEl, app: App, frontmatter, pattern,  fields) {
 	const buttonEl = rootEl.createEl('button', {cls: 'live-form'})
-	const {name, expression, target = '', pattern} = fields
+	const {name, expression, target = ''} = fields
 	buttonEl.textContent = name
 	buttonEl.title = pattern
 	rootEl.replaceWith(buttonEl)
-
-	buttonEl.onclick = async (event) => {
-		var targetObject = parseTarget(target)
-		targetObject.path ??= pattern
-		let newText = await decodeAndRun(expression, targetObject.targetType)
-		if (newText) await saveValue(newText, targetObject)
-	}
-
 }
+
+global.document.on('click','button.live-form',async function(e, delegateTarget){
+	const pattern = delegateTarget.title
+	const fields = pattern.match(BUTTON_PATTERN).groups;
+	const {expression, target = ''} = fields
+	var targetObject = parseTarget(target , pattern)
+	let newText = await decodeAndRun(expression, {priority: targetObject.targetType})
+	if (newText) await saveValue(newText, targetObject)
+})
+
 

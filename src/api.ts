@@ -1,12 +1,10 @@
-import {TFile} from "obsidian";
+import {normalizePath, TFile} from "obsidian";
 import {objectSet} from "./objects";
 import * as api from './api';
 import {
-	asyncEval, extractInlineField,
+	asyncEval,
 	getActiveFile,
-	getBracketContent,
-	getContentEol,
-	getDVInlineFields, log, manipulateValue,
+	getInlineFields, log, manipulateValue,
 	setPrototype,
 	Target
 } from "./internalApi";
@@ -56,6 +54,7 @@ export async function importJs(path: string): Promise<unknown> {
 
 export async function executeCode(code: string, vars, contextFile?: string | TFile, priority?: string, debug?: boolean) {
 	var fields = await getFileData(contextFile, priority)
+	for (let k in fields) fields[k] = Number(fields[k]) || fields[k]
 	return asyncEval(code, {...fields, ...vars}, api, 'api', debug)
 }
 
@@ -64,14 +63,15 @@ export async function executeCode(code: string, vars, contextFile?: string | TFi
  * @param priority 'yaml'|'field'
  */
 export async function getFileData(file?: string | TFile, priority?: 'yaml' | 'field' | string = 'field') {
-	const dv = getPlugin('dataview')
+	// const dv = getPlugin('dataview')
 	file = getTFile(file)
-	if (dv) {
-		return dv.api.page(file.path)
-	}
+	// if (dv) {
+	// 	return dv.api.page(file.path)
+	// }
+	const content = await this.app.vault.cachedRead(file);
 	const {frontmatter = {}} = getStructure(file)
-	const inlineFields = await getDVInlineFields(file)
-	const fieldsObject = inlineFields.reduce((obj, line) => (obj[line.key] = line.content, obj), {})
+	const inlineFields = await getInlineFields(content)
+	const fieldsObject = inlineFields.reduce((obj, line) => (obj[line.key] = line.value, obj), {})
 	if (priority == 'field') return setPrototype(fieldsObject, frontmatter)
 	if (priority == 'yaml') return setPrototype(frontmatter, fieldsObject)
 	return setPrototype(fieldsObject, frontmatter)
@@ -114,25 +114,25 @@ export async function setFrontmatter(value, path, method = 'replace', file) {
 		return objectSet(obj, path, value, method)
 	})
 }
-
 //\[(.+?::.+?)\]|\((.+?::.+?)\)|\b(\S+?::.+?)$
+
 // https://regex101.com/r/BExhmA/1
 export async function setInlineField(value: string, key: string, method = 'replace', file?) {
 	const tFile = getTFile(file)
 	var content = await app.vault.read(tFile)
-	var fieldDesc = extractInlineField(key, content)
+	var fieldDesc = getInlineFields(content, key)
 	var newContent = ''
-	if (fieldDesc) {
-		let {field, key, value: oldValue, startIndex, endIndex} = fieldDesc
+	if (fieldDesc) { // field exist
+		let {outerField, value: oldValue, startIndex, endIndex} = fieldDesc.at(0)
 		var newField
 		if (method == 'delete') newField = ''
 		else {
 			value = manipulateValue(oldValue, value, method)
-			newField = field.replace(`::${oldValue}`, `::${value}`)
+			newField = outerField.replace(`::${oldValue}`, `::${value}`)
 		}
-		if (field == newField) return false
+		if (outerField == newField) return false
 		newContent = [content.slice(0, startIndex), newField, content.slice(endIndex)].join('')
-	} else {
+	} else { // field not exist, create one
 		if (method == 'delete') return 'no field detected'
 		var {frontmatterPosition} = getStructure(file)
 		var offset = frontmatterPosition?.end.offset ?? 0
@@ -169,22 +169,7 @@ async function quickText(text: string, target: Target) {
 	var content = await app.vault.read(tFile)
 	let lines = content.split("\n");
 	var pos, delCount = 0;
-	if (targetType == 'header') {// top,bottom, replace header content
-		const index = headings?.findIndex((item) => item.heading.replace(/^#+/, '').trim() == path.trim())
-		const [start, end] = [
-			headings[index]?.position.end.offset ?? frontmatterPosition?.end.offset ?? 0,
-			headings[index + 1]?.position.start.offset ?? content.length
-		]
-		const startHeader = headings[index]?.position.end.line ?? frontmatterPosition?.end.line ?? 0
-		const endHeader = startHeader + content.slice(start, end).trim().split('\n').length
-
-		if (index == -1) text = `## ${path}\n${text}`
-		if (["prepend", "replace"].includes(method)) pos = startHeader
-		if (method == "append") pos = endHeader
-		if (method == "replace") delCount = endHeader - startHeader
-
-		content = lines.toSpliced(pos + 1, delCount, text).join("\n");
-	} else if (file) {// top,bottom, replace file content
+	if (file) {// top,bottom, replace file content
 		if (method == "prepend") pos = frontmatterPosition.end.line
 		if (method == "append") pos = lines.length
 		content = lines.toSpliced(pos + 1, delCount, text).join("\n");
@@ -199,6 +184,55 @@ async function quickText(text: string, target: Target) {
 	await app.vault.modify(tFile, content)
 }
 
+/**
+ * can append to top of file or bottom of it
+ * can create file and if file exist create another one
+ *
+ * @param text
+ * @param target
+ * @param create
+ */
+async function quickFile(text, target: Target, create = false) {
+	var {file, method = 'append',} = target
+	const {frontmatterPosition} = getStructure(file);
+	try {
+		var tFile = getTFile(file)
+	} catch (e) {
+		if (e.contains('file is not exist') && create) {
+			method = 'create'
+		} else throw e
+	}
+	if (method == 'create') {
+		let index = 0;
+		const pathName = file?.path ?? file
+		do {
+			var path = index ? `${file} ${index}` : pathName
+			file = await app.vault.getFileByPath(path, text)
+			index++
+		} while (file)
+		return await app.vault.create(path, text)
+	}
+
+	var content = await app.vault.read(tFile)
+	let lines = content.split("\n");
+	var pos, delCount = 0;
+
+	// top,bottom, replace file content
+	if (method == "prepend") pos = frontmatterPosition.end.line + 1
+	if (method == "append") pos = lines.length
+	content = lines.toSpliced(pos, delCount, text).join("\n");
+	await app.vault.modify(tFile, content)
+}
+
+/**
+ * prepend or append or replace content under header
+ * if header not exist stuff start be intersting
+ * 1) append: create the header with the text on top file
+ * 2) prepend: create the header iwht the text on bottom file
+ * 3) replace : changed to prepend
+ * @param text
+ * @param target
+ */
 async function quickHeader(text: string, target: Target) {
 	var {file, path, method = 'append'} = target
 	const {headings = [], frontmatterPosition} = getStructure(file);
@@ -216,10 +250,10 @@ async function quickHeader(text: string, target: Target) {
 		(headings[index]?.position.end.line ?? frontmatterPosition?.end.line ?? -1) + 1,
 		(headings[index + 1]?.position.start.line ?? lines.length) - 1
 	]
-	const headerContentLines = lines.slice(startLine, endLine+1)
-	while(headerContentLines.length){
+	const headerContentLines = lines.slice(startLine, endLine + 1)
+	while (headerContentLines.length) {
 		let line = headerContentLines.at(-1).trim()
-		if(line) break;
+		if (line) break;
 		headerContentLines.pop()
 	}
 
@@ -229,7 +263,7 @@ async function quickHeader(text: string, target: Target) {
 
 	content = lines.toSpliced(pos, delCount, text).join("\n");
 	await app.vault.modify(tFile, content)
-	log('quickHeader',`${file} ${path} ${method}`)
+	log('quickHeader', `${file} ${path} ${method}`)
 }
 
 /**
@@ -289,8 +323,11 @@ export async function saveValue(text: string, target: Target) {
 				console.log('save', text, target)
 				break;
 			}
+			break
 		case 'header':
 			return await quickHeader(text, target)
+		case 'file':
+			return await quickFile(text, target)
 		default:
 
 	}

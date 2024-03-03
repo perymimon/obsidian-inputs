@@ -43,40 +43,20 @@ export function getActiveFile(): TFile {
 	return app.workspace.activeEditor?.file ?? app.workspace.getActiveFile();
 }
 
-export async function getDVInlineFields(file: TFile) {
-	if (!file) file = getActiveFile()
 
-	const content = await this.app.vault.cachedRead(file);
-	const regex = /\[(.*)::(.*)]|\((.*)::(.*)\)|(\w+?)::(.*?)$/g;
-	const properties = [];
-
-	let match;
-	while ((match = regex.exec(content)) !== null) {
-		const key: string = match[1].trim();
-		const value: string = match[2].trim();
-		const array = value
-			.replace(/\s*,\s*/, ',')
-			.split(',')
-		properties.push({key, content: array.length > 1 ? array : value});
-	}
-
-	return properties;
-}
-
-
-export async function asyncEval(code, fields = {}, api = {}, priority='api',debug = false) {
+export async function asyncEval(code, fields = {}, api = {}, priority = 'api', debug = false) {
 	const AsyncFunction = Object.getPrototypeOf(async function () {
 	}).constructor
-	const func = new AsyncFunction('dataFields', 'api','debug',`
+	const func = new AsyncFunction('dataFields', 'api', 'debug', `
 		with(dataFields) with(api){
 		 	if(debug) debugger; 
 	    	return ${code} 
 	    }
 	`)
 
-	if(priority == 'api')
+	if (priority == 'api')
 		return await func.call(this, fields, api, debug)
-	if(priority == 'fields')
+	if (priority == 'fields')
 		return await func.call(this, api, fields)
 }
 
@@ -94,27 +74,26 @@ export type Target = {
 	file: TFile | string,
 	targetType: 'yaml' | 'field' | 'header' | 'text',
 	path: string,
-	method: 'append' | 'prepend' | 'replace'
+	method: 'append' | 'prepend' | 'replace | create'
 }
 
-export function parseTarget(target: string , pattern:string, defFile:string|TFile =''): Target {
+export function parseTarget(target: string, pattern: string, defFile: string | TFile = ''): Target {
 	//https://regex101.com/r/Z0v3rv/1
 	const catchSquareContent = /\[\[(.*)]]/
 	const targetPattern = />([^:#?*<>"]+?)?(?:(::|:|#)([\w ]+?))?(append|replace|prepend)?$/
 	const fields = target.trim()
 		.replace(catchSquareContent, '$1')
 		.match(targetPattern) ?? []
-	var [, file = defFile, targetType = '', path = pattern, method = 'replace'] = fields
+	var [, file, targetType = '', path = pattern, method] = fields
 	path = path.trim()
-	file = (typeof file == 'string')?file.trim():file
+	file = (typeof file == 'string') ? file.trim() : file
 	const typeMap = {
 		':': 'yaml',
 		'::': 'field',
 		'#': 'header',
-		'': 'text'
 	}
-	targetType = typeMap[targetType] ?? ''
-	return {file, targetType, path, method}
+	targetType = typeMap[targetType] ?? (file ? 'file' : 'pattern')
+	return {file: file ?? defFile, targetType, path, method}
 }
 
 export function setPrototype(a: object, proto: object) {
@@ -122,80 +101,29 @@ export function setPrototype(a: object, proto: object) {
 	return a;
 }
 
-export function extractInlineField(key: string, content: string) {
-	var fieldRegx = new RegExp(`(\\b|\\[|\\()\\s*(${key}\\s*::)`)
-	const match = content.match(fieldRegx)
-	if (!match) return null;
-	var start = match.index || 0, i = start;
-	const preChar = content[start - 1]
-	const brackets = ['[]', '()']
-	loop1: for (let [open, close] of brackets) {
-		if (preChar != open) continue
-		var counter = 0
-		for (; i < content.length; i++) {
-			let ch = content[i]
-			if (ch == open) counter++
-			if (ch == close) {
-				counter--
-				if (counter == 0) {
-					i++
-					break loop1;
-				}
-			}
-		}
+export function getInlineFields(content: string, key?: string = '.*?') {
+	// const regex = /\[\s*(.*?)\s*::(.*?)]|\b(.*?)::(.*?)$|\(\s*(.*?)\s*::(.*?)\)/gm
+	const regex = new RegExp(`\\[\\s*(${key})\\s*::(.*?)]|\\b(${key})::(.*?)$|\\(\\s*(${key})\\s*::(.*?)\\)`,'gm')
+	var cleanContent = content
+		.replace(/`[^`]+`/g, m => '_'.repeat(m.length)) // remove inline code
+		.replace(/\[\[.*?]]/g, m => '_'.repeat(m.length)) // remove wiki links
 
-	}
-	if (i == start)
-		for (; i < content.length; i++) {
-			let ch = content[i]
-			if (ch == '\n') break
-		}
-	content = content.slice(start, i)
-	{
-		let [field, key, value] = content.match(/[\(|\[|\^]\s*(.*)\s*::(.*)[\)|\]|\$]/) || []
-		const end = start + field.length
-		return {field, key, value, startIndex: start, endIndex: end}
+	const fields = [];
+
+	let match;
+	while ((match = regex.exec(cleanContent)) !== null) {
+		const pair = Array.from(match).filter(Boolean).map(t => t.trim())
+		const [field] = pair;
+		var [startIndex, endIndex] = [match.index, match.index + field.length]
+		var outerField =  content.slice(startIndex, endIndex)
+		var innerField = outerField.replace(/^[(\[]|[)\]]$/g,'')
+		let [key, value] = innerField.split('::').map(t=>t.trim())
+		fields.push({outerField,innerField, key, value, startIndex, endIndex})
 	}
 
+	return fields;
 }
 
-// export async function extractInlineField(key: string, fileContent:string) {
-// 	var startFieldNotation = new RegExp(`\\b(${key})\\s*::`)
-// 	const match = fileContent.match(startFieldNotation)
-// 	if (!match) return null;
-// 	const startIndex = match.index || 0
-// 	var {field, key, value} = getBracketContent(fileContent, startIndex)
-//
-// 	return {field, key, value, startIndex, endIndex}
-// 	// for (let notation of findNotation) {
-// 	// 	const match = content.match(notation)
-// 	// 	if (match) {
-// 	// 		const [field, key, value] = match
-// 	// 		let textBefore = content.slice(0, match.index)
-// 	//
-// 	// 		let line = textBefore.match(/\n/g).length
-// 	// 		let ch = match.index - textBefore.lastIndexOf('\n') - 1
-// 	// 		return {
-// 	// 			field,
-// 	// 			key,
-// 	// 			value,
-// 	// 			start: {
-// 	// 				line: line,
-// 	// 				offset: match.index,
-// 	// 				ch: ch
-// 	// 			},
-// 	// 			end: {
-// 	// 				line: line + field.match(/\n/g)?.length ?? 0,
-// 	// 				offset: match!.index + field.length,
-// 	// 				ch: ch + field.length // can be worng if there \n in the match
-// 	// 			}
-// 	//
-// 	// 		}
-// 	// 	}
-// 	// }
-// 	// return null
-//
-// }
 
 export function manipulateValue(oldValue, value: string, method: string) {
 	var array = oldValue.split(',').map((t: string) => t.trim()).filter(Boolean)
@@ -219,6 +147,6 @@ export function manipulateValue(oldValue, value: string, method: string) {
 }
 
 export function log(fnName: string, varName: string, ...varValue: any[]) {
-	var title =  `${fnName} ${varName}:`;
+	var title = `${fnName} ${varName}:`;
 	console.log(title, ...varValue)
 }

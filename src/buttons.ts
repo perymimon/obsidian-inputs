@@ -5,7 +5,7 @@ import {parseTarget} from "./internalApi";
 
 const $BUTTONS_MAP = new WeakMap()
 
-export const BUTTON_PATTERN = /(?:^|`)button\|(?<name>.+)\|\s*(?<expression>.+?)\s*(?<target>>.*?)?\s*(?<id>-\d+-)?(?:$|`)/i
+export const BUTTON_PATTERN = /(?:^|`)button\|(?<name>.*)\|\s*(?<expression>.+?)\s*(?<target>>.*?)?\s*(?<id>-\d+-)?(?:$|`)/i
 // https://regex101.com/r/osbDKH/1
 export function generateButtonNotation(fields, id = 0) {
 	const {name = '', expression = '', target = ''} = fields
@@ -27,7 +27,7 @@ export function replaceCode2Buttons(root: HTMLElement, ctx, settings: MyPluginSe
 function createButton(rootEl, app: App, frontmatter, pattern,  fields) {
 	const buttonEl = rootEl.createEl('button', {cls: 'live-form'})
 	const {name, expression, target = ''} = fields
-	buttonEl.textContent = name
+	buttonEl.textContent = name || target || 'no name'
 	buttonEl.title = pattern
 	rootEl.replaceWith(buttonEl)
 }

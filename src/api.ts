@@ -190,7 +190,7 @@ async function quickText(text: string, target: Target) {
  *
  * @param text
  * @param target
- * @param create
+ * @param create create if not exist
  */
 async function quickFile(text, target: Target, create = false) {
 	var {file, method = 'append',} = target
@@ -207,20 +207,26 @@ async function quickFile(text, target: Target, create = false) {
 		const pathName = file?.path ?? file
 		do {
 			var path = index ? `${file} ${index}` : pathName
-			file = await app.vault.getFileByPath(path, text)
+			path = path.replace(/(\.md)?$/,'.md')
+			tFile = await app.vault.getFileByPath(path, text)
 			index++
-		} while (file)
+		} while (tFile)
+
 		return await app.vault.create(path, text)
 	}
 
 	var content = await app.vault.read(tFile)
 	let lines = content.split("\n");
-	var pos, delCount = 0;
+	var [line , delCount] = [
+		(frontmatterPosition?.end.line + 1) || 0,
+		0
+	]
 
 	// top,bottom, replace file content
-	if (method == "prepend") pos = frontmatterPosition.end.line + 1
-	if (method == "append") pos = lines.length
-	content = lines.toSpliced(pos, delCount, text).join("\n");
+	// if (method == "prepend") 'it is the default;
+	if (method == "replace" ) delCount = lines.length - line
+	if (method == "append") line = lines.length
+	content = lines.toSpliced(line, delCount, text).join("\n");
 	await app.vault.modify(tFile, content)
 }
 

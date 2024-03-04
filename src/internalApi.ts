@@ -72,15 +72,15 @@ export async function replaceAsync(string: string, regexp: RegExp, replacer: rep
 
 export type Target = {
 	file: TFile | string,
-	targetType: 'yaml' | 'field' | 'header' | 'text',
+	targetType: 'yaml' | 'field' | 'header' | 'text' |'file',
 	path: string,
-	method: 'append' | 'prepend' | 'replace | create'
+	method: 'append' | 'prepend' | 'replace' | 'create'
 }
 
 export function parseTarget(target: string, pattern: string, defFile: string | TFile = ''): Target {
 	//https://regex101.com/r/Z0v3rv/1
 	const catchSquareContent = /\[\[(.*)]]/
-	const targetPattern = />([^:#?*<>"]+?)?(?:(::|:|#)([\w ]+?))?(append|replace|prepend)?$/
+	const targetPattern = />([^:#?*<>"]+?)?(?:(::|:|#)([\w ]+?))?(append|replace|prepend|create)?$/
 	const fields = target.trim()
 		.replace(catchSquareContent, '$1')
 		.match(targetPattern) ?? []

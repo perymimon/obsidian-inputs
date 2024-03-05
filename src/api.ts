@@ -4,7 +4,7 @@ import * as api from './api';
 import {
 	asyncEval,
 	getActiveFile,
-	getInlineFields, log, manipulateValue,
+	getInlineFields, log, logDecodeAndRun, manipulateValue,
 	setPrototype,
 	Target
 } from "./internalApi";
@@ -114,6 +114,7 @@ export async function setFrontmatter(value, path, method = 'replace', file) {
 		return objectSet(obj, path, value, method)
 	})
 }
+
 //\[(.+?::.+?)\]|\((.+?::.+?)\)|\b(\S+?::.+?)$
 
 // https://regex101.com/r/BExhmA/1
@@ -161,27 +162,19 @@ export async function setInlineField(value: string, key: string, method = 'repla
  * @param target
  * @returns {Promise<string>}
  */
-// location: string, method = "append"
-async function quickText(text: string, target: Target) {
-	const {file, path, method = 'replace', targetType} = target
-	const {headings = [], sections, frontmatterPosition} = getStructure(file);
+
+async function quickReplace(text:string, target: Target) {
+	const {file, pattern, method = 'replace'} = target
 	const tFile = getTFile(file)
 	var content = await app.vault.read(tFile)
-	let lines = content.split("\n");
-	var pos, delCount = 0;
-	if (file) {// top,bottom, replace file content
-		if (method == "prepend") pos = frontmatterPosition.end.line
-		if (method == "append") pos = lines.length
-		content = lines.toSpliced(pos + 1, delCount, text).join("\n");
-	} else { // append,prepend,replace pattern content
-		content = content.replace(path, (match) => {
-			if (method == "append") return `${match}${text}`
-			if (method == "prepend") return `${text}${match}`
-			if (method == "replace") return text
-			return `${method} method is not legal here`
-		})
-	}
-	await app.vault.modify(tFile, content)
+	var newContent = content.replace(pattern, (match) => {
+		if (method == "append") return `${match}${text}`
+		if (method == "prepend") return `${text}${match}`
+		if (method == "replace") return text
+		return `${method} method is not legal here`
+	})
+	if(newContent == content) return ;
+	await app.vault.modify(tFile, newContent)
 }
 
 /**
@@ -207,7 +200,7 @@ async function quickFile(text, target: Target, create = false) {
 		const pathName = file?.path ?? file
 		do {
 			var path = index ? `${file} ${index}` : pathName
-			path = path.replace(/(\.md)?$/,'.md')
+			path = path.replace(/(\.md)?$/, '.md')
 			tFile = await app.vault.getFileByPath(path, text)
 			index++
 		} while (tFile)
@@ -217,17 +210,18 @@ async function quickFile(text, target: Target, create = false) {
 
 	var content = await app.vault.read(tFile)
 	let lines = content.split("\n");
-	var [line , delCount] = [
+	var [line, delCount] = [
 		(frontmatterPosition?.end.line + 1) || 0,
 		0
 	]
 
 	// top,bottom, replace file content
 	// if (method == "prepend") 'it is the default;
-	if (method == "replace" ) delCount = lines.length - line
+	if (method == "replace") delCount = lines.length - line
 	if (method == "append") line = lines.length
 	content = lines.toSpliced(line, delCount, text).join("\n");
 	await app.vault.modify(tFile, content)
+	return tFile
 }
 
 /**
@@ -293,29 +287,30 @@ type decodeAndRunOpts = {
 export async function decodeAndRun(preExpression: string, opts: decodeAndRunOpts = {}) {
 	const {priority, vars = {}, file, literalExpression = false, importJs = true} = opts
 	if (preExpression.trim() == '') return ''
-	log('decodeAndRun', 'preExpression', preExpression)
 	const data = {...await getFileData(file, priority), ...vars}
 	const expression = (await stringTemplate(preExpression.trim(), data)).trim()
-	log('decodeAndRun', 'expression', expression)
+	var result = ''
+	var type =''
 	try {
 		if (literalExpression) throw 'ask for literal expression string'
 		if (importJs && expression.startsWith('[[') && expression.endsWith(']]')) {
 			global.live = api
-			log('decodeAndRun', 'importJs', expression)
-			const ret = await importJs(expression)
-			return ret.default ?? void 0
+			type = 'imported'
+			result = await importJs(expression)
+			return result.default ?? void 0
 		}
-		log('decodeAndRun', 'executeCode', expression, vars, file)
-		return await executeCode(expression, vars, file)
+		type = 'excuted'
+		result = await executeCode(expression, vars, file)
+		return result
 	} catch {
 		// literal string
-		log('decodeAndRun', 'ret literal string', expression)
+		type=='literal'
 		return expression
 	} finally {
 		delete global.live
+		logDecodeAndRun(preExpression, expression,type, result)
 	}
 }
-
 
 export async function saveValue(text: string, target: Target) {
 	const {file, targetType, path, method} = target
@@ -334,7 +329,8 @@ export async function saveValue(text: string, target: Target) {
 			return await quickHeader(text, target)
 		case 'file':
 			return await quickFile(text, target)
-		default:
+		case 'pattern':
+			return await quickReplace(text, target)
 
 	}
 }

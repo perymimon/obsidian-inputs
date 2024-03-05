@@ -16,8 +16,8 @@ export function generateButtonNotation(fields, id = 0) {
 export function replaceCode2Buttons(root: HTMLElement, ctx, settings: MyPluginSettings, app: App) {
 	const codesEl = root.findAll('code')
 	for (let codeEl of codesEl) {
-		const pattern = codeEl.innerText.trim()
-		const buttonNotation = pattern.match(BUTTON_PATTERN)
+		const pattern = codeEl.innerText
+		const buttonNotation = pattern.trim().match(BUTTON_PATTERN)
 		if (!buttonNotation) continue;
 		const fields = buttonNotation.groups;
 		// fields!.pattern = '`' + pattern + '`'

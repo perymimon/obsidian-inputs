@@ -26,8 +26,8 @@ export const INPUT_PATTERN = new RegExp([
 export function replaceCode2Inputs(rootEl: HTMLElement, ctx, settings: MyPluginSettings, app: App) {
 	const codesEl = rootEl.findAll('code')
 	for (let codeEl of codesEl) {
-		const pattern = codeEl.innerText.trim()
-		const inputNotation = pattern.match(INPUT_PATTERN)
+		const pattern = codeEl.innerText
+		const inputNotation = pattern.trim().match(INPUT_PATTERN)
 		if (!inputNotation) continue;
 		const fields = inputNotation.groups;
 		createForm(codeEl, app, ctx.frontmatter, pattern, fields)
@@ -52,7 +52,7 @@ global.document.on('save', 'form.live-form', async function (e, delegateTarget) 
 	let {value} = e.target
 	if (value == '') return;
 	e.target.value = ''
-	const run = expression.replace(/__+.*?__+/, `input`)
+	const run = expression.replace(/__+.*?__+/, `{input}`)
 	const text = await decodeAndRun(run, {
 		priority: targetObject.targetType,
 		importJs: false,

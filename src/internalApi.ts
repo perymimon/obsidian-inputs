@@ -72,19 +72,21 @@ export async function replaceAsync(string: string, regexp: RegExp, replacer: rep
 
 export type Target = {
 	file: TFile | string,
-	targetType: 'yaml' | 'field' | 'header' | 'text' |'file',
+	targetType: 'yaml' | 'field' | 'header' | 'text' | 'file' | 'pattern',
 	path: string,
 	method: 'append' | 'prepend' | 'replace' | 'create'
+	pattern: string
 }
 
 export function parseTarget(target: string, pattern: string, defFile: string | TFile = ''): Target {
 	//https://regex101.com/r/Z0v3rv/1
-	const catchSquareContent = /\[\[(.*)]]/
+	const eliminateSquareContent = /\[\[(.*)]]/
 	const targetPattern = />([^:#?*<>"]+?)?(?:(::|:|#)([\w ]+?))?(append|replace|prepend|create)?$/
 	const fields = target.trim()
-		.replace(catchSquareContent, '$1')
+		.replace(eliminateSquareContent, '$1')
 		.match(targetPattern) ?? []
-	var [, file, targetType = '', path = pattern, method] = fields
+	const tag = '`'
+	var [, file, targetType = '', path = '', method] = fields
 	path = path.trim()
 	file = (typeof file == 'string') ? file.trim() : file
 	const typeMap = {
@@ -93,7 +95,10 @@ export function parseTarget(target: string, pattern: string, defFile: string | T
 		'#': 'header',
 	}
 	targetType = typeMap[targetType] ?? (file ? 'file' : 'pattern')
-	return {file: file ?? defFile, targetType, path, method}
+	return {
+		file: file ?? defFile, targetType, path, method,
+		pattern: `${tag}${pattern}${tag}`
+	}
 }
 
 export function setPrototype(a: object, proto: object) {
@@ -103,7 +108,7 @@ export function setPrototype(a: object, proto: object) {
 
 export function getInlineFields(content: string, key?: string = '.*?') {
 	// const regex = /\[\s*(.*?)\s*::(.*?)]|\b(.*?)::(.*?)$|\(\s*(.*?)\s*::(.*?)\)/gm
-	const regex = new RegExp(`\\[\\s*(${key})\\s*::(.*?)]|\\b(${key})::(.*?)$|\\(\\s*(${key})\\s*::(.*?)\\)`,'gm')
+	const regex = new RegExp(`\\[\\s*(${key})\\s*::(.*?)]|\\b(${key})::(.*?)$|\\(\\s*(${key})\\s*::(.*?)\\)`, 'gm')
 	var cleanContent = content
 		.replace(/`[^`]+`/g, m => '_'.repeat(m.length)) // remove inline code
 		.replace(/\[\[.*?]]/g, m => '_'.repeat(m.length)) // remove wiki links
@@ -115,10 +120,10 @@ export function getInlineFields(content: string, key?: string = '.*?') {
 		const pair = Array.from(match).filter(Boolean).map(t => t.trim())
 		const [field] = pair;
 		var [startIndex, endIndex] = [match.index, match.index + field.length]
-		var outerField =  content.slice(startIndex, endIndex)
-		var innerField = outerField.replace(/^[(\[]|[)\]]$/g,'')
-		let [key, value] = innerField.split('::').map(t=>t.trim())
-		fields.push({outerField,innerField, key, value, startIndex, endIndex})
+		var outerField = content.slice(startIndex, endIndex)
+		var innerField = outerField.replace(/^[(\[]|[)\]]$/g, '')
+		let [key, value] = innerField.split('::').map(t => t.trim())
+		fields.push({outerField, innerField, key, value, startIndex, endIndex})
 	}
 
 	return fields;
@@ -149,4 +154,17 @@ export function manipulateValue(oldValue, value: string, method: string) {
 export function log(fnName: string, varName: string, ...varValue: any[]) {
 	var title = `${fnName} ${varName}:`;
 	console.log(title, ...varValue)
+}
+
+export function logDecodeAndRun(preExpression, expression, type, result) {
+	var strings = []
+	if (preExpression != expression)
+		strings.push(`template "${preExpression}" converted to "${expression}"`)
+	if (type == 'imported') strings.push(` and import`)
+	if (type =='excuted') strings.push(` and executed to `)
+	if(type=='literal') strings.push(` and return as literal text`)
+
+	log('decodeAndRun', strings.join(''), result)
+
+
 }

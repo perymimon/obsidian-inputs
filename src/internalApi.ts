@@ -161,10 +161,15 @@ export function logDecodeAndRun(preExpression, expression, type, result) {
 	if (preExpression != expression)
 		strings.push(`template "${preExpression}" converted to "${expression}"`)
 	if (type == 'imported') strings.push(` and import`)
+	if (type == 'templater') strings.push(` and templater`)
 	if (type =='excuted') strings.push(` and executed to `)
 	if(type=='literal') strings.push(` and return as literal text`)
 
 	log('decodeAndRun', strings.join(''), result)
+}
 
-
+export function isFileNotation(path){
+	if( path.startsWith('[[') && path.endsWith(']]')) return true
+	if(/\.(js|md)$/.test(path)) return true
+	return false
 }

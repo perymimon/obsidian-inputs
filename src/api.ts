@@ -4,7 +4,7 @@ import * as api from './api';
 import {
 	asyncEval,
 	getActiveFile,
-	getInlineFields, log, logDecodeAndRun, manipulateValue,
+	getInlineFields, isFileNotation, log, logDecodeAndRun, manipulateValue,
 	setPrototype,
 	Target
 } from "./internalApi";
@@ -18,20 +18,31 @@ export function link(file: TFile | string) {
 	return `[[${filename}]]`
 }
 
+/**
+ * time calculation
+ * @param start
+ * @param end
+ * @param format
+ * @param as
+ */
 export function duration(start, end, format = 'HH:mm', as = 'hours') {
 	var from = moment(start, format)
 	var to = moment(end, format)
 	return moment.duration(to.diff(from)).humanize()
 }
-
-export function getTFile(path?: TFile | string): TFile {
+type targetFile = TFile | string
+export function getTFile(path?: targetFile): TFile {
 	if (String.isString(path)) path = path.trim()
 	if (!path || path == 'activeFile') return getActiveFile()
 	if (path instanceof TFile) return path as TFile;
 	path = (path.startsWith('[[') && path.endsWith(']]')) ? path.slice(2, -2) : path
 	let tFile = app.metadataCache.getFirstLinkpathDest(path, "")
-	if (!tFile) throw `"${path}" file is not exist`
+	if (!tFile) return null //`"${path}" file is not exist`
 	return tFile
+}
+
+export async function getTFileContent(tFile?: TFile) {
+	return await app.vault.read(tFile)
 }
 
 export function getStructure(path?: string | TFile) {
@@ -39,13 +50,10 @@ export function getStructure(path?: string | TFile) {
 	return this.app.metadataCache.getFileCache(file)
 }
 
-export async function importJs(path: string): Promise<unknown> {
-	if (path.startsWith('[[') && path.endsWith(']]')) {
-		path = path.slice(2, -2)
-		let TFile = app.metadataCache.getFirstLinkpathDest(path, "")
-		if (!TFile) throw `${path} file is not exist`
-		path = TFile.path
-	}
+export async function importJs(path: TFile | string): Promise<unknown> {
+	var tFile = getTFile(path)
+	if (!TFile) throw `${path} file is not exist`
+	path = tFile.path
 	let fullPath = app.vault.adapter.getResourcePath(path);
 	let timestamp = new Date().getTime();
 	let busterPath = fullPath.replace(/\?.*$/, `?${timestamp}`)
@@ -78,30 +86,28 @@ export async function getFileData(file?: string | TFile, priority?: 'yaml' | 'fi
 }
 
 // https://github.com/SilentVoid13/Templater/blob/26c35559bd63765f6078d43f6febd53435530741/src/core/Templater.ts#L110
-export async function templater(template: string, filename: string, port = {}) {
-	const templ = getPlugin('templater-obsidian').templater;
-	const targeTFile = await app.fileManager.createNewMarkdownFile("", filename ?? "Untitled")
-	const templateFile = getTFile(template)
-	const runningConfig = templ.create_running_config(templateFile, targeTFile, 0)
-	const content = await templ.read_and_parse_template({...runningConfig, port})
-	await app.vault.modify(targeTFile, content);
-	return targeTFile
-}
-
-export async function createNoteFromTemplate(template, filename = "", folder = "", openNewNote) {
-	const templater = getPlugin('templater-obsidian').templater;
-	const templateFile = getTFile(template)
-	return await templater.create_new_note_from_template(templateFile, folder, filename, openNewNote)
-}
-
-export async function appendTemplateToActiveFile(templateFile) {
-	const templater = getPlugin('templater-obsidian').templater;
-	return await templater.append_template_to_active_file(templateFile)
-}
-
-export async function getNewFileTemplateForFolder(folder) {
-	const templater = getPlugin('templater-obsidian').templater;
-	return await templater.create_new_note_from_template(template, folder, filename, openNewNote)
+/**
+ *  create_running_config(
+ *         template_file: TFile | undefined,
+ *         target_file: TFile,
+ *         run_mode: RunMode
+ *     ): RunningConfig {
+ *         const active_file = get_active_file(app);
+ *
+ *         return {
+ *             template_file: template_file,
+ *             target_file: target_file,
+ *             run_mode: run_mode,
+ *             active_file: active_file,
+ *         };
+ *     }
+ */
+export async function templater(templateContent: string, port? = {}, targetFile:targetFile ) {
+	const {templater} = getPlugin('templater-obsidian');
+	targetFile = getTFile(targetFile)
+	const runningConfig = templater.create_running_config(void 0, targetFile, 0)
+	const content = await templater.parse_template({...runningConfig, port}, templateContent)
+	return content
 }
 
 export function getPlugin(pluginId: string) {
@@ -116,7 +122,6 @@ export async function setFrontmatter(value, path, method = 'replace', file) {
 }
 
 //\[(.+?::.+?)\]|\((.+?::.+?)\)|\b(\S+?::.+?)$
-
 // https://regex101.com/r/BExhmA/1
 export async function setInlineField(value: string, key: string, method = 'replace', file?) {
 	const tFile = getTFile(file)
@@ -142,8 +147,6 @@ export async function setInlineField(value: string, key: string, method = 'repla
 	}
 	await app.vault.modify(tFile, newContent)
 }
-
-
 /**
  * - if there is no header or file method related to textInput|button himself
  * append - add text after the current textInput|button
@@ -163,7 +166,7 @@ export async function setInlineField(value: string, key: string, method = 'repla
  * @returns {Promise<string>}
  */
 
-async function quickReplace(text:string, target: Target) {
+async function quickReplace(text: string, target: Target) {
 	const {file, pattern, method = 'replace'} = target
 	const tFile = getTFile(file)
 	var content = await app.vault.read(tFile)
@@ -173,7 +176,7 @@ async function quickReplace(text:string, target: Target) {
 		if (method == "replace") return text
 		return `${method} method is not legal here`
 	})
-	if(newContent == content) return ;
+	if (newContent == content) return;
 	await app.vault.modify(tFile, newContent)
 }
 
@@ -187,14 +190,9 @@ async function quickReplace(text:string, target: Target) {
  */
 async function quickFile(text, target: Target, create = false) {
 	var {file, method = 'append',} = target
-	const {frontmatterPosition} = getStructure(file);
-	try {
-		var tFile = getTFile(file)
-	} catch (e) {
-		if (e.contains('file is not exist') && create) {
-			method = 'create'
-		} else throw e
-	}
+	var tFile = getTFile(file)
+	if (!tFile && create) method = 'create'
+
 	if (method == 'create') {
 		let index = 0;
 		const pathName = file?.path ?? file
@@ -207,7 +205,7 @@ async function quickFile(text, target: Target, create = false) {
 
 		return await app.vault.create(path, text)
 	}
-
+	const {frontmatterPosition} = getStructure(file);
 	var content = await app.vault.read(tFile)
 	let lines = content.split("\n");
 	var [line, delCount] = [
@@ -285,30 +283,41 @@ type decodeAndRunOpts = {
 }
 
 export async function decodeAndRun(preExpression: string, opts: decodeAndRunOpts = {}) {
-	const {priority, vars = {}, file, literalExpression = false, importJs = true} = opts
+	const {priority, vars = {}, file, literalExpression = false, importJs: importedLinks = true} = opts
 	if (preExpression.trim() == '') return ''
-	const data = {...await getFileData(file, priority), ...vars}
-	const expression = (await stringTemplate(preExpression.trim(), data)).trim()
+	var expression = await stringTemplate(preExpression, vars, file, priority)
+	expression = expression.trim()
 	var result = ''
-	var type =''
+	var type = ''
 	try {
 		if (literalExpression) throw 'ask for literal expression string'
-		if (importJs && expression.startsWith('[[') && expression.endsWith(']]')) {
+		imported: if (importedLinks) {
+			if( !isFileNotation(expression) ) break imported
+			const tFile = getTFile(expression)
+			if (!tFile) break imported
 			global.live = api
-			type = 'imported'
-			result = await importJs(expression)
-			return result.default ?? void 0
+			if (tFile.path.endsWith('js')) {
+				result = await importJs(tFile)
+				type = 'imported'
+				return result.default ?? void 0
+			} else if (tFile.path.endsWith('md')) {
+				var content = await getTFileContent(tFile)
+				type = 'templater'
+				result = await templater(content, api)
+				return result
+			}
 		}
+
 		type = 'excuted'
 		result = await executeCode(expression, vars, file)
 		return result
-	} catch {
+	} catch (e) {
 		// literal string
-		type=='literal'
+		type = 'literal'
 		return expression
 	} finally {
 		delete global.live
-		logDecodeAndRun(preExpression, expression,type, result)
+		logDecodeAndRun(preExpression, expression, type, result)
 	}
 }
 
@@ -328,7 +337,7 @@ export async function saveValue(text: string, target: Target) {
 		case 'header':
 			return await quickHeader(text, target)
 		case 'file':
-			return await quickFile(text, target)
+			return await quickFile(text, target, true)
 		case 'pattern':
 			return await quickReplace(text, target)
 

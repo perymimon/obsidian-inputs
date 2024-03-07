@@ -19,10 +19,8 @@ jobs:
 
             - name: Build plugin
               run: |
-                  npm install -g yarn
-                  yarn install
-                  yarn build
-
+                  npm i 
+                  npm run build
             - name: Create release
               uses: actions/create-release@v1
               env:

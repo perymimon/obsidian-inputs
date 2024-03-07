@@ -1,7 +1,7 @@
 {
 	"id": "inputs",
 	"name": "Inputs",
-	"version": "0.2.5",
+	"version": "0.2.6",
 	"minAppVersion": "0.15.0",
 	"description": "help to create inline inputs fields into note that change the actual note",
 	"author": "Pery mimon",

@@ -31,7 +31,3 @@ jobs:
                 release_name: ${{ github.ref }}
                 draft: true
                 prerelease: true
-                file_glob: |
-                    dist/*.js
-                    dist/*.json
-                    dist/*.css

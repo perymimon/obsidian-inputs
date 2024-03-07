@@ -1,6 +1,7 @@
+// @ts-nocheck
 // Credits go to Liam's Periodic Notes Plugin: https://github.com/liamcain/obsidian-periodic-notes
 
-import {AbstractInputSuggest, App, TFile, fuzzySearch, getAllTags, prepareFuzzySearch} from "obsidian";
+import {AbstractInputSuggest, App, TFile, prepareFuzzySearch} from "obsidian";
 import {link} from "./api";
 
 export enum FileSuggestMode {

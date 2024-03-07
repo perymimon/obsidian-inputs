@@ -1,4 +1,7 @@
-export function deepAssign(target: object, ...sources) {
+// @ts-nocheck
+import {Target} from "./internalApi";
+
+export function deepAssign(target: object, ...sources: any[]) {
 	for (let source of sources) {
 		for (let k in source) {
 			let vs = source[k], vt = target[k]
@@ -59,15 +62,16 @@ function unflattenObject(flattenObject) {
  * @param value
  * @param method replace|append|prepend|delete|clear
  */
-export function objectSet(root, path, value, method = 'replace') {
+export function objectSet(root:object, path:string, value:any, method:Target["method"] = 'replace') {
 	let paths = path.split(/\[(\w+)\]|\.|\["(\w+)"\]/).filter(Boolean)
 	let obj = root;
 	while (paths.length > 1) {
-		let p = paths.shift()
-		obj[p] = typeof obj[p] == 'object' ? obj[p] : {};
-		obj = obj[p]
+        let p:string = paths.shift()!;
+		obj[p] = typeof obj[p] == 'object' ? obj[p] as any : {};
+        obj = obj[p] as Record<string, any>;
 	}
 	let p = paths[0]
+	// @ts-ignore
 	let oldValue = obj[p];
 	switch (method) {
 		case 'replace':
@@ -92,12 +96,13 @@ export function objectSet(root, path, value, method = 'replace') {
 
 }
 
-export function objectGet(root, path) {
+export function objectGet(root:object, path:string) {
 	let paths = path.split(/\[(\w+)\]|\.|\["(\w+)"\]/).filter(Boolean)
 	let current = root;
 	do {
 		if (current == void 0) return void 0;
 		let p = paths.shift()
+		// @ts-ignore I count on undefined
 		current = current[p]
 	} while (paths.length)
 	return current

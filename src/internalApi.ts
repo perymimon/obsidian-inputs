@@ -1,3 +1,4 @@
+// @ts-nocheck
 import {MarkdownView, TFile} from "obsidian";
 import {getTFile} from "./api";
 
@@ -8,7 +9,8 @@ export function getMaxAnnotationId(pattern: RegExp, fileContent: string) {
 	pattern = new RegExp(pattern, 'gim')
 	for (let annotation of fileContent.matchAll(pattern)) {
 		let inputFields = annotation.groups
-		let id = /\d+/.exec(inputFields?.id) ?? 0
+		// @ts-ignore
+		let id = (/\d+/.exec(inputFields?.id) ?? 0) as number
 		maxId = Math.max(id, maxId)
 	}
 	return maxId;
@@ -40,11 +42,11 @@ export async function refresh() {
 }
 
 export function getActiveFile(): TFile {
-	return app.workspace.activeEditor?.file ?? app.workspace.getActiveFile();
+	return app.workspace.activeEditor?.file ?? app.workspace.getActiveFile() as TFile;
 }
 
 
-export async function asyncEval(code, fields = {}, api = {}, priority = 'api', debug = false) {
+export async function asyncEval(code:string, fields = {}, api = {}, priority = 'api', debug = false) {
 	const AsyncFunction = Object.getPrototypeOf(async function () {
 	}).constructor
 	const func = new AsyncFunction('dataFields', 'api', 'debug', `
@@ -60,7 +62,7 @@ export async function asyncEval(code, fields = {}, api = {}, priority = 'api', d
 		return await func.call(this, api, fields)
 }
 
-type replacer = (substring: string, ...args: any[]) => string
+type replacer = (substring: string, ...args: any[]) => Promise<string>
 
 export async function replaceAsync(string: string, regexp: RegExp, replacer: replacer) {
 	const replacements = await Promise.all(
@@ -74,9 +76,10 @@ export type Target = {
 	file: TFile | string,
 	targetType: 'yaml' | 'field' | 'header' | 'text' | 'file' | 'pattern',
 	path: string,
-	method: 'append' | 'prepend' | 'replace' | 'create'
+	method: 'append' | 'prepend' | 'replace' | 'create' | 'delete' | 'clear '
 	pattern: string
 }
+type TargetArray = [string, Target['file'], Target['targetType'], Target['path'], Target['method']]
 
 export function parseTarget(target: string, pattern: string, defFile: string | TFile = ''): Target {
 	//https://regex101.com/r/Z0v3rv/1
@@ -86,27 +89,30 @@ export function parseTarget(target: string, pattern: string, defFile: string | T
 		.replace(eliminateSquareContent, '$1')
 		.match(targetPattern) ?? []
 	const tag = '`'
-	var [, file, targetType = '', path = '', method] = fields
+	var [, file, targetType = '', path = '', method] = fields as TargetArray
 	path = path.trim()
 	file = (typeof file == 'string') ? file.trim() : file
-	const typeMap = {
+	// @ts-ignore
+	const typeMap:Record<string|undefined, string>= {
 		':': 'yaml',
 		'::': 'field',
 		'#': 'header',
 	}
-	targetType = typeMap[targetType] ?? (file ? 'file' : 'pattern')
+	var type = (typeMap[targetType] ?? (file ? 'file' : 'pattern')) as Target['targetType']
+
 	return {
-		file: file ?? defFile, targetType, path, method,
+		file: file ?? defFile, targetType:type, path, method ,
 		pattern: `${tag}${pattern}${tag}`
 	}
 }
 
 export function setPrototype(a: object, proto: object) {
+	// @ts-ignore
 	a.__proto__ = proto
 	return a;
 }
 
-export function getInlineFields(content: string, key?: string = '.*?') {
+export function getInlineFields(content: string, key: string = '.*?') {
 	// const regex = /\[\s*(.*?)\s*::(.*?)]|\b(.*?)::(.*?)$|\(\s*(.*?)\s*::(.*?)\)/gm
 	const regex = new RegExp(`\\[\\s*(${key})\\s*::(.*?)]|\\b(${key})::(.*?)$|\\(\\s*(${key})\\s*::(.*?)\\)`, 'gm')
 	var cleanContent = content
@@ -130,7 +136,7 @@ export function getInlineFields(content: string, key?: string = '.*?') {
 }
 
 
-export function manipulateValue(oldValue, value: string, method: string) {
+export function manipulateValue(oldValue:string, value: string, method: string) {
 	var array = oldValue.split(',').map((t: string) => t.trim()).filter(Boolean)
 	switch (method) {
 		case 'replace':
@@ -156,7 +162,7 @@ export function log(fnName: string, varName: string, ...varValue: any[]) {
 	console.log(title, ...varValue)
 }
 
-export function logDecodeAndRun(preExpression, expression, type, result) {
+export function logDecodeAndRun(preExpression:string, expression:string, type:string, result:any) {
 	var strings = []
 	if (preExpression != expression)
 		strings.push(`template "${preExpression}" converted to "${expression}"`)
@@ -168,7 +174,7 @@ export function logDecodeAndRun(preExpression, expression, type, result) {
 	log('decodeAndRun', strings.join(''), result)
 }
 
-export function isFileNotation(path){
+export function isFileNotation(path:string){
 	if( path.startsWith('[[') && path.endsWith(']]')) return true
 	if(/\.(js|md)$/.test(path)) return true
 	return false

@@ -1,5 +1,5 @@
-import {App, debounce} from "obsidian";
-import {MyPluginSettings} from "./settings";
+import {App, MarkdownPostProcessorContext, MarkdownView, TFile} from "obsidian";
+import {MyPluginSettings} from "../draft/settings";
 import {decodeAndRun, saveValue} from "./api";
 import {log, parseTarget} from "./internalApi";
 
@@ -11,7 +11,7 @@ export const UPDATE_PATTERN = /(?:^|`)update\|\s*?(?<expression>.*?)\s*?(?<targe
 export async function update(fileContent: string, file: string | TFile) {
 	for (let match of fileContent.matchAll(new RegExp(UPDATE_PATTERN, 'g'))) {
 		const pattern = match[0]
-		const {expression, target: targetDesc = ''} = match.groups
+		const {expression, target: targetDesc = ''} = match.groups!
 		var target = parseTarget(targetDesc, pattern, file)
 		let newText = await decodeAndRun(expression, {
 			priority: target.targetType
@@ -24,13 +24,13 @@ export async function update(fileContent: string, file: string | TFile) {
 
 }
 
-export async function replaceCode2Update(root: HTMLElement, ctx, settings: MyPluginSettings, app: App) {
+export async function replaceCode2Update(root: HTMLElement, ctx:MarkdownPostProcessorContext, settings: MyPluginSettings, app: App) {
 	const codesEl = root.findAll('code')
 	for (let codeEl of codesEl) {
 		const text = codeEl.innerText.trim()
 		const buttonNotation = text.match(UPDATE_PATTERN)
 		if (!buttonNotation) continue;
-		const {expression, target} = buttonNotation.groups
+		const {expression, target} = buttonNotation.groups!
 		codeEl.classList.add('live-form-update')
 		codeEl.textContent = `🧮 ${expression} ${target}`
 	}
@@ -38,7 +38,8 @@ export async function replaceCode2Update(root: HTMLElement, ctx, settings: MyPlu
 
 app.metadataCache.on("changed", async (file, content, cache) =>{
 	// refresh(this.app)
-	var viewMode = 	app.workspace.activeEditor?.getMode()
+	var editor = app.workspace.activeEditor as MarkdownView
+	var viewMode = 	editor?.getMode()
 	if(viewMode == 'preview')
 		await update(content,file)
 })

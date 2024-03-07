@@ -1,8 +1,9 @@
+// @ts-nocheck
 import {App, Modal, PluginSettingTab, Setting} from "obsidian";
-import LiveFormPlugin from "./main";
+import InputsPlugin from "../src/main";
 
 export interface MyPluginSettings {
-	inputTypes: {
+	inputTypes?: {
 		[prefix: string]: string;
 	};
 }
@@ -15,9 +16,9 @@ export const DEFAULT_SETTINGS:MyPluginSettings = {
 }
 
 export class LiveFormSettingTab extends PluginSettingTab {
-	plugin: LiveFormPlugin;
+	plugin: InputsPlugin;
 
-	constructor(app: App, plugin: LiveFormPlugin) {
+	constructor(app: App, plugin: InputsPlugin) {
 		super(app, plugin);
 		this.plugin = plugin;
 	}

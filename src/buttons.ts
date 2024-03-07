@@ -1,5 +1,6 @@
-import {App} from "obsidian";
-import {MyPluginSettings} from "./settings";
+// @ts-nocheck
+import {App, MarkdownPostProcessorContext} from "obsidian";
+import {MyPluginSettings} from "../draft/settings";
 import {decodeAndRun, saveValue} from "./api";
 import {parseTarget} from "./internalApi";
 
@@ -7,13 +8,14 @@ const $BUTTONS_MAP = new WeakMap()
 
 export const BUTTON_PATTERN = /(?:^|`)button\|(?<name>.*)\|\s*(?<expression>.+?)\s*(?<target>>.*?)?\s*(?<id>-\d+-)?(?:$|`)/i
 // https://regex101.com/r/osbDKH/1
-export function generateButtonNotation(fields, id = 0) {
+
+export function generateButtonNotation(fields:Record<string, any>, id = 0) {
 	const {name = '', expression = '', target = ''} = fields
 	return `\`Button|${name}| ${expression} ${target} -${id}-\``
 }
 
 // https://regex101.com/r/AN0SOC/1
-export function replaceCode2Buttons(root: HTMLElement, ctx, settings: MyPluginSettings, app: App) {
+export function replaceCode2Buttons(root: HTMLElement, ctx:MarkdownPostProcessorContext, settings: MyPluginSettings, app: App) {
 	const codesEl = root.findAll('code')
 	for (let codeEl of codesEl) {
 		const pattern = codeEl.innerText
@@ -24,7 +26,7 @@ export function replaceCode2Buttons(root: HTMLElement, ctx, settings: MyPluginSe
 		createButton(codeEl, app, ctx.frontmatter, pattern, fields)
 	}
 }
-function createButton(rootEl, app: App, frontmatter, pattern,  fields) {
+function createButton(rootEl:HTMLElement, app: App, frontmatter:Record<string, any>, pattern:string,  fields:Record<string, any>) {
 	const buttonEl = rootEl.createEl('button', {cls: 'live-form'})
 	const {name, expression, target = ''} = fields
 	buttonEl.textContent = name || target || 'no name'

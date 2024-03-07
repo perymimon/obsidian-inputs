@@ -1,5 +1,6 @@
-import {App, Editor, TFile} from "obsidian";
-import {MyPluginSettings} from "./settings";
+// @ts-nocheck
+import {App, Editor, MarkdownPostProcessorContext, TFile} from "obsidian";
+import {MyPluginSettings} from "../draft/settings";
 import {InputSuggest} from "./FileSuggester";
 import {objectGet} from "./objects";
 import {modifications, stringTemplate, typeMap} from "./strings";
@@ -23,7 +24,7 @@ export const INPUT_PATTERN = new RegExp([
 /**
  * mark input Anotation pattern with -id- if need : `____ -id-`
  */
-export function replaceCode2Inputs(rootEl: HTMLElement, ctx, settings: MyPluginSettings, app: App) {
+export function replaceCode2Inputs(rootEl: HTMLElement, ctx:MarkdownPostProcessorContext, settings: MyPluginSettings, app: App) {
 	const codesEl = rootEl.findAll('code')
 	for (let codeEl of codesEl) {
 		const pattern = codeEl.innerText
@@ -35,11 +36,11 @@ export function replaceCode2Inputs(rootEl: HTMLElement, ctx, settings: MyPluginS
 }
 
 
-const cbTriggerSave = (e, delegateTarget) => e.target.trigger('save', e)
+const cbTriggerSave = (e, delegateTarget:HTMLInputElement) => e.target.trigger('save', e)
 global.document.on('change', 'form.live-form', cbTriggerSave)
 global.document.on('select', 'form.live-form', cbTriggerSave)
 global.document.on('submit', 'form.live-form', e => e.preventDefault())
-global.document.on('keydown', 'form.live-form', (e, delegateTarget) => {
+global.document.on('keydown', 'form.live-form', (e, delegateTarget:HTMLInputElement) => {
 	if (!(e.key == "Enter" && (e.metaKey || e.ctrlKey))) return
 	cbTriggerSave(e, delegateTarget)
 })

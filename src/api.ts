@@ -1,3 +1,4 @@
+// @ts-nocheck
 import {normalizePath, TFile} from "obsidian";
 import {objectSet} from "./objects";
 import * as api from './api';
@@ -9,11 +10,12 @@ import {
 	Target
 } from "./internalApi";
 import {stringTemplate} from "./strings";
+import {Priority} from "./types";
 
 var app = global.app
 
 export function link(file: TFile | string) {
-	file = getTFile(file?.path || file)
+	file = getTFile(file?.path as TFile || file)
 	var filename = app.metadataCache.fileToLinktext(file, '', true)
 	return `[[${filename}]]`
 }
@@ -25,7 +27,8 @@ export function link(file: TFile | string) {
  * @param format
  * @param as
  */
-export function duration(start, end, format = 'HH:mm', as = 'hours') {
+export function duration(start:string, end:string, format = 'HH:mm', as = 'hours') {
+
 	var from = moment(start, format)
 	var to = moment(end, format)
 	return moment.duration(to.diff(from)).humanize()
@@ -41,7 +44,7 @@ export function getTFile(path?: targetFile): TFile {
 	return tFile
 }
 
-export async function getTFileContent(tFile?: TFile) {
+export async function getTFileContent(tFile: TFile) {
 	return await app.vault.read(tFile)
 }
 
@@ -70,7 +73,7 @@ export async function executeCode(code: string, vars, contextFile?: string | TFi
  * @param file
  * @param priority 'yaml'|'field'
  */
-export async function getFileData(file?: string | TFile, priority?: 'yaml' | 'field' | string = 'field') {
+export async function getFileData(file?: string | TFile, priority: Priority | string = 'field') {
 	// const dv = getPlugin('dataview')
 	file = getTFile(file)
 	// if (dv) {
@@ -279,7 +282,7 @@ type decodeAndRunOpts = {
 	vars?: {},
 	file?: TFile | string,
 	literalExpression?: boolean
-	notImport: boolean
+	notImport?: boolean
 }
 
 export async function decodeAndRun(preExpression: string, opts: decodeAndRunOpts = {}) {

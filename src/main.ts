@@ -1,21 +1,23 @@
 import {Plugin, App } from 'obsidian';
 
-import {LiveFormSettingTab, DEFAULT_SETTINGS} from "./settings";
+// import {LiveFormSettingTab, DEFAULT_SETTINGS} from "./settings";
 import { replaceCode2Inputs} from "./inputs";
 import { replaceCode2Buttons} from "./buttons";
 import {replaceCode2Update, update} from "./update";
+// import {MyPluginSettings} from "../settings";
 
 // https://regex101.com/r/FhEQ2Z/1
 // https://regex101.com/r/jC824J/1
 
 export let app: App
-export default class LiveFormPlugin extends Plugin {
-	settings = {};
+export default class InputsPlugin extends Plugin {
+	// settings :MyPluginSettings  = {};
+	settings = {}
 	id = 1;
 
 	async onload() {
 		app = this.app;
-		console.log('loading live-form plugin');
+		console.log('loading Inputs plugin');
 		// this.app.workspace.on('editor-change', async editor => {
 		// 	let cur = editor.getCursor()
 		// 	// let textLine = editor.getLine(cur.line)
@@ -36,10 +38,10 @@ export default class LiveFormPlugin extends Plugin {
 			}
 		)
 
-		await this.loadSettings();
+		// await this.loadSettings();
 
 		// This adds a settings tab so the user can configure various aspects of the plugin
-		this.addSettingTab(new LiveFormSettingTab(this.app, this));
+		// this.addSettingTab(new LiveFormSettingTab(this.app, this));
 
 		// this.app.workspace.on('editor-change',(editor) => console.log('editor-change', editor) )
 	}
@@ -48,13 +50,13 @@ export default class LiveFormPlugin extends Plugin {
 
 	}
 
-	async loadSettings() {
-		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
-	}
+	// async loadSettings() {
+	// 	this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+	// }
 
-	async saveSettings() {
-		await this.saveData(this.settings);
-	}
+	// async saveSettings() {
+	// 	await this.saveData(this.settings);
+	// }
 }
 
 

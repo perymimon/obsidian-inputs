@@ -31,7 +31,7 @@ jobs:
                   release_name: ${{ github.ref }}
                   draft: true  # Set to true if you want to create a draft release
                   prerelease: true  # Set to true if it's a pre-release
-                  files: |
+                  file_glob: |
                     dist/*.js
                     dist/*.json
                     dist/*.css

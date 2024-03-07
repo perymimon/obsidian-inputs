@@ -19,19 +19,19 @@ jobs:
 
             - name: Build plugin
               run: |
-                  npm i 
-                  npm run build
+                npm i 
+                npm run build
 
             - name: Create release
               uses: actions/create-release@v1
               env:
-                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
               with:
-                  tag_name: ${{ github.ref }}
-                  release_name: ${{ github.ref }}
-                  draft: true  # Set to true if you want to create a draft release
-                  prerelease: true  # Set to true if it's a pre-release
-                  file_glob: |
+                tag_name: ${{ github.ref }}
+                release_name: ${{ github.ref }}
+                draft: true
+                prerelease: true
+                file_glob: |
                     dist/*.js
                     dist/*.json
                     dist/*.css

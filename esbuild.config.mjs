@@ -36,7 +36,7 @@ const context = await esbuild.context({
 		"moment",
 		...builtins],
 	format: "cjs",
-	target: "ES2022",
+	target: "esnext",
 	logLevel: "info",
 	sourcemap: prod ? false : "inline",
 	treeShaking: true,
@@ -45,12 +45,12 @@ const context = await esbuild.context({
 		copy({
 			resolveFrom: "cwd",
 			assets: [
-				{ from: "./src/styles.css", to: `release/styles.css` },
-				{ from: "./src/styles.css", to: `styles.css` },
-				{ from: "./manifest.json", to: `release/manifest.json` },
-				{ from: "./data.json", to: `release/data.json` }
+				{ from: "./styles.css", to: `dist/styles.css` },
+				{ from: "./main.js", to: `dist/main.js` },
+				{ from: "./manifest.json", to: `dist/manifest.json` },
+				{ from: "./data.json", to: `dist/data.json` }
 			],
-			watch: true
+			watch: false
 		})
 	]
 });

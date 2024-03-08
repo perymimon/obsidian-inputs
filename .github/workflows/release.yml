@@ -1,9 +1,9 @@
-name: Create release
+name:  Build Obsidian Plugin
 
-on:
-    push:
-        tags:
-            - "*"
+on: workflow_dispatch
+
+env:
+    PLUGIN_NAME: obsidian-inputs
 jobs:
     build:
         runs-on: ubuntu-latest
@@ -16,19 +16,28 @@ jobs:
               with:
                   node-version: "18.x"
 
-            - name: Build plugin
+            - name: Get Package Version
+              id: get_package_version
+              run: echo "PACKAGE_VERSION=$(cat package.json | jq -r '.version')" >> $GITHUB_ENV
+
+            - name: Build
+              id: build
               run: |
+                  echo Building for version PACKAGE_VERSION
                   npm install
                   npm run build
+                  zip -jr ${{ env.PLUGIN_NAME }}-${{ env.PACKAGE_VERSION }}.zip dist/*
+                  ls
+                  echo Dist folder:
+                  ls dist
 
-
-            - name: Create release
-              env:
-                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-              run: |
-                  tag="${{ github.ref_name }}"
-                  
-                  gh release create "$tag" \
-                    --title="$tag" \
-                    --draft \
-                    main.js manifest.json styles.css
+            - name: Release
+              uses: softprops/action-gh-release@v1
+              with:
+                tag_name: ${{ env.PACKAGE_VERSION }}
+                files: |
+                    ${{ env.PLUGIN_NAME }}-${{ env.PACKAGE_VERSION }}.zip
+                    main.js
+                    manifest.json
+                    styles.css
+                    data.json

@@ -1,9 +1,9 @@
 {
 	"id": "inputs",
 	"name": "Inputs",
-	"version": "0.2.11",
+	"version": "0.1.0",
 	"minAppVersion": "0.15.0",
-	"description": "help to create inline inputs fields into note that change the actual note",
+	"description": "Help to create inline inputs fields into note that change the actual note",
 	"author": "Pery mimon",
 	"authorUrl": "https://github.com/perymimon",
 	"fundingUrl": "",

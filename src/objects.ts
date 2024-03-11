@@ -60,7 +60,7 @@ function unflattenObject(flattenObject) {
  * @param root
  * @param path
  * @param value
- * @param method replace|append|prepend|delete|clear
+ * @param method replace|append|prepend|remove|clear
  */
 export function objectSet(root:object, path:string, value:any, method:Target["method"] = 'replace') {
 	let paths = path.split(/\[(\w+)\]|\.|\["(\w+)"\]/).filter(Boolean)
@@ -83,7 +83,7 @@ export function objectSet(root:object, path:string, value:any, method:Target["me
 		case 'prepend':
 			obj[p] = Array.isArray(obj[p]) ? [value, ...obj[p]] : [value, oldValue];
 			break;
-		case 'delete':
+		case 'remove':
 			delete obj[p];
 			break;
 		case 'clear':

@@ -68,7 +68,7 @@ global.document.on('click', 'form.live-form', async (e,delegateTarget) => {
 		var target = parseTarget(delegateTarget.title)
 		var button = e.target
 		if (button.name == 'clear') target.method = 'clear'
-		if (button.name == 'delete') target.method = 'delete'
+		if (button.name == 'remove') target.method = 'remove'
 		await saveValue('', target)
 	}
 })

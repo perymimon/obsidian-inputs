@@ -6,7 +6,7 @@ import {
 	asyncEval,
 	getActiveFile,
 	getInlineFields, isFileNotation, log, logDecodeAndRun, manipulateValue,
-	setPrototype, sliceRemover,	Target
+	setPrototype, sliceRemover, spliceString, Target
 } from "./internalApi";
 import {stringTemplate} from "./strings";
 import {Priority} from "./types";
@@ -134,7 +134,7 @@ export async function setInlineField(value: string, key: string, method = 'repla
 	if (fieldDesc.length) { // field exist
 		let {outerField, fullValue, startIndex, endIndex} = fieldDesc.at(0)
 		var newField
-		if (method == 'delete') newField = ''
+		if (method == 'remove') newField = ''
 		else {
 			value = manipulateValue(oldValue, value, method)
 			newField = outerField.replace(`::${fullValue}`, `::${value}`)
@@ -142,7 +142,7 @@ export async function setInlineField(value: string, key: string, method = 'repla
 		if (outerField == newField) return false
 		newContent = [content.slice(0, startIndex), newField, content.slice(endIndex)].join('')
 	} else { // field not exist, create one
-		if (method == 'delete') return 'no field detected'
+		if (method == 'remove') return 'no field detected'
 		var {frontmatterPosition} = getStructure(file)
 		var offset = frontmatterPosition?.end.offset ?? 0
 		let field = `[${key}::${value}]`
@@ -177,7 +177,7 @@ async function quickText(text: string, target: Target) {
 
 	if (method == "clear") {
 		var startPatternIndex = content.indexOf(pattern)
-		var startLineIndex = content.lastIndexOf('\n', startPatternIndex)+1
+		var startLineIndex = content.lastIndexOf('\n', startPatternIndex) + 1
 		var line = content.slice(startLineIndex, startPatternIndex)
 		var field = getInlineFields(line).pop()
 		var slice = [startLineIndex, startPatternIndex]
@@ -188,14 +188,14 @@ async function quickText(text: string, target: Target) {
 			]
 			slice = stopPoints.find(slice => slice[0] < line.length).map(i => i + startLineIndex)
 		}
-		let [indexStart, indexEnd=startPatternIndex] = slice
+		let [indexStart, indexEnd = startPatternIndex] = slice
 		newContent = sliceRemover(content, indexStart, indexEnd)
 	} else {
 		var newContent = content.replace(pattern, (match) => {
 			if (method == "append") return `${match}${text}`
 			if (method == "prepend") return `${text}${match}`
 			if (method == "replace") return text
-			if (method == "delete") return ''
+			if (method == "remove") return ''
 			return `${method} method is not legal here`
 		})
 	}
@@ -231,15 +231,14 @@ async function quickFile(text, target: Target, create = false) {
 	const {frontmatterPosition} = getStructure(file);
 	var content = await app.vault.read(tFile)
 	let lines = content.split("\n");
-	var [line, delCount] = [
-		(frontmatterPosition?.end.line + 1) || 0,
-		0
-	]
+	let line = (frontmatterPosition?.end.line + 1) || 0
+	let delCount = 0
 
 	// top,bottom, replace file content
 	// if (method == "prepend") 'it is the default;
 	if (method == "replace") delCount = lines.length - line
 	if (method == "append") line = lines.length
+	if (method == "clear") delCount = lines.length
 	content = lines.toSpliced(line, delCount, text).join("\n");
 	await app.vault.modify(tFile, content)
 	return tFile
@@ -255,36 +254,38 @@ async function quickFile(text, target: Target, create = false) {
  * @param target
  */
 async function quickHeader(text: string, target: Target) {
-	var {file, path, method = 'append'} = target
+	var {file, path, method = 'append'} = target;
 	const {headings = [], frontmatterPosition} = getStructure(file);
-	const tFile = getTFile(file)
-	var content = await app.vault.read(tFile)
-	let lines = content.split("\n");
-	var pos, delCount = 0;
+	const tFile = getTFile(file);
+	var content = await app.vault.read(tFile);
 
-	var index = headings?.findIndex((item) => item.heading == path.trim())
-	//if header not exist default is to add to start of file,unless method is append
-	if (index == -1) text = `## ${path}\n${text}`
-	if (index == -1 && method == 'replace') method = 'prepend'
-	if (index == -1 && method == 'append') index = headings.length - 1
-	const [startLine, endLine] = [
-		(headings[index]?.position.end.line ?? frontmatterPosition?.end.line ?? -1) + 1,
-		(headings[index + 1]?.position.start.line ?? lines.length) - 1
-	]
-	const headerContentLines = lines.slice(startLine, endLine + 1)
-	while (headerContentLines.length) {
-		let line = headerContentLines.at(-1).trim()
-		if (line) break;
-		headerContentLines.pop()
-	}
+	var iHeader = headings?.findIndex((item) => item.heading == path.trim());
+	// If header not exist default is to add to start of file,unless method is append
+	if (iHeader == -1) text = `## ${path}\n${text}`;
+	if (iHeader == -1 && method == 'replace') method = 'prepend';
+	if (iHeader == -1 && method == 'append') iHeader = headings.length - 1;
+	if (iHeader == -1 && method == 'remove') return;
 
-	if (["prepend", "replace"].includes(method)) pos = startLine
-	if (method == "append") pos = startLine + headerContentLines.length
-	if (method == "replace") delCount = headerContentLines.length
+	let [h,hNext] = headings.slice(iHeader)
+	let [startOffset, endOffset] = [
+		(h?.position.end.offset ?? frontmatterPosition?.end.offset ?? -1) + 1,
+		(hNext?.position.start.offset ?? content.length)
+	];
+	if (method == 'remove') startOffset = h?.position.start.offset;
 
-	content = lines.toSpliced(pos, delCount, text).join("\n");
-	await app.vault.modify(tFile, content)
-	log('quickHeader', `${file} ${path} ${method}`)
+	const headerContent = content.slice(startOffset, endOffset).replace(/\n\s*$/g, '');
+	const headerContentLines  = headerContent.split('\n')
+
+	if(method == "append") headerContentLines.push(text)
+	if(method == "prepend") headerContentLines.unshift(text)
+	if(method == "clear") headerContentLines.length = 0
+	if(method == "replace") headerContentLines.splice(0,Infinity,text)
+	if(method == "remove") headerContentLines.length = 0
+
+	content = spliceString(content, startOffset, headerContent.length, headerContentLines.join('\n'))
+
+	await app.vault.modify(tFile, content);
+	log('quickHeader', `${file} ${path} ${method}`);
 }
 
 /**

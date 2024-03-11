@@ -34,7 +34,7 @@ export function duration(start: string, end: string, format = 'HH:mm', as = 'hou
 
 type targetFile = TFile | string
 
-export async function getTFile(path?: targetFile,autoCreate=true): TFile {
+export async function getTFile(path?: targetFile,autoCreate=true): Promise<TFile|null> {
 	if (String.isString(path)) path = path.trim()
 	if (!path || path == 'activeFile') return getActiveFile()
 	if (path instanceof TFile) return path as TFile;
@@ -53,20 +53,24 @@ export async function createTFile(path:targetFile, text:string = ''){
 		pathName = index ? `${path} ${index}` : path
 		pathName = pathName.replace(/(\.md)?$/, '.md')
 		index++
-		var file = !app.vault.getFileByPath(pathName)
+		var file = app.vault.getFileByPath(pathName)
 	} while (file)
 
-	return await app.vault.create(pathName, text)
+	return await app.vault.create(pathName, String(text))
 
 }
-
+export async function removeFile(path:targetFile){
+	var tFile = await getTFile(path, false)
+	if(!tFile) return
+	await app.vault.delete(tFile!)
+}
 export async function getTFileContent(tFile: TFile) {
 	return await app.vault.read(tFile)
 }
 
 export async function getStructure(path?: string | TFile) {
 	let file = await getTFile(path)
-	return this.app.metadataCache.getFileCache(file)
+	return this.app.metadataCache.getFileCache(file) ?? {}
 }
 
 export async function importJs(path: TFile | string): Promise<unknown> {
@@ -228,27 +232,27 @@ async function quickText(text: string, target: Target) {
  * @param target
  * @param create create if not exist
  */
-async function quickFile(text, target: Target, create = false) {
+async function quickFile(text:string, target: Target, create = false) {
 	var {file, method = 'append',} = target
-	var tFile = await getTFile(file)
+	var tFile = await getTFile(file,false) as TFile
 	if (!tFile && create) method = 'create'
 
 	if (method == 'create')
 		return await createTFile(file,text)
+	if (method == 'remove')
+		return await removeFile(file)
 
 	const {frontmatterPosition} = await getStructure(file);
 	var content = await app.vault.read(tFile)
-	let lines = content.split("\n");
-	let line = (frontmatterPosition?.end.line + 1) || 0
-	let delCount = 0
+	var offset = (frontmatterPosition?.end.offset  || -1) +1
+	let lines = content.slice(offset).split("\n");
 
 	// top,bottom, replace file content
-	// if (method == "prepend") 'it is the default;
-	if (method == "replace") delCount = lines.length - line
-	if (method == "append") line = lines.length
-	if (method == "clear") delCount = lines.length
-	content = lines.toSpliced(line, delCount, text).join("\n");
-	await app.vault.modify(tFile, content)
+	if (method == "prepend") lines.unshift(text)
+	if (method == "replace") lines = [text]
+	if (method == "append") lines.push(text)
+	if (method == "clear") lines.length = 0
+	await app.vault.modify(tFile, lines.join("\n"))
 	return tFile
 }
 

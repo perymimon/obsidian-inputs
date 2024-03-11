@@ -1,6 +1,5 @@
 // @ts-nocheck
 import {MarkdownView, TFile} from "obsidian";
-import {getTFile} from "./api";
 
 var app = global.app
 
@@ -76,7 +75,7 @@ export type Target = {
 	file: TFile | string,
 	targetType: 'yaml' | 'field' | 'header' | 'text' | 'file' | 'pattern',
 	path: string,
-	method: 'append' | 'prepend' | 'replace' | 'create' | 'remove' | 'clear '
+	method: 'append' | 'prepend' | 'replace' | 'create' | 'remove' | 'clear'
 	pattern: string
 }
 type TargetArray = [string, Target['file'], Target['targetType'], Target['path'], Target['method']]
@@ -89,7 +88,7 @@ export function parseTarget(pattern: string, defFile: string | TFile = ''): Targ
 		.filter(Boolean)
 	const fields = leftPattern.trim()
 		.replace(eliminateSquareContent, '$1')
-		.match(/>([^:#?*<>"]+?)?(?:(::|:|#)([\w ]+?))?$/) || []
+		.match(/>([^:#?*<>"]+?)?(?:(::|:|#)([\w -]+?))?$/) || []
 
 	var [, file, targetType = '', path = ''] = fields as TargetArray
 	path = path.trim()
@@ -115,8 +114,14 @@ export function setPrototype(a: object, proto: object) {
 	a.__proto__ = proto
 	return a;
 }
-
-export function getInlineFields(content: string, key: string = '.*?') {
+export type Field = {
+	outerField:string, innerField:string, key:string,
+	value:string,fullKey:string,fullValue:string
+	offset: [number, number],
+	keyOffset: [number, number],
+	valueOffset: [number, number]
+}
+export function getInlineFields(content: string, key: string = '.*?'):Field[] {
 	// const regex = /\[\s*(.*?)\s*::(.*?)]|\b(.*?)::(.*?)$|\(\s*(.*?)\s*::(.*?)\)/gm
 	const regex = new RegExp(`\\[(\\s*${key}\\s*)::(.*?)\\]|\\((\\s*${key}\\s*)::(.*?)\\)|\\b(${key})::(.*?)$`, 'gm')
 	var cleanContent = content
@@ -139,7 +144,7 @@ export function getInlineFields(content: string, key: string = '.*?') {
 			startValue = endKey + 2,
 			endValue = startValue + fullValue.length
 		fields.push({
-			outerField, innerField, key, value,
+			outerField, innerField, key, value,fullKey,fullValue,
 			offset: [startOffset, endOffset],
 			keyOffset: [startKey, endKey],
 			valueOffset: [startValue, endValue]

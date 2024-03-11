@@ -46,7 +46,7 @@ export function getActiveFile(): TFile {
 }
 
 
-export async function asyncEval(code:string, fields = {}, api = {}, priority = 'api', debug = false) {
+export async function asyncEval(code: string, fields = {}, api = {}, priority = 'api', debug = false) {
 	const AsyncFunction = Object.getPrototypeOf(async function () {
 	}).constructor
 	const func = new AsyncFunction('dataFields', 'api', 'debug', `
@@ -81,27 +81,31 @@ export type Target = {
 }
 type TargetArray = [string, Target['file'], Target['targetType'], Target['path'], Target['method']]
 
-export function parseTarget(target: string, pattern: string, defFile: string | TFile = ''): Target {
+export function parseTarget(pattern: string, defFile: string | TFile = ''): Target {
 	//https://regex101.com/r/Z0v3rv/1
 	const eliminateSquareContent = /\[\[(.*)]]/
-	const targetPattern = />([^:#?*<>"]+?)?(?:(::|:|#)([\w ]+?))?(append|replace|prepend|create)?$/
-	const fields = target.trim()
+	var [garage, leftPattern = '', method] = pattern
+		.split(/(>.*)(append|replace|prepend|create|clear|delete)/)
+		.filter(Boolean)
+	const fields = leftPattern.trim()
 		.replace(eliminateSquareContent, '$1')
-		.match(targetPattern) ?? []
-	const tag = '`'
-	var [, file, targetType = '', path = '', method] = fields as TargetArray
+		.match(/>([^:#?*<>"]+?)?(?:(::|:|#)([\w ]+?))?$/) || []
+
+	var [, file, targetType = '', path = ''] = fields as TargetArray
 	path = path.trim()
 	file = (typeof file == 'string') ? file.trim() : file
-	// @ts-ignore
-	const typeMap:Record<string|undefined, string>= {
+	const typeMap: Record<string | undefined, string> = {
 		':': 'yaml',
 		'::': 'field',
 		'#': 'header',
 	}
 	var type = (typeMap[targetType] ?? (file ? 'file' : 'pattern')) as Target['targetType']
-
+	const tag = '`'
 	return {
-		file: file ?? defFile, targetType:type, path, method ,
+		file: file ?? defFile,
+		targetType: type,
+		path,
+		method,
 		pattern: `${tag}${pattern}${tag}`
 	}
 }
@@ -114,7 +118,7 @@ export function setPrototype(a: object, proto: object) {
 
 export function getInlineFields(content: string, key: string = '.*?') {
 	// const regex = /\[\s*(.*?)\s*::(.*?)]|\b(.*?)::(.*?)$|\(\s*(.*?)\s*::(.*?)\)/gm
-	const regex = new RegExp(`\\[\\s*(${key})\\s*::(.*?)]|\\b(${key})::(.*?)$|\\(\\s*(${key})\\s*::(.*?)\\)`, 'gm')
+	const regex = new RegExp(`\\[(\\s*${key}\\s*)::(.*?)\\]|\\((\\s*${key}\\s*)::(.*?)\\)|\\b(${key})::(.*?)$`, 'gm')
 	var cleanContent = content
 		.replace(/`[^`]+`/g, m => '_'.repeat(m.length)) // remove inline code
 		.replace(/\[\[.*?]]/g, m => '_'.repeat(m.length)) // remove wiki links
@@ -123,20 +127,30 @@ export function getInlineFields(content: string, key: string = '.*?') {
 
 	let match;
 	while ((match = regex.exec(cleanContent)) !== null) {
-		const pair = Array.from(match).filter(Boolean).map(t => t.trim())
-		const [field] = pair;
-		var [startIndex, endIndex] = [match.index, match.index + field.length]
-		var outerField = content.slice(startIndex, endIndex)
+		const [field, fullKey = '', fullValue = ''] = Array.from(match).filter(Boolean);
+		var [startOffset, endOffset] = [match.index, match.index + field.length]
+		var outerField = content.slice(startOffset, endOffset)
 		var innerField = outerField.replace(/^[(\[]|[)\]]$/g, '')
-		let [key, value] = innerField.split('::').map(t => t.trim())
-		fields.push({outerField, innerField, key, value, startIndex, endIndex})
+		let [key, value] = [fullKey, fullValue].map(t => t.trim())
+		let withBracket = !(outerField.length == innerField.length)
+
+		let startKey = startOffset + (withBracket as unknown as number),
+			endKey = startKey + fullKey.length,
+			startValue = endKey + 2,
+			endValue = startValue + fullValue.length
+		fields.push({
+			outerField, innerField, key, value,
+			offset: [startOffset, endOffset],
+			keyOffset: [startKey, endKey],
+			valueOffset: [startValue, endValue]
+		})
 	}
 
 	return fields;
 }
 
 
-export function manipulateValue(oldValue:string, value: string, method: string) {
+export function manipulateValue(oldValue: string, value: string, method: string) {
 	var array = oldValue.split(',').map((t: string) => t.trim()).filter(Boolean)
 	switch (method) {
 		case 'replace':
@@ -160,22 +174,32 @@ export function manipulateValue(oldValue:string, value: string, method: string) 
 export function log(fnName: string, varName: string, ...varValue: any[]) {
 	var title = `${fnName} ${varName}:`;
 	console.log(title, ...varValue)
+	new Notice(title)
 }
 
-export function logDecodeAndRun(preExpression:string, expression:string, type:string, result:any) {
+export function logDecodeAndRun(preExpression: string, expression: string, type: string, result: any) {
 	var strings = []
 	if (preExpression != expression)
 		strings.push(`template "${preExpression}" converted to "${expression}"`)
 	if (type == 'imported') strings.push(` and import`)
 	if (type == 'templater') strings.push(` and templater`)
-	if (type =='excuted') strings.push(` and executed to `)
-	if(type=='literal') strings.push(` and return as literal text`)
+	if (type == 'excuted') strings.push(` and executed to `)
+	if (type == 'literal') strings.push(` and return as literal text`)
 
 	log('decodeAndRun', strings.join(''), result)
+
 }
 
-export function isFileNotation(path:string){
-	if( path.startsWith('[[') && path.endsWith(']]')) return true
-	if(/\.(js|md)$/.test(path)) return true
-	return false
+export function isFileNotation(path: string) {
+	if (path.startsWith('[[') && path.endsWith(']]')) return true
+	return /\.(js|md)$/.test(path);
+
+}
+
+export function spliceString(string: string, index: number, del: number = 0, text: string = '') {
+	return [string.slice(0, index), text, string.slice(index + del)].join('')
+}
+
+export function sliceRemover(string:string, indexStart:number,indexEnd:number,inject:string){
+	return [string.slice(0, indexStart), inject, string.slice(indexEnd)].join('')
 }

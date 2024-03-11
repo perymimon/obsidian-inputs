@@ -35,11 +35,11 @@ form.live-form {
 	& > input + .buttons{
 		display: inline-grid;
 		min-width: 8em;
-		grid-template-columns: 1fr 1fr;
+		grid-template-columns: 1fr 1fr 1fr;
 	}
 	& > textarea + .buttons{
 		display: grid;
-		grid-template-columns: 1fr 1fr;
+		grid-template-columns: 1fr 1fr 1fr;
 	}
 }
 

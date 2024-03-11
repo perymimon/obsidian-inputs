@@ -6,14 +6,14 @@ import {log, parseTarget} from "./internalApi";
 var app = global.app
 
 export const UPDATE_PATTERN = /(?:^|`)update\|\s*?(?<expression>.*?)\s*?(?<target>>.*?)?(?:$|`)/i
+
 // https://regex101.com/r/osbDKH/1
 
 export async function update(fileContent: string, file: string | TFile) {
 	for (let match of fileContent.matchAll(new RegExp(UPDATE_PATTERN, 'g'))) {
 		const pattern = match[0]
-		const {expression, target: targetDesc = ''} = match.groups!
-		var target = parseTarget(targetDesc, pattern, file)
-		let newText = await decodeAndRun(expression, {
+		var target = parseTarget(pattern, file)
+		let newText = await decodeAndRun(match.groups?.expression, {
 			priority: target.targetType
 		})
 		if (newText) {
@@ -21,10 +21,9 @@ export async function update(fileContent: string, file: string | TFile) {
 			log('update', 'isSaved', isSaved)
 		}
 	}
-
 }
 
-export async function replaceCode2Update(root: HTMLElement, ctx:MarkdownPostProcessorContext, settings: MyPluginSettings, app: App) {
+export async function replaceCode2Update(root: HTMLElement, ctx: MarkdownPostProcessorContext, settings: MyPluginSettings, app: App) {
 	const codesEl = root.findAll('code')
 	for (let codeEl of codesEl) {
 		const text = codeEl.innerText.trim()
@@ -36,10 +35,10 @@ export async function replaceCode2Update(root: HTMLElement, ctx:MarkdownPostProc
 	}
 }
 
-app.metadataCache.on("changed", async (file, content, cache) =>{
+app.metadataCache.on("changed", async (file, content, cache) => {
 	// refresh(this.app)
 	var editor = app.workspace.activeEditor as MarkdownView
-	var viewMode = 	editor?.getMode()
-	if(viewMode == 'preview')
-		await update(content,file)
+	var viewMode = editor?.getMode()
+	if (viewMode == 'preview')
+		await update(content, file)
 })

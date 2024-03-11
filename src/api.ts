@@ -6,8 +6,7 @@ import {
 	asyncEval,
 	getActiveFile,
 	getInlineFields, isFileNotation, log, logDecodeAndRun, manipulateValue,
-	setPrototype,
-	Target
+	setPrototype, sliceRemover,	Target
 } from "./internalApi";
 import {stringTemplate} from "./strings";
 import {Priority} from "./types";
@@ -27,13 +26,14 @@ export function link(file: TFile | string) {
  * @param format
  * @param as
  */
-export function duration(start:string, end:string, format = 'HH:mm', as = 'hours') {
-
+export function duration(start: string, end: string, format = 'HH:mm', as = 'hours') {
 	var from = moment(start, format)
 	var to = moment(end, format)
 	return moment.duration(to.diff(from)).humanize()
 }
+
 type targetFile = TFile | string
+
 export function getTFile(path?: targetFile): TFile {
 	if (String.isString(path)) path = path.trim()
 	if (!path || path == 'activeFile') return getActiveFile()
@@ -105,7 +105,7 @@ export async function getFileData(file?: string | TFile, priority: Priority | st
  *         };
  *     }
  */
-export async function templater(templateContent: string, port? = {}, targetFile:targetFile ) {
+export async function templater(templateContent: string, port? = {}, targetFile: targetFile) {
 	const {templater} = getPlugin('templater-obsidian');
 	targetFile = getTFile(targetFile)
 	const runningConfig = templater.create_running_config(void 0, targetFile, 0)
@@ -131,13 +131,13 @@ export async function setInlineField(value: string, key: string, method = 'repla
 	var content = await app.vault.read(tFile)
 	var fieldDesc = getInlineFields(content, key)
 	var newContent = ''
-	if (fieldDesc) { // field exist
-		let {outerField, value: oldValue, startIndex, endIndex} = fieldDesc.at(0)
+	if (fieldDesc.length) { // field exist
+		let {outerField, fullValue, startIndex, endIndex} = fieldDesc.at(0)
 		var newField
 		if (method == 'delete') newField = ''
 		else {
 			value = manipulateValue(oldValue, value, method)
-			newField = outerField.replace(`::${oldValue}`, `::${value}`)
+			newField = outerField.replace(`::${fullValue}`, `::${value}`)
 		}
 		if (outerField == newField) return false
 		newContent = [content.slice(0, startIndex), newField, content.slice(endIndex)].join('')
@@ -150,6 +150,7 @@ export async function setInlineField(value: string, key: string, method = 'repla
 	}
 	await app.vault.modify(tFile, newContent)
 }
+
 /**
  * - if there is no header or file method related to textInput|button himself
  * append - add text after the current textInput|button
@@ -169,16 +170,35 @@ export async function setInlineField(value: string, key: string, method = 'repla
  * @returns {Promise<string>}
  */
 
-async function quickReplace(text: string, target: Target) {
+async function quickText(text: string, target: Target) {
 	const {file, pattern, method = 'replace'} = target
 	const tFile = getTFile(file)
 	var content = await app.vault.read(tFile)
-	var newContent = content.replace(pattern, (match) => {
-		if (method == "append") return `${match}${text}`
-		if (method == "prepend") return `${text}${match}`
-		if (method == "replace") return text
-		return `${method} method is not legal here`
-	})
+
+	if (method == "clear") {
+		var startPatternIndex = content.indexOf(pattern)
+		var startLineIndex = content.lastIndexOf('\n', startPatternIndex)+1
+		var line = content.slice(startLineIndex, startPatternIndex)
+		var field = getInlineFields(line).pop()
+		var slice = [startLineIndex, startPatternIndex]
+		if (field) {
+			let {offset, valueOffset, value} = field
+			let stopPoints = [
+				[offset[1]], valueOffset, [offset[0]], [0]
+			]
+			slice = stopPoints.find(slice => slice[0] < line.length).map(i => i + startLineIndex)
+		}
+		let [indexStart, indexEnd=startPatternIndex] = slice
+		newContent = sliceRemover(content, indexStart, indexEnd)
+	} else {
+		var newContent = content.replace(pattern, (match) => {
+			if (method == "append") return `${match}${text}`
+			if (method == "prepend") return `${text}${match}`
+			if (method == "replace") return text
+			if (method == "delete") return ''
+			return `${method} method is not legal here`
+		})
+	}
 	if (newContent == content) return;
 	await app.vault.modify(tFile, newContent)
 }
@@ -285,9 +305,9 @@ type decodeAndRunOpts = {
 	notImport?: boolean
 }
 
-export async function decodeAndRun(preExpression: string, opts: decodeAndRunOpts = {}) {
+export async function decodeAndRun(preExpression: string | undefined, opts: decodeAndRunOpts = {}) {
 	const {priority, vars = {}, file, literalExpression = false, importJs: importedLinks = true} = opts
-	if (preExpression.trim() == '') return ''
+	if (!preExpression || preExpression.trim() == '') return ''
 	var expression = await stringTemplate(preExpression, vars, file, priority)
 	expression = expression.trim()
 	var result = ''
@@ -295,7 +315,7 @@ export async function decodeAndRun(preExpression: string, opts: decodeAndRunOpts
 	try {
 		if (literalExpression) throw 'ask for literal expression string'
 		imported: if (importedLinks) {
-			if( !isFileNotation(expression) ) break imported
+			if (!isFileNotation(expression)) break imported
 			const tFile = getTFile(expression)
 			if (!tFile) break imported
 			global.live = api
@@ -342,7 +362,7 @@ export async function saveValue(text: string, target: Target) {
 		case 'file':
 			return await quickFile(text, target, true)
 		case 'pattern':
-			return await quickReplace(text, target)
+			return await quickText(text, target)
 
 	}
 }

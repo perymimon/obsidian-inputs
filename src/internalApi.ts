@@ -84,11 +84,11 @@ export function parseTarget(pattern: string, defFile: string | TFile = ''): Targ
 	//https://regex101.com/r/Z0v3rv/1
 	const eliminateSquareContent = /\[\[(.*)]]/
 	var [garage, leftPattern = '', method] = pattern
-		.split(/(>.*)(append|replace|prepend|create|clear|remove)/)
+		.split(/>|(append|replace|prepend|create|clear|remove)/)
 		.filter(Boolean)
 	const fields = leftPattern.trim()
 		.replace(eliminateSquareContent, '$1')
-		.match(/>([^:#?*<>"]+?)?(?:(::|:|#)([\w -]+?))?$/) || []
+		.match(/([^:#?*<>"]+?)?(?:(::|:|#)([\w -]+?))?$/) || []
 
 	var [, file, targetType = '', path = ''] = fields as TargetArray
 	path = path.trim()

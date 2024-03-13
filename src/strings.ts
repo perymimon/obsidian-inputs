@@ -22,6 +22,33 @@ export const modifications = {
 	time: (format = 'HH:mm') => moment().format(format)
 }
 
+export function spliceString(string: string, index: number, del: number = 0, text: string = '') {
+	return [string.slice(0, index), text, string.slice(index + del)].join('')
+}
+
+export function sliceRemover(string:string, indexStart:number,indexEnd:number,inject:string){
+	return [string.slice(0, indexStart), inject, string.slice(indexEnd)].join('')
+}
+export function manipulateValue(oldValue: string, value: string, method: string) {
+	var array = oldValue.split(',').map((t: string) => t.trim()).filter(Boolean)
+	switch (method) {
+		case 'replace':
+			array = [value]
+			break;
+		case 'append':
+			array.push(value);
+			break;
+		case 'prepend':
+			array.unshift(value)
+			break;
+		case 'clear':
+			array = []
+			break;
+		default:
+			throw new Error('Invalid method');
+	}
+	return array.join(',')
+}
 export const typeMap = {
 	date: '📅',
 	number: '🔢',

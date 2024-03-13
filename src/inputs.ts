@@ -1,11 +1,11 @@
-// @ts-nocheck
+// @ts-nocheck9
 import {App, Editor, MarkdownPostProcessorContext, TFile} from "obsidian";
 import {MyPluginSettings} from "../draft/settings";
 import {InputSuggest} from "./FileSuggester";
 import {objectGet} from "./objects";
 import {modifications, stringTemplate, typeMap} from "./strings";
 import {decodeAndRun, getPlugin, saveValue, setFrontmatter} from "./api";
-import {parseTarget} from "./internalApi";
+import {parsePattern, parseTarget} from "./internalApi";
 import {BUTTON_PATTERN} from "./buttons";
 
 var app = global.app
@@ -27,16 +27,15 @@ export function replaceCode2Inputs(rootEl: HTMLElement, ctx:MarkdownPostProcesso
 	const codesEl = rootEl.findAll('code')
 	for (let codeEl of codesEl) {
 		const pattern = codeEl.innerText
-		const inputNotation = pattern.trim().match(INPUT_PATTERN)
-		if (!inputNotation) continue;
-		const fields = inputNotation.groups;
+		const fields = parsePattern(pattern, INPUT_PATTERN)
+		if (!fields) continue;
 		createForm(codeEl, pattern, fields)
 	}
 }
 
-function createForm(rootEl, pattern, fields) {
+function createForm(rootEl:HTMLElement, pattern:string, fields:Record<string, string>) {
 	const formEl = createEl('form', {cls: 'live-form', title: ''})
-	let { options, target = ''} = parseTarget(pattern)
+	let { options, target = ''} = fields
 	var targetObject = parseTarget(target, pattern)
 	formEl.title = pattern
 

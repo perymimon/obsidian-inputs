@@ -2,7 +2,8 @@
 import {App, MarkdownPostProcessorContext} from "obsidian";
 import {MyPluginSettings} from "../draft/settings";
 import {decodeAndRun, saveValue} from "./api";
-import {parseTarget} from "./internalApi";
+import {parsePattern, parseTarget} from "./internalApi";
+import {INPUT_PATTERN} from "./inputs";
 
 const $BUTTONS_MAP = new WeakMap()
 
@@ -19,13 +20,14 @@ export function replaceCode2Buttons(root: HTMLElement, ctx:MarkdownPostProcessor
 	const codesEl = root.findAll('code')
 	for (let codeEl of codesEl) {
 		const pattern = codeEl.innerText
-		if (!BUTTON_PATTERN.test(pattern.trim())) continue;
-		createButton(codeEl, pattern)
+		const fields = parsePattern(pattern, BUTTON_PATTERN)
+		if (!fields) continue;
+		createButton(codeEl, pattern, fields)
 	}
 }
-function createButton(rootEl:HTMLElement, pattern:string ) {
+function createButton(rootEl:HTMLElement, pattern:string , fields) {
 	const buttonEl = rootEl.createEl('button', {cls: 'live-form'})
-	const {name, target = ''} = parseTarget(pattern)
+	const {name, target = ''} = fields
 	buttonEl.textContent = name || target || 'no name'
 	buttonEl.title = pattern
 	rootEl.replaceWith(buttonEl)

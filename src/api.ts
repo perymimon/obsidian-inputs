@@ -1,15 +1,17 @@
 // @ts-nocheck1
-import {normalizePath, TFile} from "obsidian";
+import {normalizePath, TFile, moment} from "obsidian";
 import {objectSet} from "./objects";
 import * as api from './api';
 import {
 	asyncEval, Field,
 	getActiveFile,
-	getInlineFields, isFileNotation, log, logDecodeAndRun, manipulateValue,
-	setPrototype, sliceRemover, spliceString, Target
+	getInlineFields, isFileNotation, log, logDecodeAndRun,
+	setPrototype, Target
 } from "./internalApi";
-import {stringTemplate} from "./strings";
+import {manipulateValue, sliceRemover, spliceString, stringTemplate} from "./strings";
 import {Priority} from "./types";
+// declare const moment: (...args: any[]) => any;
+
 
 var app = global.app
 
@@ -268,7 +270,7 @@ async function quickFile(text:string, target: Target, create = false) {
 async function quickHeader(text: string, target: Target) {
 	var {file, path, method = 'append'} = target;
 	const {headings = [], frontmatterPosition} = await getStructure(file);
-	const tFile = await getTFile(file);
+	const tFile = (await getTFile(file))!;
 	var content = await app.vault.read(tFile);
 
 	var iHeader = headings?.findIndex((item) => item.heading == path.trim());

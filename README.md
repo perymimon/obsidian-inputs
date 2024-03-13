@@ -1,139 +1,105 @@
 # Obsidian live-form
 
-This is a live-form for Obsidian (https://obsidian.md).
+פלאגין עוצמתי זה מאפשר לכם ליצור קומפוננטות של input  ו btn כדי ליצור ממשקי שמשנים את תוכן הדף עצמו .
 
-This project uses Typescript to provide type checking and documentation.
-The repo depends on the latest plugin API (obsidian.d.ts) in Typescript Definition format, which contains TSDoc comments describing what it does.
+##### עקרונות כתיבה ותכנון
 
-**Note:** The Obsidian API is still in early alpha and is subject to change at any time!
+- המידע משתנה בדף ולכן המידע לא יהיה תלוי באוסידיאן כדי לקרוא אותו
+- הסינטקסט מתוכנן להיות נוח, ללא חלקים שצריכים להסגר משני כיוונים כמו סוגריים
+- אין שימוש בספריות חיצוניות נכון לשלב זה, זמן עליה ממוצע של 40ms
 
-`= List From pages Flatten file.list as T Where meta(T.section).subpath = "somthing"`
-[`= List 'pages/somthing `]
+#### יכולות
 
-Ability:
-- make inline input on preview mode that change the content of the actual note
-- make inline button that inject text in some place (replacement for quickAdd + button)
-- simple syntax that not required pair characters like '(' ')' to define things
-- readblity syntax that can read easily in the plain text file
+הקומפוננטות מתחלקות ל3 חלקים
 
-`(? pretext)( ____|==== )(? deimiter)(? ++)(?,options)(? :frontmatter) -id- `
+### הממשק
 
-Input spec:
-- 4 underscore define input
-  - each another underscore wider the input by 1em
-- 4 [____] define textarea 100 wider 3 line height
-  - after content of textarea will come new line char
-- for make the input *not* auto replace by the value, put `++` after ____
-  - text between ___ and ++ will come after user value
+- כפתור
+- text input
+- textarea input
+- radio btn
 
-- pretext will inject before user-value when user put enter value
-  - some magic-word allowed in the pretext like `time` or `date` that put time or date
+### הביטוי שמייצר את הערך
 
-- Options: is a comma separated value, start with a comma.
-  - value can be dataview query (if it start with data-query mark for inline-query)
-  - value can be fixed value 
-    - in this case it appear as radio button
-    - unless ++ appear then it appear as checkbox values options that already appear
-  - if there is a mix of dataview and fixed value, radio button will appear and input with auto complete
+* תבנית עם placeholder להחלפה
+* הרצה של קובץ js
+* הרצה של קובץ md דרך templater
+* הרצה של הביטוי תחת סביבת הדף (כלומר כל המשתנים שבדף גלויים לביטוי)
+* טקסט literal
 
-- Front-matter: is define the value will save in the frontmatter path
-  - the input will not disapear after value enterd, but change style to view-mode
-    - click on it will open it to edite
-  - if continues mark add with fronmatter the value will saved as array 
-    - view for that bevihur will be `value, value [input]`
-- Input type is only text for now
+### מקום שמירת הערך
 
-`Button:scripts/file.js => page/header-location, top|bottom`
-`Button:: template string => page/header-location, top|bottom`
+- קובץ
+- כותרת בקובץ
+- frontmatter field in a file
+- inline field (dataview) in a file
 
-Button spec:
-- ``	
+### examples
 
+`text| __placeholder__ >::name`
 
-This live-form demonstrates some of the basic functionality the plugin API can do.
-- Adds a ribbon icon, which shows a Notice when clicked.
-- Adds a command "Open Sample Modal" which opens a Modal.
-- Adds a plugin setting tab to the settings page.
-- Registers a global click event and output 'click' to the console.
-- Registers a global interval which logs 'setInterval' to the console.
+create input element of type `text` save the input of the user to inline field `name` in the same file of the input. if the field not exist, create it
 
-## First time developing plugins?
+[name::user value]
 
-Quick starting guide for new plugin devs:
+`text|__ select game __|=list from #games >:games append`
 
-- Check if [someone already developed a plugin for what you want](https://obsidian.md/plugins)! There might be an existing plugin similar enough that you can partner up with.
-- Make a copy of this repo as a template with the "Use this template" button (login to GitHub if you don't see it).
-- Clone your repo to a local development folder. For convenience, you can place this folder in your `.obsidian/plugins/your-plugin-name` folder.
-- Install NodeJS, then run `npm i` in the command line under your repo folder.
-- Run `npm run dev` to compile your plugin from `main.ts` to `main.js`.
-- Make changes to `main.ts` (or create new `.ts` files). Those changes should be automatically compiled into `main.js`.
-- Reload Obsidian to load the new version of your plugin.
-- Enable plugin in settings window.
-- For updates to the Obsidian API run `npm update` in the command line under your repo folder.
+create input elment that auto complate from dataview query of file with the tag `#games`. append the value to forntmatter games key as array.
 
-## Releasing new releases
+`button|click me| (number || 0)+1 >::number`
 
-- Update your `manifest.json` with your new version number, such as `1.0.1`, and the minimum Obsidian version required for your latest release.
-- Update your `versions.json` file with `"new-plugin-version": "minimum-obsidian-version"` so older versions of Obsidian can download an older version of your plugin that's compatible.
-- Create new GitHub release using your new version number as the "Tag version". Use the exact version number, don't include a prefix `v`. See here for an example: https://github.com/obsidianmd/obsidian-sample-plugin/releases
-- Upload the files `manifest.json`, `main.js`, `styles.css` as binary attachments. Note: The manifest.json file must be in two places, first the root path of your repository and also in the release.
-- Publish the release.
+create button element that increment inline-field `number`
 
-> You can simplify the version bump process by running `npm version patch`, `npm version minor` or `npm version major` after updating `minAppVersion` manually in `manifest.json`.
-> The command will bump version in `manifest.json` and `package.json`, and add the entry for the new version to `versions.json`
+### syntaxt
 
-## Adding your plugin to the community plugin list
+inputs: `-<id>- <type>| <input expresion> > <target value>`
 
-- Check https://github.com/obsidianmd/obsidian-releases/blob/master/plugin-review.md
-- Publish an initial version.
-- Make sure you have a `README.md` file in the root of your repo.
-- Make a pull request at https://github.com/obsidianmd/obsidian-releases to add your plugin.
+`<id>` can be any uniq value,  It's optional and help to recognize the element For the focus after a content refresh of for `pattern replace`
 
-## How to use
+`<type>` should be any input element ligal type like `text` `number`
 
-- Clone this repo.
-- Make sure your NodeJS is at least v16 (`node --version`).
-- `npm i` or `yarn` to install dependencies.
-- `npm run dev` to start compilation in watch mode.
+`<input expresion>` like `<expresion>` but should have at list 4 underscore that replaced with input value When the expression evaluate
 
-## Manually installing the plugin
+`<target value>` Expression that tell where and how to save the value
 
-- Copy over `main.js`, `styles.css`, `manifest.json` to your vault `VaultFolder/.obsidian/plugins/your-plugin-id/`.
+button: `-<id>- button|<name>|<expresion> > <targetValue>`
 
-## Improve code quality with eslint (optional)
-- [ESLint](https://eslint.org/) is a tool that analyzes your code to quickly find problems. You can run ESLint against your plugin to find common bugs and ways to improve your code. 
-- To use eslint with this project, make sure to install eslint from terminal:
-  - `npm install -g eslint`
-- To use eslint to analyze this project use this command:
-  - `eslint main.ts`
-  - eslint will then create a report with suggestions for code improvement by file and line number.
-- If your source code is in a folder, such as `src`, you can use eslint with this command to analyze all files in that folder:
-  - `eslint .\src\`
+`<name>` button label
 
-## Funding URL
+`<expresion>` expertion that evaluete in the scope of the current page, in 3 phases
 
-You can include funding URLs where people who use your plugin can financially support it.
+step 1) replace any `{key}` with value of inline-field or frontmatter key or Special valuable that the described later
 
-The simple way is to set the `fundingUrl` field to your link in your `manifest.json` file:
+step 2) If the evaluate is surrounding by a square it consider a file if the file is a markdown file it's used like a templater template If the file is Javascript file is Import and run and if it returns something on the default export that's value will save on the target value
 
-```json
-{
-    "fundingUrl": "https://buymeacoffee.com"
-}
-```
+step 3) If it's not consider as a file expertion it try to evaluate the expection on the context of the page with the avilable API. it run like a code in the devtool console for example
 
-If you have multiple URLs, you can also do:
+step 4) If step two of step 3 draw error when they try to evaluate the expression then the all expression will return as a literal text
 
-```json
-{
-    "fundingUrl": {
-        "Buy Me a Coffee": "https://buymeacoffee.com",
-        "GitHub Sponsor": "https://github.com/sponsors",
-        "Patreon": "https://www.patreon.com/"
-    }
-}
-```
+`<target value>` Expiration that will pass as the target of the value well it should be saved and how.
 
-## API Documentation
+The template of the target value will look like this `><file>(<type><path>) <method>`
 
-See https://github.com/obsidianmd/obsidian-api
+for example : `daily#target header append`
+
+`file>`  Optional, The path of the file if the file is not exist it will create it. File section not exist The file will be the current one. Also the special file-name `activeFile` target the current file
+
+`<type>` Optional, can be one the next symbols: `:` frontmatter `::` inline-field `#` header That represent a sub position in the target file,or the context if you prefer, If `<type>` symbols not exist the the whole target file will be the context target
+
+`<path>` Must come after the type. and it is the fronmatter's path or the name of the inline-field or the name of the header
+
+If either of the file or the type not exist the context is the `input` pattern himself
+
+`<method>` How to treat the return value can be one of the next keyword:`append`|`prepend`|`replace`|`create`|`remove`|`
+
+It depend on the contenxt
+
+`frontmatter`: `append`,`prepend` treat the value as array and append and prepend rapidly `replace` just replace the current value
+
+`inline-field`: `append` and `prepend` split the inlinefield by comma (,) and append or prepend the value to evalute array. `replace` just replace the current value
+
+`header`: `append` add value after the last content line of the header. `prepend` add the value as a line Under the header. `replace` replce all header content with the value.`remove` delete the whole header and it content
+
+`file`: `append` add the value the bottom of the file, `prepend`add the value to the top of the file, `remove` delete the file, `replace` the content of the file with the value, create` create new file event if the curren file exist
+
+`input pattern` `append` add the value after the pattern, `prepend` add the value before the pattern, `replce` replace the pattern with the value, `remove` remove the pattern.

@@ -83,8 +83,8 @@ type TargetArray = [string, Target['file'], Target['targetType'], Target['path']
 export function parseTarget(pattern: string, defFile: string | TFile = ''): Target {
 	//https://regex101.com/r/Z0v3rv/1
 	const eliminateSquareContent = /\[\[(.*)]]/
-	var [garage, leftPattern = '', method] = pattern
-		.split(/>|(append|replace|prepend|create|clear|remove)/)
+	var [leftPattern = '', method] = String(pattern.match(/>.*$/))
+		.split(/>|(append|replace|prepend|create|clear|remove)$/)
 		.filter(Boolean)
 	const fields = leftPattern.trim()
 		.replace(eliminateSquareContent, '$1')
@@ -107,6 +107,11 @@ export function parseTarget(pattern: string, defFile: string | TFile = ''): Targ
 		method,
 		pattern: `${tag}${pattern}${tag}`
 	}
+}
+
+export function parsePattern(pattern:string, regexParser):Record<string, string>|null{
+	var fields = pattern.trim().match(regexParser)?.groups || null
+	return fields
 }
 
 export function setPrototype(a: object, proto: object) {
@@ -155,26 +160,7 @@ export function getInlineFields(content: string, key: string = '.*?'):Field[] {
 }
 
 
-export function manipulateValue(oldValue: string, value: string, method: string) {
-	var array = oldValue.split(',').map((t: string) => t.trim()).filter(Boolean)
-	switch (method) {
-		case 'replace':
-			array = [value]
-			break;
-		case 'append':
-			array.push(value);
-			break;
-		case 'prepend':
-			array.unshift(value)
-			break;
-		case 'clear':
-			array = []
-			break;
-		default:
-			throw new Error('Invalid method');
-	}
-	return array.join(',')
-}
+
 
 export function log(fnName: string, varName: string, ...varValue: any[]) {
 	var title = `${fnName} ${varName}:`;
@@ -199,12 +185,4 @@ export function isFileNotation(path: string) {
 	if (path.startsWith('[[') && path.endsWith(']]')) return true
 	return /\.(js|md)$/.test(path);
 
-}
-
-export function spliceString(string: string, index: number, del: number = 0, text: string = '') {
-	return [string.slice(0, index), text, string.slice(index + del)].join('')
-}
-
-export function sliceRemover(string:string, indexStart:number,indexEnd:number,inject:string){
-	return [string.slice(0, indexStart), inject, string.slice(indexEnd)].join('')
 }

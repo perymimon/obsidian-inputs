@@ -83,7 +83,7 @@ type TargetArray = [string, Target['file'], Target['targetType'], Target['path']
 export function parseTarget(pattern: string, defFile: string | TFile = ''): Target {
 	//https://regex101.com/r/Z0v3rv/1
 	const eliminateSquareContent = /\[\[(.*)]]/
-	var [leftPattern = '', method] = String(pattern.match(/>.*$/))
+	var [leftPattern = '', method] = String(pattern.match(/>.*$/) || '')
 		.split(/>|(append|replace|prepend|create|clear|remove)$/)
 		.filter(Boolean)
 	const fields = leftPattern.trim()

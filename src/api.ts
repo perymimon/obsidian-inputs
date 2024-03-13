@@ -57,7 +57,9 @@ export async function createTFile(path:targetFile, text:string = ''){
 		index++
 		var file = app.vault.getFileByPath(pathName)
 	} while (file)
-
+	var folders = path.split('/').slice(0,-1).join('/')
+	// if(!app.vault.getFolderByPath(folders))
+	await app.vault.createFolder(folders).catch(_=>_)
 	return await app.vault.create(pathName, String(text))
 
 }

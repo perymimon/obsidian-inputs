@@ -48,8 +48,8 @@ export function getActiveFile(): TFile {
 export async function asyncEval(code: string, fields = {}, api = {}, priority = 'api', debug = false) {
 	const AsyncFunction = Object.getPrototypeOf(async function () {
 	}).constructor
-	const func = new AsyncFunction('dataFields', 'api', 'debug', `
-		with(dataFields) with(api){
+	const func = new AsyncFunction('fields', 'api', 'debug', `
+		with(fields) with(api){
 		 	if(debug) debugger; 
 	    	return ${code} 
 	    }
@@ -58,7 +58,7 @@ export async function asyncEval(code: string, fields = {}, api = {}, priority = 
 	if (priority == 'api')
 		return await func.call(this, fields, api, debug)
 	if (priority == 'fields')
-		return await func.call(this, api, fields)
+		return await func.call(this, api, fields, debug)
 }
 
 type replacer = (substring: string, ...args: any[]) => Promise<string>

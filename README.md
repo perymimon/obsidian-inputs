@@ -2,6 +2,8 @@
 
 פלאגין עוצמתי זה מאפשר לכם ליצור קומפוננטות של input  ו btn כדי ליצור ממשקי שמשנים את תוכן הדף עצמו .
 
+note! the `input` and `button` expertion can change create and delete file
+
 ##### עקרונות כתיבה ותכנון
 
 - המידע משתנה בדף ולכן המידע לא יהיה תלוי באוסידיאן כדי לקרוא אותו
@@ -52,7 +54,7 @@ create button element that increment inline-field `number`
 
 ### syntaxt
 
-inputs: `-<id>- <type>| <input expresion> > <target value>`
+inputs: `-<id>- <type>| <input expresion><,options,> > <target value>`
 
 `<id>` can be any uniq value,  It's optional and help to recognize the element For the focus after a content refresh of for `pattern replace`
 
@@ -103,3 +105,13 @@ It depend on the contenxt
 `file`: `append` add the value the bottom of the file, `prepend`add the value to the top of the file, `remove` delete the file, `replace` the content of the file with the value, create` create new file event if the curren file exist
 
 `input pattern` `append` add the value after the pattern, `prepend` add the value before the pattern, `replce` replace the pattern with the value, `remove` remove the pattern.
+
+
+
+## Road Map
+
+- syntax higligher
+- inline multi row commands (combo)
+- toggle input (can change value from two options )
+- roller view ( can change value from multiple options )
+- all around templater replace soulution, so not need toggle between multi syntax

@@ -4,7 +4,7 @@ import {MyPluginSettings} from "../draft/settings";
 import {InputSuggest} from "./FileSuggester";
 import {objectGet} from "./objects";
 import {modifications, stringTemplate, typeMap} from "./strings";
-import {decodeAndRun, getPlugin, saveValue, setFrontmatter} from "./api";
+import { getPlugin, processPattern, saveValue} from "./api";
 import {parsePattern, parseTarget} from "./internalApi";
 import {BUTTON_PATTERN} from "./buttons";
 
@@ -15,7 +15,7 @@ export const INPUT_PATTERN = new RegExp([
 	/(?<id>-\w+-)?\s*/,
 	/(?<type>[\w-]+?)\|/,
 	/(?<expression>.*?__+(?<placeholder>.*?)__+.*?)/,
-	/(?:\|(?<options>.+?))?/,
+	/(?:,(?<options>.+?))?/,
 	/(?<target>>.*?)?/,
 	/(?:$|`)/
 ].map(r => r.source).join(''), '')
@@ -78,18 +78,14 @@ global.document.on('keydown', 'form.live-form', (e, delegateTarget:HTMLInputElem
 
 global.document.on('save', 'form.live-form', async function (e, delegateTarget) {
 	const pattern = delegateTarget.title
-	let {expression, id} = extractFields(pattern)
-	var targetObject = parseTarget(pattern)
-	let {value} = e.target
-	if (value == '') return;
-	e.target.value = ''
+	let {expression, id, target} = extractFields(pattern)
+	if (e!.target.value == '') return;
 	const run = expression.replace(/__+.*?__+/, `{input}`)
-	const text = await decodeAndRun(run, {
-		priority: targetObject.targetType,
-		importJs: false,
-		vars: {input: value}
+	await processPattern(run,target, {
+		allowImportedLinks: false,
+		vars: {input: e!.target.value}
 	})
-	if (text) await saveValue(text, targetObject)
+	e.target!.value = ''
 	setTimeout(_ => document.getElementById(id)?.focus(), 10)
 })
 

@@ -1,5 +1,5 @@
 // @ts-nocheck1
-import {normalizePath, TFile, moment} from "obsidian";
+import {normalizePath, TFile, moment, PopoverState} from "obsidian";
 import {objectSet} from "./objects";
 import * as api from './api';
 import {
@@ -11,12 +11,17 @@ import {
 import {manipulateValue, sliceRemover, spliceString, stringTemplate} from "./strings";
 import {Priority} from "./types";
 // declare const moment: (...args: any[]) => any;
-
+const context: {
+	lastCreatedFile: TFile | null
+} = {
+	lastCreatedFile: null
+}
 
 var app = global.app
 
-export function link(file: TFile | string) {
-	file = getTFile(file?.path as TFile || file)
+export function link(path: TFile | string) {
+	var file = getTFileIfExist(path?.path || path)
+	if(!file) return path
 	var filename = app.metadataCache.fileToLinktext(file, '', true)
 	return `[[${filename}]]`
 }
@@ -34,19 +39,26 @@ export function duration(start: string, end: string, format = 'HH:mm', as = 'hou
 	return moment.duration(to.diff(from)).humanize()
 }
 
-type targetFile = TFile | string
+export type targetFile = TFile | string
 
-export async function getTFile(path?: targetFile, autoCreate = true): Promise<TFile | null> {
-	if (String.isString(path)) path = path.trim()
-	if (!path || path == 'activeFile') return getActiveFile()
-	if (path instanceof TFile) return path as TFile;
+export function getTFileIfExist(path: string): TFile | null {
 	path = (path.startsWith('[[') && path.endsWith(']]')) ? path.slice(2, -2) : path
 	let tFile = app.metadataCache.getFirstLinkpathDest(path, "")
-	if (!tFile) { //`"${path}" file is not exist`
-		if (!autoCreate) return null
-		return await createTFile(path)
-	}
-	return tFile
+	return tFile;
+}
+
+export function getTFileSync(path?: targetFile): TFile | null {
+	if (path instanceof TFile) return path as TFile;
+	path = (path || '').trim()
+	if (!path || path == 'activeFile') return getActiveFile()
+	return getTFileIfExist(path)
+}
+
+export async function getTFile(path?: targetFile, autoCreate = true): Promise<TFile | null> {
+	let tFile = getTFileSync(path)
+	if (tFile) return tFile
+	if (!autoCreate) return null
+	return await createTFile(path)
 }
 
 export async function createTFile(path: targetFile, text: string = '') {
@@ -61,12 +73,14 @@ export async function createTFile(path: targetFile, text: string = '') {
 	var folders = path.split('/').slice(0, -1).join('/')
 	// if(!app.vault.getFolderByPath(folders))
 	await app.vault.createFolder(folders).catch(_ => _)
-	return await app.vault.create(pathName, String(text))
+	const tFile = await app.vault.create(pathName, String(text))
+	context[lastCreated]
+	return tFile
 
 }
 
 export async function removeFile(path: targetFile) {
-	var tFile = await getTFile(path, false)
+	var tFile = getTFileSync(path)
 	if (!tFile) return
 	await app.vault.delete(tFile!)
 }
@@ -90,7 +104,7 @@ export async function importJs(path: TFile | string): Promise<unknown> {
 	return import(busterPath);
 }
 
-export async function executeCode(code: string, vars, contextFile?: string | TFile, priority?: string, debug?: boolean) {
+export async function executeCode(code: string, vars, contextFile?: string | TFile, priority?: Priority, debug?: boolean) {
 	var fields = await getFileData(contextFile, priority)
 	for (let k in fields) fields[k] = Number(fields[k]) || fields[k]
 	return asyncEval(code, {...fields, ...vars}, api, 'api', debug)
@@ -100,14 +114,14 @@ export async function executeCode(code: string, vars, contextFile?: string | TFi
  * @param file
  * @param priority 'yaml'|'field'
  */
-export async function getFileData(file?: string | TFile, priority: Priority | string = 'field') {
+export async function getFileData(file?: string | TFile, priority: Priority  = 'field') {
 	// const dv = getPlugin('dataview')
-	file = await getTFile(file)
+	let tFile = await getTFile(file)
 	// if (dv) {
 	// 	return dv.api.page(file.path)
 	// }
-	const content = await this.app.vault.cachedRead(file);
-	const {frontmatter = {}} = getStructure(file)
+	const content = await this.app.vault.cachedRead(tFile);
+	const {frontmatter = {}} = getStructure(tFile)
 	const inlineFields = await getInlineFields(content)
 	const fieldsObject = inlineFields.reduce((obj, line) => (obj[line.key] = line.value, obj), {})
 	if (priority == 'field') return setPrototype(fieldsObject, frontmatter)
@@ -133,15 +147,11 @@ export async function getFileData(file?: string | TFile, priority: Priority | st
  *     }
  */
 export async function templater(templateContent: string, port? = {}, targetFile?: targetFile) {
-	const {templater} = getPlugin('templater-obsidian');
+	const {templater} = app.plugins.getPlugin['templater-obsidian'];
 	targetFile = await getTFile(targetFile)
 	const runningConfig = templater.create_running_config(void 0, targetFile, 0)
 	const content = await templater.parse_template({...runningConfig, port}, templateContent)
 	return content
-}
-
-export function getPlugin(pluginId: string) {
-	return app.plugins.getPlugin(pluginId);
 }
 
 export async function setFrontmatter(value, path, method = 'replace', file) {
@@ -154,7 +164,7 @@ export async function setFrontmatter(value, path, method = 'replace', file) {
 //\[(.+?::.+?)\]|\((.+?::.+?)\)|\b(\S+?::.+?)$
 // https://regex101.com/r/BExhmA/1
 export async function setInlineField(value: string, key: string, method = 'replace', file?: targetFile) {
-	const tFile = await getTFile(file)
+	const tFile = (await getTFile(file))!
 	var content = await app.vault.read(tFile)
 	var fieldDesc = getInlineFields(content, key)
 	var newContent = ''
@@ -168,8 +178,9 @@ export async function setInlineField(value: string, key: string, method = 'repla
 			newField = outerField.replace(`::${fullValue}`, `::${value}`)
 		}
 		if (outerField == newField) return false
+			`inline field update from "${outerField}" to "${newField}"`
 		newContent = [content.slice(0, startIndex), newField, content.slice(endIndex)].join('')
-	} else { // field not exist, create one
+	} else { // create field it not exist
 		if (method == 'remove') return 'no field detected'
 		var {frontmatterPosition} = await getStructure(file)
 		var offset = frontmatterPosition?.end.offset + 1 ?? 0
@@ -318,19 +329,18 @@ async function quickHeader(text: string, target: Target) {
  * @param file
  */
 type decodeAndRunOpts = {
-	priority?: string,
+	priority?: Priority,
 	vars?: {},
-	file?: TFile | string,
+	file?: targetFile,
 	literalExpression?: boolean
 	notImport?: boolean,
 	allowImportedLinks?: boolean
 
 }
 
-export async function decodeAndRun(preExpression: string | undefined, opts: decodeAndRunOpts = {}) {
-	const {priority, vars = {}, file, literalExpression = false, allowImportedLinks = true} = opts
-	if (!preExpression || preExpression.trim() == '') return ''
-	var expression = (await stringTemplate(preExpression, vars, file, priority)).trim()
+export async function decodeAndRun(expression: string | undefined, opts: decodeAndRunOpts = {}) {
+	if (!expression || expression.trim() == '') return ''
+	const {vars = {}, file, literalExpression = false, allowImportedLinks = true} = opts
 	var result = '', type = ''
 	try {
 		if (literalExpression) throw 'ask for literal expression string'
@@ -360,7 +370,7 @@ export async function decodeAndRun(preExpression: string | undefined, opts: deco
 		return expression
 	} finally {
 		delete global.live
-		logDecodeAndRun(preExpression, expression, type, result)
+		logDecodeAndRun(expression, expression, type, result)
 	}
 }
 
@@ -390,11 +400,15 @@ export async function saveValue(text: string, target: Target) {
 	}
 }
 
-export async function processPattern(expression: string, target: string, opt) {
-	var targetObject = parseTarget(target)
-	let newText = await decodeAndRun(expression, {
+export async function processPattern(expression: string, target: string, opts: decodeAndRunOpts  = {}) {
+	const {priority, vars = {}, file} = opts
+	expression = await stringTemplate(expression, vars, file)
+	target = await stringTemplate(target, vars, file)
+	const targetObject = parseTarget(target)
+	(await stringTemplate(expression, vars, file, priority)).trim()
+	let text = await decodeAndRun(expression, {
 		priority: targetObject.targetType,
-		...opt
+		...opts
 	})
-	await saveValue(newText, targetObject)
+	await saveValue(text, targetObject)
 }

@@ -1,8 +1,10 @@
 # Obsidian live-form
 
-פלאגין עוצמתי זה מאפשר לכם ליצור קומפוננטות של input  ו btn כדי ליצור ממשקי שמשנים את תוכן הדף עצמו .
+thid plugin bring you powerfull way to create input and button compontes in the preivew mode that change the real markdown file . (current or other ) 
 
-note! the `input` and `button` expertion can change create and delete file
+note! the `input` and `button` expertion can change create and delete file, deal with dataview inline-field,frontmatter and header ( maybe lists in the future ) 
+
+הפלגין הזה עדיין בשלבים המוקדמים שלו אז צפו לשינויים ועדכונים בזמן שהוא יהיה בשימוש והצורה הבוגרת שלו תתחיל להתגלות
 
 ##### עקרונות כתיבה ותכנון
 
@@ -111,6 +113,7 @@ It depend on the contenxt
 ## Road Map
 
 - syntax higligher
+- target lists in a page
 - inline multi row commands (combo)
 - toggle input (can change value from two options )
 - roller view ( can change value from multiple options )

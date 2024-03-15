@@ -19,27 +19,26 @@ export class InputSuggest extends AbstractInputSuggest<TFile> {
 		textInputEl.addEventListener('change', (event) => event.stopPropagation())
 	}
 
-	renderSuggestion(file, el: HTMLElement) {
+	async renderSuggestion(file, el: HTMLElement) {
 		let {matches = [], path} = file
 		for (let vec of matches.reverse()) {
 			path = path.slice(0, vec[0]) + '<b>' + path.slice(vec[0], vec[1]) + '</b>' + path.slice(vec[1])
 		}
-		el.setHTML(link(file));
+		el.setHTML(await link(file));
 	}
 
 	selectSuggestion(file: TFile, evt: MouseEvent | KeyboardEvent): void {
-
-		this.textInputEl.value = file.path;
+		this.setValue(file.path)
+		// this.textInputEl.value = file.path;
 		// this.textInputEl.trigger("input");
-		this.textInputEl.trigger("select", file);
+		this.textInputEl.trigger("select");
 		this.textInputEl.value = '';
 		this.close();
 	}
 
 	async getSuggestions(input_str: string) {
-		const lower_input_str = input_str.toLowerCase();
-		let fuzzy = prepareFuzzySearch(lower_input_str)
-		let querying = this.queries.map(query => DataviewAPI.query(query))
+		let fuzzy = prepareFuzzySearch(input_str.toLowerCase())
+		let querying = this.queries.map(query => DataviewAPI.query(`list from ${query}`))
 		let results = await Promise.all(querying)
 		let sorted = results.flatMap(result => {
 			const primaryMeaning = result.value.primaryMeaning.type
@@ -48,8 +47,8 @@ export class InputSuggest extends AbstractInputSuggest<TFile> {
 					let result = fuzzy(ft[primaryMeaning]);
 					// console.log(ft.path, result?.score ?? -Infinity);
 					//todo:filter out infinity
-					let [,extension] = ft.path.match(/\.(.*)$/) ?? ''
-					return {...ft,primaryMeaning,extension, ...result};
+					let [, extension] = ft.path.match(/\.(.*)$/) ?? ''
+					return {...ft, primaryMeaning, extension, ...result};
 				})
 		})
 			.filter(ft => Math.abs(ft.score) < Infinity)

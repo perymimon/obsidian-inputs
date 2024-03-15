@@ -1,12 +1,8 @@
 // @ts-nocheck
 import {App, MarkdownPostProcessorContext} from "obsidian";
 import {MyPluginSettings} from "../draft/settings";
-import {decodeAndRun, processPattern, saveValue} from "./api";
-import {parsePattern, parseTarget} from "./internalApi";
-import {INPUT_PATTERN} from "./inputs";
-import {stringTemplate} from "./strings";
-
-const $BUTTONS_MAP = new WeakMap()
+import {processPattern} from "./api";
+import {parsePattern} from "./internalApi";
 
 export const BUTTON_PATTERN = /(?:^|`)(?<id>-\w+-)?\s*button\|(?<name>.*)\|\s*(?<expression>.+?)\s*(?<target>>.*?)?\s*(?:$|`)/i
 
@@ -38,7 +34,7 @@ function createButton(rootEl: HTMLElement, pattern: string, fields) {
 }
 
 global.document.on('click', 'button.live-form', async function (e, delegateTarget) {
-	const pattern = await stringTemplate(delegateTarget.title)
+	var pattern = delegateTarget.title
 	const {expression, target} = pattern.match(BUTTON_PATTERN).groups;
 	await processPattern(expression, target)
 })

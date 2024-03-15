@@ -1,12 +1,9 @@
 // @ts-nocheck9
 import {App, Editor, MarkdownPostProcessorContext, TFile} from "obsidian";
 import {MyPluginSettings} from "../draft/settings";
-import {InputSuggest} from "./FileSuggester";
-import {objectGet} from "./objects";
-import {modifications, stringTemplate, typeMap} from "./strings";
-import { getPlugin, processPattern, saveValue} from "./api";
+import {InputSuggest} from "./InputSuggest";
+import {link, processPattern, saveValue} from "./api";
 import {parsePattern, parseTarget} from "./internalApi";
-import {BUTTON_PATTERN} from "./buttons";
 
 var app = global.app
 
@@ -35,17 +32,17 @@ export function replaceCode2Inputs(rootEl: HTMLElement, ctx:MarkdownPostProcesso
 
 function createForm(rootEl:HTMLElement, pattern:string, fields:Record<string, string>) {
 	const formEl = createEl('form', {cls: 'live-form', title: ''})
-	let { options, target = ''} = fields
-	var targetObject = parseTarget(target, pattern)
+	let { options} = fields
+	// var targetObject = parseTarget(pattern)
 	formEl.title = pattern
 
-	const {textsValues, queries} = parseOptions(options)
-	formEl.append(createRadioEls(textsValues))
-	if (queries.length || textsValues.length == 0) {
+	const {opts, queries} = parseOptions(options)
+	formEl.append(createRadioEls(opts))
+	if (queries.length || opts.length == 0) {
 		const inputEl = createInputEl(fields, queries)
 		formEl.append(inputEl)
 	}
-	if (targetObject.method != 'replace')
+	// if (targetObject.method != 'replace')
 		formEl.append(createHelperButtons())
 
 	rootEl.replaceWith(formEl)
@@ -81,9 +78,10 @@ global.document.on('save', 'form.live-form', async function (e, delegateTarget) 
 	let {expression, id, target} = extractFields(pattern)
 	if (e!.target.value == '') return;
 	const run = expression.replace(/__+.*?__+/, `{input}`)
+	const {value} = e?.target
 	await processPattern(run,target, {
 		allowImportedLinks: false,
-		vars: {input: e!.target.value}
+		vars: {input: (await link(value)) || value}
 	})
 	e.target!.value = ''
 	setTimeout(_ => document.getElementById(id)?.focus(), 10)
@@ -91,14 +89,14 @@ global.document.on('save', 'form.live-form', async function (e, delegateTarget) 
 
 
 
-function createInputEl(fields, queries) {
+function createInputEl(fields:Record<string, string>, queries:string[]) {
 	const {type, expression, id, placeholder} = fields
 	const inputEl = createEl(
 		type == 'textarea' ? 'textarea' : 'input', {type}
 	)
 	inputEl.style.setProperty('--widther', expression.match(/_/g).length)
 	inputEl.id = id
-	inputEl.placeholder = placeholder || expression.replace(/^_+$/, '')
+	inputEl.placeholder = placeholder || expression.replace(/__+/, '')
 	if (queries.length) new InputSuggest(app, inputEl, queries)
 	return inputEl
 }
@@ -123,7 +121,7 @@ function createHelperButtons() {
 	removeBtn.tabIndex = -1
 	removeBtn.name = 'remove'
 
-	let clearBtn = divEl.createEl('button', {title: 'clear', cls: 'close', text: '🧹'})
+	let clearBtn = divEl.createEl('button', {title: 'clear', cls: 'clear', text: '🧹'})
 	clearBtn.tabIndex = -1
 	clearBtn.name = 'clear'
 
@@ -131,11 +129,11 @@ function createHelperButtons() {
 }
 
 function parseOptions(options: string) {
-	const dv = getPlugin('dataview')?.api
+	const dv = app.plugins.plugins['dataview']?.api
 	const queryPrefix = dv?.settings.inlineQueryPrefix
-	const queries = []
-	const textsValues = []
-	if (!options) return {textsValues, queries}
+	const queries:string[]= []
+	const opts:string[] = []
+	if (!options) return {opts, queries}
 	for (let opt of options.split(',')) {
 		opt = opt.trim()
 		if (queryPrefix && opt.startsWith(queryPrefix)) {
@@ -143,35 +141,10 @@ function parseOptions(options: string) {
 			queries.push(query)
 		} else {
 			let [text, value = text] = opt.split(/:/)
-			textsValues.push({text, value})
+			opts.push({text, value})
 
 		}
 	}
-	return {textsValues, queries}
-}
-
-
-function generatePlaceholder(inputFields, frontmatterValues) {
-	let {type, placeholder, yaml, continues} = inputFields
-	let yamlPlaceholder = ''
-	if (inputFields.yaml) {
-		let yamlValue = JSON.stringify(objectGet(frontmatterValues, inputFields.yaml))
-		yamlPlaceholder = `:${yaml} (= ${yamlValue ?? 'empty'})`
-	}
-	let typeAndHolder = [typeMap[type], placeholder].filter(Boolean).join(' ')
-	return `${typeAndHolder} ${yamlPlaceholder} ${continues ? '+' : ''}`
-}
-
-function generateTitle(inputFields) {
-	let {pattern} = inputFields
-	return pattern
-}
-
-async function remove(event, app, inputFields) {
-	const {pattern, delimiter = ''} = inputFields
-	let file: TFile = app.workspace.activeEditor!.file!
-	await app.vault.process(file, (data: string) => {
-		return data.replace(delimiter + pattern, '')
-	})
+	return {opts, queries}
 }
 

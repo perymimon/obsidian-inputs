@@ -1,18 +1,22 @@
 import {asyncEval, replaceAsync} from "./internalApi";
 import {TFile} from "obsidian";
-import {getFileData} from "./api";
+import {getFileData, link} from "./api";
 import {Priority} from "./types";
+import {objectGet} from "./objects";
 
 type Dictionary = { [any: string]: any }
 declare const moment: (...args: any[]) => any;
 
-export async function stringTemplate(template: string, fields: Dictionary = {}, file?: string | TFile, priority?: Priority) {
+export async function stringTemplate(template: string, fields: Dictionary = {}, file?: string | TFile, priority?: Priority):Promise<string> {
 	if (!String.isString(template)) return template;
 	fields = {...await getFileData(file, priority), ...fields}
+	// if value is not link it returns as is
+	for (let k in fields) fields[k] = link(fields[k])
+
 	return await replaceAsync(template, /\{(?<key>[^}]+)}/g, async (_, expr) => {
 		let [exec, arg] = expr.split(':')
 		var replacement =
-			fields[exec]
+			objectGet(fields,exec)
 			?? modifications[exec]
 			?? await asyncEval(exec, fields, modifications, void 0, true)
 			.catch(e => `<error>${String(e)}</error>`)

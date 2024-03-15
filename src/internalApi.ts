@@ -1,5 +1,6 @@
 // @ts-nocheck
 import {MarkdownView, TFile} from "obsidian";
+import {targetFile} from "./api";
 
 var app = global.app
 
@@ -72,7 +73,7 @@ export async function replaceAsync(string: string, regexp: RegExp, replacer: rep
 }
 
 export type Target = {
-	file: TFile | string,
+	file: targetFile,
 	targetType: 'yaml' | 'field' | 'header' | 'text' | 'file' | 'pattern',
 	path: string,
 	method: 'append' | 'prepend' | 'replace' | 'create' | 'remove' | 'clear'
@@ -80,7 +81,7 @@ export type Target = {
 }
 type TargetArray = [string, Target['file'], Target['targetType'], Target['path'], Target['method']]
 
-export function parseTarget(pattern: string, defFile: string | TFile = ''): Target {
+export function parseTarget(pattern: string, defFile: targetFile = ''): Target {
 	//https://regex101.com/r/Z0v3rv/1
 	const eliminateSquareContent = /\[\[(.*)]]/
 	var [leftPattern = '', method] = String(pattern.match(/>.*$/) || '')
@@ -158,9 +159,6 @@ export function getInlineFields(content: string, key: string = '.*?'):Field[] {
 
 	return fields;
 }
-
-
-
 
 export function log(fnName: string, varName: string, ...varValue: any[]) {
 	var title = `${fnName} ${varName}:`;

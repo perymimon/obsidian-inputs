@@ -3,7 +3,7 @@ import {Plugin, App } from 'obsidian';
 // import {LiveFormSettingTab, DEFAULT_SETTINGS} from "./settings";
 import { replaceCode2Inputs} from "./inputs";
 import { replaceCode2Buttons} from "./buttons";
-import {replaceCode2Update, update} from "./update";
+// import {replaceCode2Update, update} from "./update";
 // import {MyPluginSettings} from "../settings";
 
 // https://regex101.com/r/FhEQ2Z/1
@@ -34,7 +34,7 @@ export default class InputsPlugin extends Plugin {
 			(root, ctx) => {
 				replaceCode2Inputs(root, ctx, this.settings, this.app)
 				replaceCode2Buttons(root, ctx, this.settings, this.app)
-				replaceCode2Update(root, ctx, this.settings, this.app)
+				// replaceCode2Update(root, ctx, this.settings, this.app)
 			}
 		)
 

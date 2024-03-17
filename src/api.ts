@@ -5,23 +5,21 @@ import * as api from './api';
 import {
 	asyncEval, Field,
 	getActiveFile,
-	getInlineFields, isFileNotation, log, logDecodeAndRun, parseTarget,
+	getInlineFields, isFileNotation, log, logDecodeAndRun, parserTarget,
 	setPrototype, Target
 } from "./internalApi";
 import {manipulateValue, sliceRemover, spliceString, stringTemplate} from "./strings";
 import {Priority} from "./types";
 // declare const moment: (...args: any[]) => any;
-const context: {
-	lastCreatedFile: TFile | null
-} = {
-	lastCreatedFile: null
-}
+// context
+const lastTouchFiles: TFiel[] = []
+
 
 var app = global.app
 
-export function link(path: TFile | string) {
+export function link(path: TFile | string): string {
 	var file = getTFileIfExist(path?.path || path)
-	if(!file) return path
+	if (!file) return path as any
 	var filename = app.metadataCache.fileToLinktext(file, '', true)
 	return `[[${filename}]]`
 }
@@ -41,6 +39,13 @@ export function duration(start: string, end: string, format = 'HH:mm', as = 'hou
 
 export type targetFile = TFile | string
 
+export async function updateFile(path: targetFile, content: string) {
+	let tFile = await getTFile(path);
+	await app.vault.modify(tFile, content)
+	lastTouchFiles.push(tFile)
+	lastTouchFiles.splice(10,Infinity)
+}
+
 export function getTFileIfExist(path: string): TFile | null {
 	path = (path.startsWith('[[') && path.endsWith(']]')) ? path.slice(2, -2) : path
 	let tFile = app.metadataCache.getFirstLinkpathDest(path, "")
@@ -54,7 +59,7 @@ export function getTFileSync(path?: targetFile): TFile | null {
 	return getTFileIfExist(path)
 }
 
-export async function getTFile(path?: targetFile, autoCreate = true): Promise<TFile | null> {
+export async function getTFile(path?: targetFile, autoCreate = true): Promise<TFile> {
 	let tFile = getTFileSync(path)
 	if (tFile) return tFile
 	if (!autoCreate) return null
@@ -71,10 +76,10 @@ export async function createTFile(path: targetFile, text: string = '') {
 		var file = app.vault.getFileByPath(pathName)
 	} while (file)
 	var folders = path.split('/').slice(0, -1).join('/')
-	// if(!app.vault.getFolderByPath(folders))
 	await app.vault.createFolder(folders).catch(_ => _)
 	const tFile = await app.vault.create(pathName, String(text))
-	context[lastCreated]
+	lastTouchFiles.push(tFile)
+	lastTouchFiles.splice(10,Infinity)
 	return tFile
 
 }
@@ -106,7 +111,6 @@ export async function importJs(path: TFile | string): Promise<unknown> {
 
 export async function executeCode(code: string, vars, contextFile?: string | TFile, priority?: Priority, debug?: boolean) {
 	var fields = await getFileData(contextFile, priority)
-	for (let k in fields) fields[k] = Number(fields[k]) || fields[k]
 	return asyncEval(code, {...fields, ...vars}, api, 'api', debug)
 }
 
@@ -114,19 +118,18 @@ export async function executeCode(code: string, vars, contextFile?: string | TFi
  * @param file
  * @param priority 'yaml'|'field'
  */
-export async function getFileData(file?: string | TFile, priority: Priority  = 'field') {
-	// const dv = getPlugin('dataview')
-	let tFile = await getTFile(file)
-	// if (dv) {
-	// 	return dv.api.page(file.path)
-	// }
+export async function getFileData(file?: targetFile, priority: Priority = 'field') {
+	const context: any = {}
+	for (let i in lastTouchFiles) context[`$${i}`] = lastTouchFiles[i]
+	let tFile = getTFileSync(file)
+	if(!tFile) return context
 	const content = await this.app.vault.cachedRead(tFile);
 	const {frontmatter = {}} = getStructure(tFile)
-	const inlineFields = await getInlineFields(content)
-	const fieldsObject = inlineFields.reduce((obj, line) => (obj[line.key] = line.value, obj), {})
-	if (priority == 'field') return setPrototype(fieldsObject, frontmatter)
-	if (priority == 'yaml') return setPrototype(frontmatter, fieldsObject)
-	return setPrototype(fieldsObject, frontmatter)
+	const inlineFields: object = await getInlineFields(content)
+	const fieldsObject: object = inlineFields.reduce((obj, line) => (obj[line.key] = line.value, obj), {})
+	if (priority == 'field') return setPrototype(fieldsObject, frontmatter, context)
+	if (priority == 'yaml') return setPrototype(frontmatter, fieldsObject, context)
+	return setPrototype(fieldsObject, frontmatter, context)
 }
 
 // https://github.com/SilentVoid13/Templater/blob/26c35559bd63765f6078d43f6febd53435530741/src/core/Templater.ts#L110
@@ -178,7 +181,7 @@ export async function setInlineField(value: string, key: string, method = 'repla
 			newField = outerField.replace(`::${fullValue}`, `::${value}`)
 		}
 		if (outerField == newField) return false
-			`inline field update from "${outerField}" to "${newField}"`
+		log(`inline field update from "${outerField}" to "${newField}"`)
 		newContent = [content.slice(0, startIndex), newField, content.slice(endIndex)].join('')
 	} else { // create field it not exist
 		if (method == 'remove') return 'no field detected'
@@ -187,7 +190,7 @@ export async function setInlineField(value: string, key: string, method = 'repla
 		newContent = spliceString(content, offset, 0, `[${key}::${value}]\n`)
 		// newContent = [content.slice(0, offset), field, content.slice(offset)].join('\n')
 	}
-	await app.vault.modify(tFile, newContent)
+	await updateFile(tFile, newContent)
 }
 
 /**
@@ -239,7 +242,7 @@ async function quickText(text: string, target: Target) {
 		})
 	}
 	if (newContent == content) return;
-	await app.vault.modify(tFile, newContent)
+	await updateFile(tFile, newContent)
 }
 
 /**
@@ -270,7 +273,7 @@ async function quickFile(text: string, target: Target, create = false) {
 	if (method == "replace") lines = [text]
 	if (method == "append") lines.push(text)
 	if (method == "clear") lines.length = 0
-	await app.vault.modify(tFile, lines.join("\n"))
+	await updateFile(tFile, lines.join("\n"))
 	return tFile
 }
 
@@ -314,7 +317,7 @@ async function quickHeader(text: string, target: Target) {
 
 	content = spliceString(content, startOffset, headerContent.length, headerContentLines.join('\n'))
 
-	await app.vault.modify(tFile, content);
+	await updateFile(tFile, content);
 	log('quickHeader', `${file} ${path} ${method}`);
 }
 
@@ -329,7 +332,7 @@ async function quickHeader(text: string, target: Target) {
  * @param file
  */
 type decodeAndRunOpts = {
-	priority?: Priority,
+	priority?: Priority | string,
 	vars?: {},
 	file?: targetFile,
 	literalExpression?: boolean
@@ -400,13 +403,14 @@ export async function saveValue(text: string, target: Target) {
 	}
 }
 
-export async function processPattern(expression: string, target: string, opts: decodeAndRunOpts  = {}) {
-	const {priority, vars = {}, file} = opts
+export async function processPattern(expression: string, target: string, opts: decodeAndRunOpts = {}) {
+	const {vars = {}, file} = opts
+
 	expression = await stringTemplate(expression, vars, file)
+
 	target = await stringTemplate(target, vars, file)
-	const targetObject = parseTarget(target)
-	(await stringTemplate(expression, vars, file, priority)).trim()
-	let text = await decodeAndRun(expression, {
+	const targetObject = parserTarget(target)
+	let text = await decodeAndRun(expression.trim(), {
 		priority: targetObject.targetType,
 		...opts
 	})

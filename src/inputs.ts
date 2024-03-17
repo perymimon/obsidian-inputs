@@ -3,7 +3,7 @@ import {App, Editor, MarkdownPostProcessorContext, TFile} from "obsidian";
 import {MyPluginSettings} from "../draft/settings";
 import {InputSuggest} from "./InputSuggest";
 import {link, processPattern, saveValue} from "./api";
-import {parsePattern, parseTarget} from "./internalApi";
+import {parsePattern, parserTarget} from "./internalApi";
 
 var app = global.app
 
@@ -33,7 +33,7 @@ export function replaceCode2Inputs(rootEl: HTMLElement, ctx:MarkdownPostProcesso
 function createForm(rootEl:HTMLElement, pattern:string, fields:Record<string, string>) {
 	const formEl = createEl('form', {cls: 'live-form', title: ''})
 	let { options} = fields
-	// var targetObject = parseTarget(pattern)
+	// var targetObject = parserTarget(pattern)
 	formEl.title = pattern
 
 	const {opts, queries} = parseOptions(options)
@@ -61,7 +61,7 @@ global.document.on('select', 'form.live-form', cbTriggerSave)
 global.document.on('submit', 'form.live-form', e => e.preventDefault())
 global.document.on('click', 'form.live-form', async (e,delegateTarget) => {
 	if(e.target.tagName == 'BUTTON') {
-		var target = parseTarget(delegateTarget.title)
+		var target = parserTarget(delegateTarget.title)
 		var button = e.target
 		if (button.name == 'clear') target.method = 'clear'
 		if (button.name == 'remove') target.method = 'remove'

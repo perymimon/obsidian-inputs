@@ -1,7 +1,7 @@
 import {App, MarkdownPostProcessorContext, MarkdownView, TFile} from "obsidian";
 import {MyPluginSettings} from "../draft/settings";
 import {decodeAndRun, saveValue} from "./api";
-import {log, parseTarget} from "./internalApi";
+import {log, parserTarget} from "./internalApi";
 
 var app = global.app
 
@@ -9,10 +9,10 @@ export const UPDATE_PATTERN = /(?:^|`)update\|\s*?(?<expression>.*?)\s*?(?<targe
 
 // https://regex101.com/r/osbDKH/1
 
-export async function update(fileContent: string, file: string | TFile) {
+async function update(fileContent: string, file: string | TFile) {
 	for (let match of fileContent.matchAll(new RegExp(UPDATE_PATTERN, 'g'))) {
 		const pattern = match[0]
-		var target = parseTarget(pattern, file)
+		var target = parserTarget(pattern, file)
 		let newText = await decodeAndRun(match.groups?.expression, {
 			priority: target.targetType
 		})

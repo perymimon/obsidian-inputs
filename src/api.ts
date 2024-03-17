@@ -5,14 +5,15 @@ import * as api from './api';
 import {
 	asyncEval, Field,
 	getActiveFile,
-	getInlineFields, isFileNotation, log, logDecodeAndRun, parserTarget,
+	getInlineFields, isFileNotation, log, logDecodeAndRun, parserTarget, saveContextFile,
 	setPrototype, Target
 } from "./internalApi";
 import {manipulateValue, sliceRemover, spliceString, stringTemplate} from "./strings";
 import {Priority} from "./types";
 // declare const moment: (...args: any[]) => any;
 // context
-const lastTouchFiles: TFiel[] = []
+const lastTouchFiles: TFile[] = []
+const lastCreatedFiles: TFile[] = []
 
 
 var app = global.app
@@ -42,8 +43,7 @@ export type targetFile = TFile | string
 export async function updateFile(path: targetFile, content: string) {
 	let tFile = await getTFile(path);
 	await app.vault.modify(tFile, content)
-	lastTouchFiles.push(tFile)
-	lastTouchFiles.splice(10,Infinity)
+	saveContextFile(tFile, lastTouchFiles)
 }
 
 export function getTFileIfExist(path: string): TFile | null {
@@ -78,8 +78,8 @@ export async function createTFile(path: targetFile, text: string = '') {
 	var folders = path.split('/').slice(0, -1).join('/')
 	await app.vault.createFolder(folders).catch(_ => _)
 	const tFile = await app.vault.create(pathName, String(text))
-	lastTouchFiles.push(tFile)
-	lastTouchFiles.splice(10,Infinity)
+	saveContextFile(tFile, lastCreatedFiles)
+	saveContextFile(tFile, lastTouchFiles)
 	return tFile
 
 }
@@ -94,9 +94,10 @@ export async function getTFileContent(tFile: TFile) {
 	return await app.vault.read(tFile)
 }
 
-export async function getStructure(path?: string | TFile) {
-	let file = await getTFile(path)
-	return this.app.metadataCache.getFileCache(file) ?? {}
+export function getStructure(path?: string | TFile) {
+	let file = getTFileSync(path)
+	if (!file) return {}
+	return app.metadataCache.getFileCache(file) ?? {}
 }
 
 export async function importJs(path: TFile | string): Promise<unknown> {
@@ -110,26 +111,25 @@ export async function importJs(path: TFile | string): Promise<unknown> {
 }
 
 export async function executeCode(code: string, vars, contextFile?: string | TFile, priority?: Priority, debug?: boolean) {
-	var fields = await getFileData(contextFile, priority)
-	return asyncEval(code, {...fields, ...vars}, api, 'api', debug)
+	var fileData = await getFileData(contextFile, priority)
+	var fields = setPrototype(vars, fileData)
+	return asyncEval(code, fields, api, 'api', debug)
 }
 
 /**
  * @param file
  * @param priority 'yaml'|'field'
  */
-export async function getFileData(file?: targetFile, priority: Priority = 'field') {
+export function getFileData(file?: targetFile, priority: Priority = 'field') {
 	const context: any = {}
 	for (let i in lastTouchFiles) context[`$${i}`] = lastTouchFiles[i]
+	for (let i in lastCreatedFiles) context[`$c${i}`] = lastCreatedFiles[i]
 	let tFile = getTFileSync(file)
-	if(!tFile) return context
-	const content = await this.app.vault.cachedRead(tFile);
-	const {frontmatter = {}} = getStructure(tFile)
-	const inlineFields: object = await getInlineFields(content)
-	const fieldsObject: object = inlineFields.reduce((obj, line) => (obj[line.key] = line.value, obj), {})
-	if (priority == 'field') return setPrototype(fieldsObject, frontmatter, context)
-	if (priority == 'yaml') return setPrototype(frontmatter, fieldsObject, context)
-	return setPrototype(fieldsObject, frontmatter, context)
+	if (!tFile) return context
+	const {frontmatter = {}, inlineFields = {}} = getStructure(tFile)
+	if (priority == 'field') return setPrototype(inlineFields, frontmatter, context)
+	if (priority == 'yaml') return setPrototype(frontmatter, inlineFields, context)
+	return setPrototype(inlineFields, frontmatter, context)
 }
 
 // https://github.com/SilentVoid13/Templater/blob/26c35559bd63765f6078d43f6febd53435530741/src/core/Templater.ts#L110
@@ -150,7 +150,7 @@ export async function getFileData(file?: targetFile, priority: Priority = 'field
  *     }
  */
 export async function templater(templateContent: string, port? = {}, targetFile?: targetFile) {
-	const {templater} = app.plugins.getPlugin['templater-obsidian'];
+	const {templater} = app.plugins.plugins['templater-obsidian'];
 	targetFile = await getTFile(targetFile)
 	const runningConfig = templater.create_running_config(void 0, targetFile, 0)
 	const content = await templater.parse_template({...runningConfig, port}, templateContent)
@@ -185,7 +185,7 @@ export async function setInlineField(value: string, key: string, method = 'repla
 		newContent = [content.slice(0, startIndex), newField, content.slice(endIndex)].join('')
 	} else { // create field it not exist
 		if (method == 'remove') return 'no field detected'
-		var {frontmatterPosition} = await getStructure(file)
+		var {frontmatterPosition} = getStructure(file)
 		var offset = frontmatterPosition?.end.offset + 1 ?? 0
 		newContent = spliceString(content, offset, 0, `[${key}::${value}]\n`)
 		// newContent = [content.slice(0, offset), field, content.slice(offset)].join('\n')
@@ -263,7 +263,7 @@ async function quickFile(text: string, target: Target, create = false) {
 	if (method == 'remove')
 		return await removeFile(file)
 
-	const {frontmatterPosition} = await getStructure(file);
+	const {frontmatterPosition} = getStructure(file);
 	var content = await app.vault.read(tFile)
 	var offset = (frontmatterPosition?.end.offset || -1) + 1
 	let lines = content.slice(offset).split("\n");
@@ -288,7 +288,7 @@ async function quickFile(text: string, target: Target, create = false) {
  */
 async function quickHeader(text: string, target: Target) {
 	var {file, path, method = 'append'} = target;
-	const {headings = [], frontmatterPosition} = await getStructure(file);
+	const {headings = [], frontmatterPosition} = getStructure(file);
 	const tFile = (await getTFile(file))!;
 	var content = await app.vault.read(tFile);
 
@@ -349,7 +349,7 @@ export async function decodeAndRun(expression: string | undefined, opts: decodeA
 		if (literalExpression) throw 'ask for literal expression string'
 		imported: if (allowImportedLinks) {
 			if (!isFileNotation(expression)) break imported
-			const tFile = await getTFile(expression)
+			const tFile = getTFileSync(expression)
 			if (!tFile) break imported
 			global.live = api
 			if (tFile.path.endsWith('js')) {
@@ -403,12 +403,11 @@ export async function saveValue(text: string, target: Target) {
 	}
 }
 
-export async function processPattern(expression: string, target: string, opts: decodeAndRunOpts = {}) {
+export async function processPattern(preExpression: string, preTarget: string, opts: decodeAndRunOpts = {}) {
 	const {vars = {}, file} = opts
 
-	expression = await stringTemplate(expression, vars, file)
-
-	target = await stringTemplate(target, vars, file)
+	let expression = await stringTemplate(preExpression, vars, file)
+	let target = await stringTemplate(preTarget, vars, file)
 	const targetObject = parserTarget(target)
 	let text = await decodeAndRun(expression.trim(), {
 		priority: targetObject.targetType,

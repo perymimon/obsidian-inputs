@@ -1,7 +1,7 @@
 import {App, MarkdownPostProcessorContext, MarkdownView, TFile} from "obsidian";
 import {MyPluginSettings} from "../draft/settings";
 import {decodeAndRun, saveValue} from "./api";
-import {log, parserTarget} from "./internalApi";
+import {getInlineFields, log, parserTarget} from "./internalApi";
 
 var app = global.app
 

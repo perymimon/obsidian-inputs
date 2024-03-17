@@ -14,7 +14,7 @@ export async function stringTemplate(template: string, customfields: Dictionary 
 	return await replaceAsync(template, /\{\{(?<key>[^}]+)}}/g, async (_, expr) => {
 		let [exec, arg] = expr.split(':')
 		var replacement =
-			objectGet(fields,exec)
+			await objectGet(fields,exec)
 			?? modifications[exec]
 			?? await asyncEval(exec, fields, modifications, void 0, true)
 			.catch(e => `<error>${String(e)}</error>`)

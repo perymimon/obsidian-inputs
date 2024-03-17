@@ -101,12 +101,12 @@ export function objectSet(root:object, path:string, value:any, method:Target["me
 export function objectGet(root:object, path:string | string[]) {
 	let paths = Array.isArray(path)?
 		path:
-		path.split(/\[(\w+)\]|\.|\["(\w+)"\]/).filter(Boolean)
+		path.split(/\[([ \w]+)\]|\.|\["([ \w]+)"\]|\['([ \w]+)'\]/).filter(Boolean)
 	let current = root;
 	do {
 		if (current == void 0) return void 0;
 		if( current instanceof TFile)
-			return objectGet(getFileData(current),paths)
+			return objectGet( getFileData(current),paths)
 		let p = paths.shift()
 		// @ts-ignore I count on undefined
 		current = current[p]

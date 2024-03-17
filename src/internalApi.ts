@@ -1,8 +1,19 @@
 // @ts-nocheck
 import {MarkdownView, TFile} from "obsidian";
 import {targetFile} from "./api";
+import {objectGet} from "./objects";
 
 var app = global.app
+var proxyTFileHandler = {
+	get(target,prop, receiver){
+		return Reflect.get(target,prop) ?? objectGet(target,prop)
+	}
+}
+export function saveContextFile(tFile:TFile, array: Array){
+	let  proxyTfile = new Proxy(tFile,proxyTFileHandler)
+	array.unshift(proxyTfile)
+	array.splice(10,Infinity)
+}
 
 export function getMaxAnnotationId(pattern: RegExp, fileContent: string) {
 	let maxId = 1;

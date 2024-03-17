@@ -1,8 +1,10 @@
-import {Plugin, App } from 'obsidian';
+import {Plugin, App} from 'obsidian';
 
 // import {LiveFormSettingTab, DEFAULT_SETTINGS} from "./settings";
-import { replaceCode2Inputs} from "./inputs";
-import { replaceCode2Buttons} from "./buttons";
+import {replaceCode2Inputs} from "./inputs";
+import {replaceCode2Buttons} from "./buttons";
+import {getInlineFields} from "./internalApi";
+import {getTFileContent} from "./api";
 // import {replaceCode2Update, update} from "./update";
 // import {MyPluginSettings} from "../settings";
 
@@ -38,12 +40,33 @@ export default class InputsPlugin extends Plugin {
 			}
 		)
 
+		function updateStrucure(file, content, cache) {
+			const inlineFields: any[] = getInlineFields(content)
+			const fieldsObject: object = inlineFields.reduce(
+				(obj, line) => (obj[line.key] = line.value, obj), {}
+			)
+			cache.inlineFields = fieldsObject
+		}
+
+		setTimeout(async () => {
+			const mdFiles = app.vault.getMarkdownFiles()
+			for (let file of mdFiles) {
+				let content = await getTFileContent(file)
+				let cache = app.metadataCache.getFileCache(file) ?? {}
+				updateStrucure(file, content, cache)
+			}
+		}, 500)
+
+		app.metadataCache.on("changed", updateStrucure)
+
 		// await this.loadSettings();
 
 		// This adds a settings tab so the user can configure various aspects of the plugin
 		// this.addSettingTab(new LiveFormSettingTab(this.app, this));
 
 		// this.app.workspace.on('editor-change',(editor) => console.log('editor-change', editor) )
+
+
 	}
 
 	onunload() {

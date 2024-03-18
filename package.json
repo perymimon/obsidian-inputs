@@ -1,6 +1,6 @@
 {
 	"name": "obsidian-inputs",
-	"version": "0.1.0",
+	"version": "0.1.1",
 	"description": "Help to create inline inputs fields into note that change the actual note",
 	"main": "main.js",
 	"scripts": {

@@ -1,4 +1,4 @@
-// @ts-nocheck9
+// @ts-nocheck
 import {App, Editor, MarkdownPostProcessorContext, TFile} from "obsidian";
 import {MyPluginSettings} from "../draft/settings";
 import {InputSuggest} from "./InputSuggest";
@@ -48,13 +48,6 @@ function createForm(rootEl:HTMLElement, pattern:string, fields:Record<string, st
 	rootEl.replaceWith(formEl)
 }
 
-function extractFields(pattern:string){
-	const inputNotation = pattern.trim().match(INPUT_PATTERN)
-	if (!inputNotation) return null;
-	const fields = inputNotation.groups;
-	return fields
-}
-
 const cbTriggerSave = (e, delegateTarget:HTMLInputElement) => e.target.trigger('save', e)
 global.document.on('change', 'form.live-form', cbTriggerSave)
 global.document.on('select', 'form.live-form', cbTriggerSave)
@@ -74,12 +67,12 @@ global.document.on('keydown', 'form.live-form', (e, delegateTarget:HTMLInputElem
 })
 
 global.document.on('save', 'form.live-form', async function (e, delegateTarget) {
-	const pattern = delegateTarget.title
-	let {expression, id, target} = extractFields(pattern)
 	if (e!.target.value == '') return;
-	const run = expression.replace(/__+.*?__+/, `{input}`)
+	const pattern = delegateTarget.title
+	let {expression, id, target} = pattern.trim().match(INPUT_PATTERN)!.groups
+	const run = expression.replace(/__+.*?__+/, `{{input}}`)
 	const {value} = e?.target
-	await processPattern(run,target, {
+	await processPattern(run,target,pattern, {
 		allowImportedLinks: false,
 		vars: {input: (await link(value)) || value}
 	})

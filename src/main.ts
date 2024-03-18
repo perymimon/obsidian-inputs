@@ -1,4 +1,4 @@
-import {Plugin, App} from 'obsidian';
+import {Plugin, App, TFile} from 'obsidian';
 
 // import {LiveFormSettingTab, DEFAULT_SETTINGS} from "./settings";
 import {replaceCode2Inputs} from "./inputs";
@@ -40,7 +40,7 @@ export default class InputsPlugin extends Plugin {
 			}
 		)
 
-		function updateStrucure(file, content, cache) {
+		function updateStrucure(file:TFile, content:string, cache:any) {
 			const inlineFields: any[] = getInlineFields(content)
 			const fieldsObject: object = inlineFields.reduce(
 				(obj, line) => (obj[line.key] = line.value, obj), {}

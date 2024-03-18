@@ -5,14 +5,15 @@ import {objectGet} from "./objects";
 
 var app = global.app
 var proxyTFileHandler = {
-	get(target,prop, receiver){
-		return Reflect.get(target,prop) ?? objectGet(target,prop)
+	get(target, prop, receiver) {
+		return Reflect.get(target, prop) ?? objectGet(target, prop)
 	}
 }
-export function saveContextFile(tFile:TFile, array: Array){
-	let  proxyTfile = new Proxy(tFile,proxyTFileHandler)
+
+export function saveContextFile(tFile: TFile, array: Array) {
+	let proxyTfile = new Proxy(tFile, proxyTFileHandler)
 	array.unshift(proxyTfile)
-	array.splice(10,Infinity)
+	array.splice(10, Infinity)
 }
 
 export function getMaxAnnotationId(pattern: RegExp, fileContent: string) {
@@ -58,7 +59,8 @@ export function getActiveFile(): TFile {
 
 
 export async function asyncEval(code: string, fields = {}, api = {}, priority = 'api', debug = false) {
-	const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor
+	const AsyncFunction = Object.getPrototypeOf(async function () {
+	}).constructor
 	const func = new AsyncFunction('fields', 'api', 'debug', `
 		with(fields) with(api){
 		 	if(debug) debugger; 
@@ -91,7 +93,7 @@ export type Target = {
 }
 type TargetArray = [string, Target['file'], Target['targetType'], Target['path'], Target['method']]
 
-export function parserTarget(pattern: string, defFile: targetFile = ''): Target {
+export function parserTarget(pattern: string = '', defFile: targetFile = ''): Target {
 	//https://regex101.com/r/Z0v3rv/1
 	const eliminateSquareContent = /\[\[(.*)]]/
 	var [leftPattern = '', method] = String(pattern.match(/>.*$/) || '')
@@ -125,15 +127,7 @@ export function parsePattern(pattern: string, regexParser): Record<string, strin
 	return fields
 }
 
-export function setPrototype(a: object, ...protos: object[]) {
-	// @ts-ignore
-	let lastProto = a
-	for (let proto of protos) {
-		lastProto.__proto__ = proto
-		lastProto = proto
-	}
-	return a;
-}
+
 
 export type Field = {
 	outerField: string, innerField: string, key: string,

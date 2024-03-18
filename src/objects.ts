@@ -115,3 +115,13 @@ export function objectGet(root:object, path:string | string[]) {
 	if(Number(current) ) return Number(current)
 	return current
 }
+
+export function setPrototype(a: object, ...protos: object[]) {
+	// @ts-ignore
+	let lastProto = a
+	for (let proto of protos) {
+		lastProto.__proto__ = proto
+		lastProto = proto
+	}
+	return a;
+}

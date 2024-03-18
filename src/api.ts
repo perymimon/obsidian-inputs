@@ -1,12 +1,12 @@
-// @ts-nocheck1
+// @ts-nocheck
 import {normalizePath, TFile, moment, PopoverState} from "obsidian";
-import {objectSet} from "./objects";
+import {objectSet,setPrototype} from "./objects";
 import * as api from './api';
 import {
 	asyncEval, Field,
 	getActiveFile,
 	getInlineFields, isFileNotation, log, logDecodeAndRun, parserTarget, saveContextFile,
-	setPrototype, Target
+	Target
 } from "./internalApi";
 import {manipulateValue, sliceRemover, spliceString, stringTemplate} from "./strings";
 import {Priority} from "./types";
@@ -403,12 +403,14 @@ export async function saveValue(text: string, target: Target) {
 	}
 }
 
-export async function processPattern(preExpression: string, preTarget: string, opts: decodeAndRunOpts = {}) {
+export async function processPattern(preExpression: string, preTarget: string,pattern:string, opts: decodeAndRunOpts = {}) {
 	const {vars = {}, file} = opts
 
 	let expression = await stringTemplate(preExpression, vars, file)
 	let target = await stringTemplate(preTarget, vars, file)
 	const targetObject = parserTarget(target)
+	const tag = '`'
+	targetObject.pattern = `${tag}${pattern}${tag}`
 	let text = await decodeAndRun(expression.trim(), {
 		priority: targetObject.targetType,
 		...opts

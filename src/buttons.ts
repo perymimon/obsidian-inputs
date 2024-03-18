@@ -35,8 +35,8 @@ function createButton(rootEl: HTMLElement, pattern: string, fields) {
 
 global.document.on('click', 'button.live-form', async function (e, delegateTarget) {
 	var pattern = delegateTarget.title
-	const {expression, target} = pattern.match(BUTTON_PATTERN).groups;
-	await processPattern(expression, target)
+	const {expression, target} = pattern.match(BUTTON_PATTERN)!.groups;
+	await processPattern(expression, target, pattern)
 })
 
 

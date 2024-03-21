@@ -1,15 +1,25 @@
-import {Plugin, App, TFile} from 'obsidian';
+import {Plugin, App, TFile, MarkdownPostProcessorContext} from 'obsidian';
 
 // import {LiveFormSettingTab, DEFAULT_SETTINGS} from "./settings";
-import {replaceCode2Inputs} from "./inputs";
-import {replaceCode2Buttons} from "./buttons";
-import {getInlineFields} from "./internalApi";
+import {createForm, INPUT_PATTERN, replaceCode2Inputs} from "./inputs";
+import {createButton, replaceCode2Buttons} from "./buttons";
+import {getInlineFields, parsePattern} from "./internalApi";
 import {getTFileContent} from "./api";
 // import {replaceCode2Update, update} from "./update";
 // import {MyPluginSettings} from "../settings";
 
 // https://regex101.com/r/FhEQ2Z/1
 // https://regex101.com/r/jC824J/1
+export const PATTERN = new RegExp([
+		/(?:`|^)/,
+		/(?<id>-\w+-)?\s*/,
+		/(?<type>[\w-]*?)\:/,
+		/(?<name>.*)\|/,
+		/\s*(?<expression>.+?)/,
+		/(?:,(?<options>.+?))?/,
+		/\s*(?<target>>.*?)?/,
+		/\s*(?:$|`)/
+	].map(r => r.source).join(''), '')
 
 export let app: App
 export default class InputsPlugin extends Plugin {
@@ -33,13 +43,41 @@ export default class InputsPlugin extends Plugin {
 		// })
 
 		this.registerMarkdownPostProcessor(
-			(root, ctx) => {
-				replaceCode2Inputs(root, ctx, this.settings, this.app)
-				replaceCode2Buttons(root, ctx, this.settings, this.app)
+			(rootEl:HTMLElement, ctx:MarkdownPostProcessorContext) => {
+				const codesEl = rootEl.findAll('code')
+				for (let codeEl of codesEl) {
+					const pattern = codeEl.innerText
+					const fields = parsePattern(pattern, PATTERN)
+					if (!fields) continue;
+					const {type} = fields
+					var element :HTMLElement
+					if(type == 'button') {
+						element = createButton(pattern, fields)
+					}else{
+						element = createForm(pattern, fields)
+					}
+					// element.title = pattern
+					codeEl.replaceWith(element)
+				}
 				// replaceCode2Update(root, ctx, this.settings, this.app)
 			}
 		)
-
+		// this.registerMarkdownCodeBlockProcessor("inputs", (source, el, ctx) => {
+		// 	const rows = source.split("\n").filter((row) => row.length > 0);
+		// 	var element :HTMLElement
+		//
+		// 	for (let pattern of rows ){
+		// 		const fields = parsePattern(pattern, PATTERN)
+		// 		if (!fields) continue;
+		// 		const {type} = fields
+		// 		if(type == 'button') {
+		// 			element = createButton(pattern, fields)
+		// 		}else{
+		// 			element = createForm(pattern, fields)
+		// 		}
+		// 	}
+		//
+		// });
 		function updateStrucure(file:TFile, content:string, cache:any) {
 			const inlineFields: any[] = getInlineFields(content)
 			const fieldsObject: object = inlineFields.reduce(

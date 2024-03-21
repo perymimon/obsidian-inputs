@@ -1,0 +1,8 @@
+- [X]  merge syntax butotn and inputs
+- [ ]  input type inline-field should change the closes to them.
+  - prefer before and then after
+- [X]  radio button should have <el name
+- [X]  radio button should have label (from name)
+- [ ]  refocus element after refresh must be done good
+- [ ]  add syntax word import before import file
+- [ ]  fix auto title trim

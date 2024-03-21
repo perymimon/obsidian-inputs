@@ -1,104 +1,84 @@
-// @ts-nocheck
+// @ts-nocheck1
 import {App, Editor, MarkdownPostProcessorContext, TFile} from "obsidian";
 import {MyPluginSettings} from "../draft/settings";
 import {InputSuggest} from "./InputSuggest";
 import {link, processPattern, saveValue} from "./api";
 import {parsePattern, parserTarget} from "./internalApi";
+import {PATTERN} from "./main";
 
 var app = global.app
 
-export const INPUT_PATTERN = new RegExp([
-	/(?:`|^)/,
-	/(?<id>-\w+-)?\s*/,
-	/(?<type>[\w-]+?)\|/,
-	/(?<expression>.*?__+(?<placeholder>.*?)__+.*?)/,
-	/(?:,(?<options>.+?))?/,
-	/(?<target>>.*?)?/,
-	/(?:$|`)/
-].map(r => r.source).join(''), '')
-//https://regex101.com/r/ouJ4cb/1
-/**
- * mark input Anotation pattern with -id- if need : `____ -id-`
- */
-export function replaceCode2Inputs(rootEl: HTMLElement, ctx:MarkdownPostProcessorContext, settings: MyPluginSettings, app: App) {
-	const codesEl = rootEl.findAll('code')
-	for (let codeEl of codesEl) {
-		const pattern = codeEl.innerText
-		const fields = parsePattern(pattern, INPUT_PATTERN)
-		if (!fields) continue;
-		createForm(codeEl, pattern, fields)
-	}
-}
 
-function createForm(rootEl:HTMLElement, pattern:string, fields:Record<string, string>) {
+export function createForm(pattern: string, fields: Record<string, string>) {
 	const formEl = createEl('form', {cls: 'live-form', title: ''})
-	let { options} = fields
+	let {options, name} = fields
 	// var targetObject = parserTarget(pattern)
 	formEl.title = pattern
-
 	const {opts, queries} = parseOptions(options)
-	formEl.append(createRadioEls(opts))
+	formEl.append(createRadioEls(name, opts))
 	if (queries.length || opts.length == 0) {
 		const inputEl = createInputEl(fields, queries)
 		formEl.append(inputEl)
-	}
-	// if (targetObject.method != 'replace')
 		formEl.append(createHelperButtons())
-
-	rootEl.replaceWith(formEl)
+	}
+	return formEl
 }
 
-const cbTriggerSave = (e, delegateTarget:HTMLInputElement) => e.target.trigger('save', e)
-global.document.on('change', 'form.live-form', cbTriggerSave)
-global.document.on('select', 'form.live-form', cbTriggerSave)
+global.document.on('change', 'form.live-form', triggerSave)
+global.document.on('select', 'form.live-form', triggerSave)
 global.document.on('submit', 'form.live-form', e => e.preventDefault())
-global.document.on('click', 'form.live-form', async (e,delegateTarget) => {
-	if(e.target.tagName == 'BUTTON') {
+global.document.on('save', 'form.live-form', triggerSave)
+global.document.on('click', 'form.live-form', async (e:InputEvent, delegateTarget) => {
+	if (e.target!.tagName == 'BUTTON') {
 		var target = parserTarget(delegateTarget.title)
-		var button = e.target
+		var button = e.target!
 		if (button.name == 'clear') target.method = 'clear'
 		if (button.name == 'remove') target.method = 'remove'
 		await saveValue('', target)
 	}
+	if (e.target!.tagName == 'INPUT' && e.target.type =='radio') {
+		return triggerSave(e,delegateTarget)
+	}
 })
-global.document.on('keydown', 'form.live-form', (e, delegateTarget:HTMLInputElement) => {
+global.document.on('keydown', 'form.live-form', (e:InputEvent, delegateTarget: HTMLInputElement) => {
 	if (!(e.key == "Enter" && (e.metaKey || e.ctrlKey))) return
-	cbTriggerSave(e, delegateTarget)
+	triggerSave(e, delegateTarget)
 })
 
-global.document.on('save', 'form.live-form', async function (e, delegateTarget) {
+async function triggerSave (e:InputEvent, delegateTarget:HTMLElement) {
 	if (e!.target.value == '') return;
 	const pattern = delegateTarget.title
-	let {expression, id, target} = pattern.trim().match(INPUT_PATTERN)!.groups
-	const run = expression.replace(/__+.*?__+/, `{{input}}`)
-	const {value} = e?.target
-	await processPattern(run,target,pattern, {
+	let {expression, id, target} = parsePattern(pattern, PATTERN)
+	const run = expression.replace(/____+/, `{{input}}`)
+	await processPattern(run, target, pattern, {
 		allowImportedLinks: false,
-		vars: {input: (await link(value)) || value}
+		vars: {input: e?.target.value}
 	})
-	e.target!.value = ''
-	setTimeout(_ => document.getElementById(id)?.focus(), 10)
-})
+	if (e.target.type !='radio') e.target!.value = ''
+	setTimeout(_ => {
+		document.querySelector('[title="${pattern}"]')
+	}, 10)
+}
 
-
-
-function createInputEl(fields:Record<string, string>, queries:string[]) {
-	const {type, expression, id, placeholder} = fields
-	const inputEl = createEl(
-		type == 'textarea' ? 'textarea' : 'input', {type}
-	)
-	inputEl.style.setProperty('--widther', expression.match(/_/g).length)
+function createInputEl(fields: Record<string, string>, queries: string[]) {
+	const {type, expression, id, name, target} = fields
+	var inputType = type == 'textarea' ? 'textarea' : 'input'
+	const inputEl = createEl(inputType, {type})
+	inputEl.style.setProperty('--widther', expression.match(/_/g)?.length || 4)
 	inputEl.id = id
-	inputEl.placeholder = placeholder || expression.replace(/__+/, '')
+	inputEl.placeholder = name || target
 	if (queries.length) new InputSuggest(app, inputEl, queries)
 	return inputEl
 }
 
-function createRadioEls(pairs) {
+function createRadioEls(label:string, pairs:Record<string, string>[]) {
 	const fragment = createFragment()
+	if(!pairs.length) return fragment
+	fragment.createEl('label', {text:label+ ": "})
+	const name = Date.now()
 	for (const {text, value} of pairs) {
 		let label = fragment.createEl('label')
-		label.createEl('input', {type: 'radio', value})
+		label.createEl('input', {type: 'radio', attr:{name, value}})
 		label.createSpan({text})
 	}
 	return fragment
@@ -124,8 +104,8 @@ function createHelperButtons() {
 function parseOptions(options: string) {
 	const dv = app.plugins.plugins['dataview']?.api
 	const queryPrefix = dv?.settings.inlineQueryPrefix
-	const queries:string[]= []
-	const opts:string[] = []
+	const queries: string[] = []
+	const opts: string[] = []
 	if (!options) return {opts, queries}
 	for (let opt of options.split(',')) {
 		opt = opt.trim()

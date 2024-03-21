@@ -25,8 +25,7 @@ form.live-form {
 
 	& > input {
 		width: calc(var(--widther) * 3em);
-		border-radius: 0;
-		border: none;
+		line-height: var(--line-height-normal);
 	}
 	& > :where(input):has(+ button) {
 		padding-inline-end: 3em;

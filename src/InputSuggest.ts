@@ -33,7 +33,7 @@ export class InputSuggest extends AbstractInputSuggest<TFile> {
 		// this.textInputEl.trigger("input");
 		this.textInputEl.trigger("select");
 		this.textInputEl.value = '';
-		this.close();
+		// this.close();
 	}
 
 	async getSuggestions(input_str: string) {

@@ -1,6 +1,6 @@
 // @ts-nocheck
 import {normalizePath, TFile, moment, PopoverState} from "obsidian";
-import {objectSet,setPrototype} from "./objects";
+import {objectSet, setPrototype} from "./objects";
 import * as api from './api';
 import {
 	asyncEval, Field,
@@ -233,7 +233,9 @@ async function quickText(text: string, target: Target) {
 		let [indexStart, indexEnd = startPatternIndex] = slice
 		newContent = sliceRemover(content, indexStart, indexEnd)
 	} else {
-		var newContent = content.replace(pattern, (match) => {
+		var escaped = pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+		var eatSpaces = new RegExp(`\`\\s*${escaped}\\s*\``)
+		var newContent = content.replace(eatSpaces, (match) => {
 			if (method == "append") return `${match}${text}`
 			if (method == "prepend") return `${text}${match}`
 			if (method == "replace") return text
@@ -353,7 +355,7 @@ export async function decodeAndRun(expression: string | undefined, opts: decodeA
 			if (!tFile) break imported
 			global.live = api
 			if (tFile.path.endsWith('js')) {
-				result = await importJs(tFile)
+				result = await importJs(tFile).catch(e => (type = 'literal', expression))
 				type = 'imported'
 				return result.default ?? void 0
 			} else if (tFile.path.endsWith('md')) {
@@ -365,12 +367,8 @@ export async function decodeAndRun(expression: string | undefined, opts: decodeA
 		}
 
 		type = 'excuted'
-		result = await executeCode(expression, vars, file)
+		result = await executeCode(expression, vars, file).catch(e => (type = 'literal', expression))
 		return result
-	} catch (e) {
-		// literal string
-		type = 'literal'
-		return expression
 	} finally {
 		delete global.live
 		logDecodeAndRun(expression, expression, type, result)
@@ -403,14 +401,14 @@ export async function saveValue(text: string, target: Target) {
 	}
 }
 
-export async function processPattern(preExpression: string, preTarget: string,pattern:string, opts: decodeAndRunOpts = {}) {
+export async function processPattern(preExpression: string, preTarget: string, pattern: string, opts: decodeAndRunOpts = {}) {
 	const {vars = {}, file} = opts
 
 	let expression = await stringTemplate(preExpression, vars, file)
 	let target = await stringTemplate(preTarget, vars, file)
 	const targetObject = parserTarget(target)
 	const tag = '`'
-	targetObject.pattern = `${tag}${pattern}${tag}`
+	targetObject.pattern = pattern
 	let text = await decodeAndRun(expression.trim(), {
 		priority: targetObject.targetType,
 		...opts

@@ -123,7 +123,9 @@ export function parserTarget(pattern: string = '', defFile: targetFile = ''): Ta
 }
 
 export function parsePattern(pattern: string, regexParser): Record<string, string> | null {
-	var fields = pattern.trim().match(regexParser)?.groups || null
+	var fields = pattern.trim()
+		.toLowerCase()
+		.match(regexParser)?.groups || null
 	return fields
 }
 

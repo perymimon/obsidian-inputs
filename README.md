@@ -1,8 +1,12 @@
 # Obsidian live-form
 
-thid plugin bring you powerfull way to create input and button compontes in the preivew mode that change the real markdown file . (current or other ) 
+thid plugin bring you powerfull way to create input and button compontes in the preivew mode that change the real markdown file . (current or other )
 
-note! the `input` and `button` expertion can change create and delete file, deal with dataview inline-field,frontmatter and header ( maybe lists in the future ) 
+motivation of created this was the lack of stability of other plugin and i was sick from the loading time they take because they writed in some comilet library like savlet
+
+this plugin is full of feature and can replace alot of plugins but take about 40ms imact time on loading (hope it was less)
+
+note! the `input` and `button` expertion can change create and delete file, deal with dataview inline-field,frontmatter and header ( maybe lists in the future )
 
 הפלגין הזה עדיין בשלבים המוקדמים שלו אז צפו לשינויים ועדכונים בזמן שהוא יהיה בשימוש והצורה הבוגרת שלו תתחיל להתגלות
 
@@ -107,8 +111,6 @@ It depend on the contenxt
 `file`: `append` add the value the bottom of the file, `prepend`add the value to the top of the file, `remove` delete the file, `replace` the content of the file with the value, create` create new file event if the curren file exist
 
 `input pattern` `append` add the value after the pattern, `prepend` add the value before the pattern, `replce` replace the pattern with the value, `remove` remove the pattern.
-
-
 
 ## Road Map
 

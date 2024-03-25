@@ -1,6 +1,6 @@
 // @ts-nocheck
 import {MarkdownView, TFile} from "obsidian";
-import {targetFile} from "./api";
+import {getStructure, targetFile} from "./api";
 import {objectGet} from "./objects";
 
 var app = global.app
@@ -10,7 +10,35 @@ var proxyTFileHandler = {
 	}
 }
 
-export function saveContextFile(tFile: TFile, array: Array) {
+export function getFreeFileName(path: targetFile): string {
+	if (path instanceof TFile) path = path.path;
+	path = (path.startsWith('[[') && path.endsWith(']]')) ? path.slice(2, -2) : path
+	const [, name, ext] = path.match(/(.*?)(\.\w*)?$/)
+	let index = 0, pathName;
+	do {
+		pathName = index ? `${name} ${index}` : name
+		pathName +=(ext || '.md')
+		index++
+		var file = app.vault.getFileByPath(pathName)
+	} while (file)
+	return pathName
+}
+
+export async function waitFileIsReady(tFile: TFile) {
+	var time = 10
+	do {
+		await sleep(time)
+		time *= 2
+		var data = getStructure(tFile)
+	} while (data.dirty)
+}
+
+export function markFileAsDirty(tFile: TFile) {
+	var struct = getStructure(tFile)
+	if (struct) struct.dirty = true
+}
+
+export function addToContextList(tFile: TFile, array: Array) {
 	let proxyTfile = new Proxy(tFile, proxyTFileHandler)
 	array.unshift(proxyTfile)
 	array.splice(10, Infinity)
@@ -64,7 +92,7 @@ export async function asyncEval(code: string, fields = {}, api = {}, priority = 
 	const func = new AsyncFunction('fields', 'api', 'debug', `
 		with(fields) with(api){
 		 	if(debug) debugger; 
-	    	return ${code} 
+	    	return (${code}) 
 	    }
 	`)
 
@@ -97,7 +125,7 @@ export function parserTarget(pattern: string = '', defFile: targetFile = ''): Ta
 	//https://regex101.com/r/Z0v3rv/1
 	const eliminateSquareContent = /\[\[(.*)]]/
 	var [leftPattern = '', method] = String(pattern.match(/>.*$/) || '')
-		.split(/>|(append|replace|prepend|create|clear|remove)$/)
+		.split(/>|(append|replace|prepend|create|clear|remove|rename)$/)
 		.filter(Boolean)
 	const fields = leftPattern.trim()
 		.replace(eliminateSquareContent, '$1')
@@ -128,8 +156,6 @@ export function parsePattern(pattern: string, regexParser): Record<string, strin
 		.match(regexParser)?.groups || null
 	return fields
 }
-
-
 
 export type Field = {
 	outerField: string, innerField: string, key: string,

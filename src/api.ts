@@ -5,8 +5,8 @@ import * as api from './api';
 import {
 	asyncEval, Field,
 	getActiveFile,
-	getInlineFields, isFileNotation, log, logDecodeAndRun, parserTarget, saveContextFile,
-	Target
+	getInlineFields, isFileNotation, log, logDecodeAndRun, parserTarget, addToContextList,
+	Target, waitFileIsReady, markFileAsDirty, getFreeFileName
 } from "./internalApi";
 import {manipulateValue, sliceRemover, spliceString, stringTemplate} from "./strings";
 import {Priority} from "./types";
@@ -43,7 +43,9 @@ export type targetFile = TFile | string
 export async function updateFile(path: targetFile, content: string) {
 	let tFile = await getTFile(path);
 	await app.vault.modify(tFile, content)
-	saveContextFile(tFile, lastTouchFiles)
+	markFileAsDirty(tFile)
+	await waitFileIsReady(tFile)
+	addToContextList(tFile, lastTouchFiles)
 }
 
 export function getTFileIfExist(path: string): TFile | null {
@@ -67,19 +69,13 @@ export async function getTFile(path?: targetFile, autoCreate = true): Promise<TF
 }
 
 export async function createTFile(path: targetFile, text: string = '') {
-	if (path instanceof TFile) path = path.path;
-	let index = 0, pathName;
-	do {
-		pathName = index ? `${path} ${index}` : path
-		pathName = pathName.replace(/(\.md)?$/, '.md')
-		index++
-		var file = app.vault.getFileByPath(pathName)
-	} while (file)
+	var pathName = getFreeFileName(path)
 	var folders = path.split('/').slice(0, -1).join('/')
 	await app.vault.createFolder(folders).catch(_ => _)
 	const tFile = await app.vault.create(pathName, String(text))
-	saveContextFile(tFile, lastCreatedFiles)
-	saveContextFile(tFile, lastTouchFiles)
+	await waitFileIsReady(tFile)
+	addToContextList(tFile, lastCreatedFiles)
+	addToContextList(tFile, lastTouchFiles)
 	return tFile
 
 }
@@ -89,6 +85,12 @@ export async function removeFile(path: targetFile) {
 	if (!tFile) return
 	await app.vault.delete(tFile!)
 }
+export async function renameFile(path:targetFile, newPath:targetFile){
+	var tFile = getTFileSync(path)
+	if (!tFile) return
+	newPath = getFreeFileName(newPath)
+	await app.vault.rename(tFile!, newPath)
+}
 
 export async function getTFileContent(tFile: TFile) {
 	return await app.vault.read(tFile)
@@ -96,8 +98,8 @@ export async function getTFileContent(tFile: TFile) {
 
 export function getStructure(path?: string | TFile) {
 	let file = getTFileSync(path)
-	if (!file) return {}
-	return app.metadataCache.getFileCache(file) ?? {}
+	if (!file) return {dirty:true}
+	return app.metadataCache.getFileCache(file) ?? {dirty:true}
 }
 
 export async function importJs(path: TFile | string): Promise<unknown> {
@@ -111,9 +113,9 @@ export async function importJs(path: TFile | string): Promise<unknown> {
 }
 
 export async function executeCode(code: string, vars, contextFile?: string | TFile, priority?: Priority, debug?: boolean) {
-	var fileData = await getFileData(contextFile, priority)
+	var fileData = getFileData(contextFile, priority)
 	var fields = setPrototype(vars, fileData)
-	return asyncEval(code, fields, api, 'api', debug)
+	return await asyncEval(code, fields, api, 'api', debug)
 }
 
 /**
@@ -126,12 +128,12 @@ export function getFileData(file?: targetFile, priority: Priority = 'field') {
 	for (let i in lastCreatedFiles) context[`$c${i}`] = lastCreatedFiles[i]
 	let tFile = getTFileSync(file)
 	if (!tFile) return context
-	const {frontmatter = {}, inlineFields = {}} = getStructure(tFile)
+	const {frontmatter = {}, inlineFields = {}, dirty} = getStructure(tFile)
+	context.dirty = dirty
 	if (priority == 'field') return setPrototype(inlineFields, frontmatter, context)
 	if (priority == 'yaml') return setPrototype(frontmatter, inlineFields, context)
 	return setPrototype(inlineFields, frontmatter, context)
 }
-
 // https://github.com/SilentVoid13/Templater/blob/26c35559bd63765f6078d43f6febd53435530741/src/core/Templater.ts#L110
 /**
  *  create_running_config(
@@ -264,6 +266,8 @@ async function quickFile(text: string, target: Target, create = false) {
 		return await createTFile(file, text)
 	if (method == 'remove')
 		return await removeFile(file)
+	if (method == 'rename')
+		return await renameFile(file, text)
 
 	const {frontmatterPosition} = getStructure(file);
 	var content = await app.vault.read(tFile)
@@ -367,7 +371,7 @@ export async function decodeAndRun(expression: string | undefined, opts: decodeA
 		}
 
 		type = 'excuted'
-		result = await executeCode(expression, vars, file).catch(e => (type = 'literal', expression))
+		result = await executeCode(expression, vars, file,void 0,true).catch(e => (type = 'literal', expression))
 		return result
 	} finally {
 		delete global.live
@@ -407,7 +411,6 @@ export async function processPattern(preExpression: string, preTarget: string, p
 	let expression = await stringTemplate(preExpression, vars, file)
 	let target = await stringTemplate(preTarget, vars, file)
 	const targetObject = parserTarget(target)
-	const tag = '`'
 	targetObject.pattern = pattern
 	let text = await decodeAndRun(expression.trim(), {
 		priority: targetObject.targetType,

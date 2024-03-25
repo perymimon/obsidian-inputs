@@ -11,15 +11,25 @@ import {getTFileContent} from "./api";
 // https://regex101.com/r/FhEQ2Z/1
 // https://regex101.com/r/jC824J/1
 export const PATTERN = new RegExp([
-		/(?:`|^)/,
-		/(?<id>-\w+-)?\s*/,
-		/(?<type>[\w-]*?)\:/,
-		/(?<name>.*)\|/,
-		/\s*(?<expression>.+?)/,
-		/(?:,(?<options>.+?))?/,
-		/\s*(?<target>>.*?)?/,
-		/\s*(?:$|`)/
-	].map(r => r.source).join(''), '')
+	/(?:`|^)/,
+	/(?<id>-\w+-)?\s*/,
+	/(?:(?<type>[\w-]*?)\:)?/,
+	/(?:(?<name>.*)\|)?/,
+	/\s*(?<expression>.+?)/,
+	/(?:,(?<options>.+?))?/,
+	/\s*(?<target>>.*?)?/,
+	/\s*(?:$|`)/
+].map(r => r.source).join(''), 'i')
+
+// update cache with inline-field meta data
+function updateStrucure(file: TFile, content: string, cache: any) {
+	const inlineFields: any[] = getInlineFields(content)
+	const fieldsObject: object = inlineFields.reduce(
+		(obj, line) => (obj[line.key] = line.value, obj), {}
+	)
+	cache.inlineFields = fieldsObject
+	cache.dirty = false
+}
 
 export let app: App
 export default class InputsPlugin extends Plugin {
@@ -43,48 +53,22 @@ export default class InputsPlugin extends Plugin {
 		// })
 
 		this.registerMarkdownPostProcessor(
-			(rootEl:HTMLElement, ctx:MarkdownPostProcessorContext) => {
+			(rootEl: HTMLElement, ctx: MarkdownPostProcessorContext) => {
 				const codesEl = rootEl.findAll('code')
 				for (let codeEl of codesEl) {
-					const pattern = codeEl.innerText
-					const fields = parsePattern(pattern, PATTERN)
-					if (!fields) continue;
-					const {type} = fields
-					var element :HTMLElement
-					if(type == 'button') {
-						element = createButton(pattern, fields)
-					}else{
-						element = createForm(pattern, fields)
-					}
-					// element.title = pattern
+					var element = this.postProcess(codeEl.innerText)
+					if(!element) continue
 					codeEl.replaceWith(element)
 				}
 				// replaceCode2Update(root, ctx, this.settings, this.app)
 			}
 		)
-		// this.registerMarkdownCodeBlockProcessor("inputs", (source, el, ctx) => {
-		// 	const rows = source.split("\n").filter((row) => row.length > 0);
-		// 	var element :HTMLElement
-		//
-		// 	for (let pattern of rows ){
-		// 		const fields = parsePattern(pattern, PATTERN)
-		// 		if (!fields) continue;
-		// 		const {type} = fields
-		// 		if(type == 'button') {
-		// 			element = createButton(pattern, fields)
-		// 		}else{
-		// 			element = createForm(pattern, fields)
-		// 		}
-		// 	}
-		//
-		// });
-		function updateStrucure(file:TFile, content:string, cache:any) {
-			const inlineFields: any[] = getInlineFields(content)
-			const fieldsObject: object = inlineFields.reduce(
-				(obj, line) => (obj[line.key] = line.value, obj), {}
-			)
-			cache.inlineFields = fieldsObject
-		}
+
+		this.registerMarkdownCodeBlockProcessor("inputs", (source, el, ctx) => {
+			const element = this.postProcess(source)
+			if(!element) return
+			el.replaceWith(element)
+		});
 
 		setTimeout(async () => {
 			const mdFiles = app.vault.getMarkdownFiles()
@@ -98,15 +82,25 @@ export default class InputsPlugin extends Plugin {
 		app.metadataCache.on("changed", updateStrucure)
 
 		// await this.loadSettings();
-
 		// This adds a settings tab so the user can configure various aspects of the plugin
 		// this.addSettingTab(new LiveFormSettingTab(this.app, this));
-
 		// this.app.workspace.on('editor-change',(editor) => console.log('editor-change', editor) )
 
-
 	}
-
+	postProcess(source:string){
+		if(!source.trim()) return null
+		const patterns = source.split("\n").filter((row) => row.trim().length > 0);
+		const pattern = patterns[0]
+		const fields = parsePattern(pattern, PATTERN)
+		if (!(fields?.type && fields?.name)) return null;
+		var element: HTMLElement
+		if (fields?.type == 'button') {
+			element = createButton(source, fields)
+		} else {
+			element = createForm(source, fields)
+		}
+		return element
+	}
 	onunload() {
 
 	}

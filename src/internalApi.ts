@@ -2,6 +2,7 @@
 import {MarkdownView, TFile} from "obsidian";
 import {getStructure, targetFile} from "./api";
 import {objectGet} from "./objects";
+import {Pattern} from "./main";
 
 var app = global.app
 var proxyTFileHandler = {
@@ -150,7 +151,7 @@ export function parserTarget(pattern: string = '', defFile: targetFile = ''): Ta
 	}
 }
 
-export function parsePattern(pattern: string, regexParser): Record<string, string> | null {
+export function parsePattern(pattern: string, regexParser): Pattern | null {
 	var fields = pattern.trim()
 		.toLowerCase()
 		.match(regexParser)?.groups || null

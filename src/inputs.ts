@@ -1,4 +1,4 @@
-// @ts-nocheck1
+// @ts-nocheck
 import {App, Editor, MarkdownPostProcessorContext, TFile} from "obsidian";
 import {MyPluginSettings} from "../draft/settings";
 import {InputSuggest} from "./InputSuggest";
@@ -47,13 +47,15 @@ global.document.on('keydown', 'form.live-form', (e:InputEvent, delegateTarget: H
 
 async function triggerSave (e:InputEvent, delegateTarget:HTMLElement) {
 	if (e!.target.value == '') return;
-	const pattern = delegateTarget.title
-	let {expression, id, target} = parsePattern(pattern, PATTERN)
-	const run = expression.replace(/____+/, `{{input}}`)
-	await processPattern(run, target, pattern, {
-		allowImportedLinks: false,
-		vars: {input: e?.target.value}
-	})
+	const patterns = delegateTarget.title.trim().split('\n')
+	for (let pattern of patterns) {
+		let {expression, id, target} = parsePattern(pattern, PATTERN)
+		expression = expression.replace(/____+/, `{{input}}`)
+		await processPattern(expression, target, pattern, {
+			allowImportedLinks: false,
+			vars: {input: e?.target.value}
+		})
+	}
 	if (e.target.type !='radio') e.target!.value = ''
 	setTimeout(_ => {
 		document.querySelector('[title="${pattern}"]')

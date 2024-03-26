@@ -20,7 +20,14 @@ export const PATTERN = new RegExp([
 	/\s*(?<target>>.*?)?/,
 	/\s*(?:$|`)/
 ].map(r => r.source).join(''), 'i')
-
+export type Pattern ={
+	id:string,
+	type:string,
+	name:string,
+	expression:string,
+	options:string,
+	target:string
+}
 // update cache with inline-field meta data
 function updateStrucure(file: TFile, content: string, cache: any) {
 	const inlineFields: any[] = getInlineFields(content)

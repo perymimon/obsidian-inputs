@@ -115,7 +115,7 @@ export async function replaceAsync(string: string, regexp: RegExp, replacer: rep
 
 export type Target = {
 	file: targetFile,
-	targetType: 'yaml' | 'field' | 'header' | 'text' | 'file' | 'pattern',
+	targetType: 'yaml' | 'field' | 'header' | 'file' | 'pattern',
 	path: string,
 	method: 'append' | 'prepend' | 'replace' | 'create' | 'remove' | 'clear'
 	pattern: string

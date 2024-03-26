@@ -124,8 +124,8 @@ export async function executeCode(code: string, vars, contextFile?: string | TFi
  */
 export function getFileData(file?: targetFile, priority: Priority = 'field') {
 	const context: any = {}
-	for (let i in lastTouchFiles) context[`$${i}`] = lastTouchFiles[i]
-	for (let i in lastCreatedFiles) context[`$c${i}`] = lastCreatedFiles[i]
+	for (let i in lastTouchFiles) context[`page${i}`] = lastTouchFiles[i]
+	for (let i in lastCreatedFiles) context[`new${i}`] = lastCreatedFiles[i]
 	let tFile = getTFileSync(file)
 	if (!tFile) return context
 	const {frontmatter = {}, inlineFields = {}, dirty} = getStructure(tFile)
@@ -359,7 +359,7 @@ export async function decodeAndRun(expression: string | undefined, opts: decodeA
 			if (!tFile) break imported
 			global.live = api
 			if (tFile.path.endsWith('js')) {
-				result = await importJs(tFile).catch(e => (type = 'literal', expression))
+				result = await importJs(tFile)
 				type = 'imported'
 				return result.default ?? void 0
 			} else if (tFile.path.endsWith('md')) {
@@ -371,7 +371,8 @@ export async function decodeAndRun(expression: string | undefined, opts: decodeA
 		}
 
 		type = 'excuted'
-		result = await executeCode(expression, vars, file,void 0,true).catch(e => (type = 'literal', expression))
+		result = await executeCode(expression, vars, file,void 0,true)
+			.catch(e => (type = 'literal', expression))
 		return result
 	} finally {
 		delete global.live

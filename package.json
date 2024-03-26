@@ -8,7 +8,9 @@
 		"build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production",
 		"version": "node version-bump.mjs && git add manifest.json versions.json",
 		"bump-patch": "npm version patch && node scripts/update-manifest.js",
-		"bump-minor ": "npm version patch"
+		"bump-minor ": "npm version patch",
+		"doc-dev": "mdbook serve docs --open",
+		"doc-build": "mdbook build docs"
 	},
 	"keywords": [],
 	"author": "Pery mimon",

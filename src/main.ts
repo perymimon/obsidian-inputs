@@ -21,14 +21,15 @@ export const PATTERN = new RegExp([
 	/\s*(?<target>>.*?)?/,
 	/\s*(?:$|`)/
 ].map(r => r.source).join(''), 'i')
-export type Pattern ={
-	id:string,
-	type:string,
-	name:string,
-	expression:string,
-	options:string,
-	target:string
+export type Pattern = {
+	id: string,
+	type: string,
+	name: string,
+	expression: string,
+	options: string,
+	target: string
 }
+
 // update cache with inline-field meta data
 function updateStrucure(file: TFile, content: string, cache: any) {
 	const inlineFields: any[] = getInlineFields(content)
@@ -65,7 +66,7 @@ export default class InputsPlugin extends Plugin {
 				const codesEl = rootEl.findAll('code')
 				for (let codeEl of codesEl) {
 					var element = this.postProcess(codeEl.innerText)
-					if(!element) continue
+					if (!element) continue
 					codeEl.replaceWith(element)
 				}
 				// replaceCode2Update(root, ctx, this.settings, this.app)
@@ -74,7 +75,7 @@ export default class InputsPlugin extends Plugin {
 
 		this.registerMarkdownCodeBlockProcessor("inputs", (source, el, ctx) => {
 			const element = this.postProcess(source)
-			if(!element) return
+			if (!element) return
 			el.replaceWith(element)
 		});
 
@@ -95,12 +96,13 @@ export default class InputsPlugin extends Plugin {
 		// this.app.workspace.on('editor-change',(editor) => console.log('editor-change', editor) )
 
 	}
-	postProcess(source:string){
-		if(!source.trim()) return null
+
+	postProcess(source: string) {
+		if (!source.trim()) return null
 		const patterns = source.split("\n").filter((row) => row.trim().length > 0);
 		const pattern = patterns[0]
 		const fields = parsePattern(pattern, PATTERN)
-		if (!(fields?.type && fields?.name)) return null;
+		if (!(fields?.type && 'name' in (fields ?? {}))) return null;
 		var element: HTMLElement
 		if (fields?.type == 'button') {
 			element = createButton(source, fields)
@@ -109,6 +111,7 @@ export default class InputsPlugin extends Plugin {
 		}
 		return element
 	}
+
 	onunload() {
 
 	}

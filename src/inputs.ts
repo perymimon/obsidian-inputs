@@ -77,7 +77,7 @@ function createInputEl(fields: Record<string, string>, queries: string[]) {
 function createRadioEls(label:string, pairs:Record<string, string>[]) {
 	const fragment = createFragment()
 	if(!pairs.length) return fragment
-	if(label) fragment.createEl('label', {text:label+ ": "})
+	if(label.trim()) fragment.createEl('label', {text:label+ ": "})
 	const name = Date.now()
 	for (const {text, value} of pairs) {
 		let label = fragment.createEl('label')

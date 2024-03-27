@@ -136,7 +136,7 @@ export type Field = {
 	valueOffset: [number, number]
 }
 
-export function getInlineFields(content: string, key: string): Field[] {
+export function getInlineFields(content: string, key?: string): Field[] {
 	// const regex = /\[\s*(.*?)\s*::(.*?)]|\b(.*?)::(.*?)$|\(\s*(.*?)\s*::(.*?)\)/gm
 	var def = '.*?', freeDef = '[^\\s]+'
 	const regex = new RegExp(`\\[(\\s*${key || def}\\s*)::(.*?)\\]|\\((\\s*${key || def}\\s*)::(.*?)\\)|(${key ||freeDef})::(.*?)$`, 'gm')

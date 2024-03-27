@@ -10,12 +10,13 @@ import {getTFileContent} from "./api";
 
 // https://regex101.com/r/FhEQ2Z/1
 // https://regex101.com/r/jC824J/1
+// https://regex101.com/r/GiYmUD/1
 export const PATTERN = new RegExp([
 	/(?:`|^)/,
 	/(?<id>-\w+-)?\s*/,
 	/(?:(?<type>[\w-]*?)\:)?/,
-	/(?:(?<name>.*)\|)?/,
-	/\s*(?<expression>.+?)/,
+	/(?:(?<name>.*?)\|)?/,
+	/\s*(?<expression>.*?)/,
 	/(?:,(?<options>.+?))?/,
 	/\s*(?<target>>.*?)?/,
 	/\s*(?:$|`)/

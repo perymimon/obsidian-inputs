@@ -51,6 +51,7 @@ async function triggerSave (e:InputEvent, delegateTarget:HTMLElement) {
 	for (let pattern of patterns) {
 		let {expression, id, target} = parsePattern(pattern, PATTERN)
 		expression = expression.replace(/____+/, `{{input}}`)
+		if(!expression.trim()) expression = '{{input}}'
 		await processPattern(expression, target, pattern, {
 			allowImportedLinks: false,
 			vars: {input: e?.target.value}
@@ -76,7 +77,7 @@ function createInputEl(fields: Record<string, string>, queries: string[]) {
 function createRadioEls(label:string, pairs:Record<string, string>[]) {
 	const fragment = createFragment()
 	if(!pairs.length) return fragment
-	fragment.createEl('label', {text:label+ ": "})
+	if(label) fragment.createEl('label', {text:label+ ": "})
 	const name = Date.now()
 	for (const {text, value} of pairs) {
 		let label = fragment.createEl('label')

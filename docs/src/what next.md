@@ -1,5 +1,10 @@
 - [x] first class support wiki notation for mansion file
-- [ ] placeholder in stringTemplate that not have varibles rise popup window with user input modal
+- [ ] placeholder in string Template that not have variables rise popup window with user input modal
+- [ ] in input if expertion is empty replace it with `@@input`
+- [ ] support for multi componets in the same input block
+	- [ ] that components Short connect to each other with the shared variable
+- [ ] Support for memory target
+- [ ] add new placeholder syntax with @@ or something not paired like `{{}}`
 - [ ] improve reloading or disable of the plugin . remove global callbacks
 - [ ] Inline field auto update the closes one when there is multi field with same name
 - [ ] `import` must be before try to import a file in `decodeAndRun`
@@ -15,4 +20,5 @@
 	- [ ] . `/path` is mean path be absolute.
 	- [ ] `../path` get one folder back .
 	- [ ] `./path` do not do anything
-- [ ] 
+- [ ] build screen to show data of page (and context file)
+	- [ ] add to that page all api function

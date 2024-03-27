@@ -8,17 +8,17 @@ import {objectGet, setPrototype} from "./objects";
 type Dictionary = { [any: string]: any }
 declare const moment: (...args: any[]) => any;
 
-export async function stringTemplate(template: string, customfields: Dictionary = {}, file?: string | TFile, priority?: Priority):Promise<string> {
+export async function stringTemplate(template: string, customfields: Dictionary = {}, file?: string | TFile, priority?: Priority): Promise<string> {
 	if (!String.isString(template)) return template;
 	var fileData = await getFileData(file, priority)
-	var fields = setPrototype(customfields,fileData)
-	return await replaceAsync(template, /\{\{(?<key>[^}]+)}}/g, async (_, expr) => {
-		let [exec, arg] = expr.split(':')
+	var fields = setPrototype(customfields, fileData)
+	return await replaceAsync(template, /\{\{([^}]+)}}|@@(.*?)(?:\s|`|$)/g, async (_, expr0, expr1) => {
+		let [exec, arg] = (expr0 || expr1).split(':')
 		var replacement =
-			await objectGet(fields,exec)
+			await objectGet(fields, exec)
 			?? modifications[exec]
 			?? await asyncEval(exec, fields, modifications, void 0, true)
-			.catch(e => `<error>${String(e)}</error>`)
+				.catch(e => `<error>${String(e)}</error>`)
 
 		return typeof replacement == 'function' ? replacement(arg) : replacement;
 	})

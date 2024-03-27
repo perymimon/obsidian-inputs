@@ -66,6 +66,7 @@ it build with the sub pattern that look like that
 		- for `header` it repace the whol header content with new value
 		- for `file` It replaced the whole file with the new value
 		- for `pattern` It replaced the whole input pattern with the new value so it actually deleted it
+			- caution: if there is a two or more pattern that look the same it replaced the first one.  To avoid that use the ID section .etc `-identify- text:activity| {{input}}> #Activity`
 	- **prepend**
 		- same as `append` Just add the new value to the start of everything
 	- **create**

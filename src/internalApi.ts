@@ -136,15 +136,15 @@ export type Field = {
 	valueOffset: [number, number]
 }
 
-export function getInlineFields(content: string, key: string = '.*?'): Field[] {
+export function getInlineFields(content: string, key: string): Field[] {
 	// const regex = /\[\s*(.*?)\s*::(.*?)]|\b(.*?)::(.*?)$|\(\s*(.*?)\s*::(.*?)\)/gm
-	const regex = new RegExp(`\\[(\\s*${key}\\s*)::(.*?)\\]|\\((\\s*${key}\\s*)::(.*?)\\)|\\b(${key})::(.*?)$`, 'gm')
+	var def = '.*?', freeDef = '[^\\s]+'
+	const regex = new RegExp(`\\[(\\s*${key || def}\\s*)::(.*?)\\]|\\((\\s*${key || def}\\s*)::(.*?)\\)|(${key ||freeDef})::(.*?)$`, 'gm')
 	var cleanContent = content
-		.replace(/`[^`]+`/g, m => '_'.repeat(m.length)) // remove inline code
+		.replace(/`+[^`]+`+/g, m => '_'.repeat(m.length)) // remove inline code
 		.replace(/\[\[.*?]]/g, m => '_'.repeat(m.length)) // remove wiki links
 
 	const fields = [];
-
 	let match;
 	while ((match = regex.exec(cleanContent)) !== null) {
 		// note to myself: don't take values from clean content

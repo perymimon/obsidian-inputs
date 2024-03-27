@@ -13,9 +13,21 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Introduction.md",
+                "file": "what next.md",
                 "mode": "source",
                 "source": true
+              }
+            }
+          },
+          {
+            "id": "56566bf01fd9cd11",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "SUMMARY.md",
+                "mode": "source",
+                "source": false
               }
             }
           }
@@ -31,7 +43,7 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Syntax.md",
+                "file": "Introduction.md",
                 "mode": "source",
                 "source": false
               }
@@ -127,7 +139,7 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "Syntax.md",
+                "file": "what next.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -144,7 +156,7 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "Syntax.md",
+                "file": "what next.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               }
@@ -167,7 +179,7 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "Syntax.md"
+                "file": "what next.md"
               }
             }
           }
@@ -188,12 +200,13 @@
       "command-palette:Open command palette": false
     }
   },
-  "active": "37727ab9c58af2b8",
+  "active": "551a50d1dc191f45",
   "lastOpenFiles": [
-    "Introduction.md",
     "Syntax.md",
-    "Global API and Context.md",
+    "what next.md",
+    "Introduction.md",
     "SUMMARY.md",
+    "Global API and Context.md",
     "Settings.md"
   ]
 }

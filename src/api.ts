@@ -6,10 +6,11 @@ import {
 	asyncEval, Field,
 	getActiveFile,
 	getInlineFields, isFileNotation, log, logDecodeAndRun, parserTarget, addToContextList,
-	Target, waitFileIsReady, markFileAsDirty, getFreeFileName
+	Target
 } from "./internalApi";
 import {manipulateValue, sliceRemover, spliceString, stringTemplate} from "./strings";
 import {Priority} from "./types";
+import {getFreeFileName, joinPaths, waitFileIsReady, markFileAsDirty} from "./path";
 // declare const moment: (...args: any[]) => any;
 // context
 const lastTouchFiles: TFile[] = []
@@ -77,19 +78,21 @@ export async function createTFile(path: targetFile, text: string = '') {
 	addToContextList(tFile, lastCreatedFiles)
 	addToContextList(tFile, lastTouchFiles)
 	return tFile
-
 }
 
 export async function removeFile(path: targetFile) {
 	var tFile = getTFileSync(path)
 	if (!tFile) return
-	await app.vault.delete(tFile!)
+	await app.vault.trash(tFile!, false)
 }
-export async function renameFile(path:targetFile, newPath:targetFile){
-	var tFile = getTFileSync(path)
+
+export async function renameFile(file: targetFile, newPath: targetFile) {
+	var tFile = getTFileSync(file)
 	if (!tFile) return
-	newPath = getFreeFileName(newPath)
+	newPath = getFreeFileName(newPath, tFile)
+	var originalPath = tFile.path
 	await app.vault.rename(tFile!, newPath)
+	log('renameFile', `"${originalPath}" rename to "${newPath}"`)
 }
 
 export async function getTFileContent(tFile: TFile) {
@@ -98,8 +101,8 @@ export async function getTFileContent(tFile: TFile) {
 
 export function getStructure(path?: string | TFile) {
 	let file = getTFileSync(path)
-	if (!file) return {dirty:true}
-	return app.metadataCache.getFileCache(file) ?? {dirty:true}
+	if (!file) return {dirty: true}
+	return app.metadataCache.getFileCache(file) ?? {dirty: true}
 }
 
 export async function importJs(path: TFile | string): Promise<unknown> {
@@ -134,6 +137,7 @@ export function getFileData(file?: targetFile, priority: Priority = 'field') {
 	if (priority == 'yaml') return setPrototype(frontmatter, inlineFields, context)
 	return setPrototype(inlineFields, frontmatter, context)
 }
+
 // https://github.com/SilentVoid13/Templater/blob/26c35559bd63765f6078d43f6febd53435530741/src/core/Templater.ts#L110
 /**
  *  create_running_config(
@@ -255,21 +259,24 @@ async function quickText(text: string, target: Target) {
  *
  * @param text
  * @param target
- * @param create create if not exist
+ * @param createIfNotExist create if not exist
  */
-async function quickFile(text: string, target: Target, create = false) {
+async function quickFile(text: string, target: Target, createIfNotExist = false) {
 	var {file, method = 'append',} = target
-	var tFile = await getTFile(file, false) as TFile
-	if (!tFile && create) method = 'create'
+	var tFile = getTFileSync(file) as TFile
+	if (method == 'rename') {
+		if (tFile) return await renameFile(tFile, text)
+		log('quickFile', `file "${file}" is not exist for rename`)
+		return null
+	}
+	if (!tFile)
+		if (createIfNotExist) method = 'create'
+		else return null
 
-	if (method == 'create')
-		return await createTFile(file, text)
-	if (method == 'remove')
-		return await removeFile(file)
-	if (method == 'rename')
-		return await renameFile(file, text)
+	if (method == 'create') return await createTFile(file, text)
+	if (method == 'remove') return await removeFile(tFile)
 
-	const {frontmatterPosition} = getStructure(file);
+	const {frontmatterPosition} = getStructure(tFile);
 	var content = await app.vault.read(tFile)
 	var offset = (frontmatterPosition?.end.offset || -1) + 1
 	let lines = content.slice(offset).split("\n");
@@ -355,7 +362,7 @@ export async function decodeAndRun(expression: string | undefined, opts: decodeA
 		if (literalExpression) throw 'ask for literal expression string'
 		imported: if (allowImportedLinks) {
 			if (!isFileNotation(expression)) break imported
-			const tFile = getTFileSync(expression)
+			var tFile = getTFileSync(expression)
 			if (!tFile) break imported
 			global.live = api
 			if (tFile.path.endsWith('js')) {
@@ -370,13 +377,19 @@ export async function decodeAndRun(expression: string | undefined, opts: decodeA
 			}
 		}
 
-		type = 'excuted'
-		result = await executeCode(expression, vars, file,void 0,true)
+		type = 'executed'
+		result = await executeCode(expression, vars, file, void 0, false)
 			.catch(e => (type = 'literal', expression))
 		return result
 	} finally {
 		delete global.live
-		logDecodeAndRun(expression, expression, type, result)
+		var strings = [`evaluate "${expression}"`]
+		if (type == 'imported') strings.push(` and import "${tFile.path}"`)
+		if (type == 'templater') strings.push(` and templater "${tFile.path}" content`)
+		if (type == 'executed') strings.push(` and return ${result} `)
+		if (type == 'literal') strings.push(` and return it as literal text`)
+
+		log('decodeAndRun', strings.join(''), result)
 	}
 }
 

@@ -1,0 +1,18 @@
+- [x] first class support wiki notation for mansion file
+- [ ] placeholder in stringTemplate that not have varibles rise popup window with user input modal
+- [ ] improve reloading or disable of the plugin . remove global callbacks
+- [ ] Inline field auto update the closes one when there is multi field with same name
+- [ ] `import` must be before try to import a file in `decodeAndRun`
+- [ ] syntax highlight Input Notation
+- [x] implement rename for file
+- [ ] implement rename for header
+- [ ] implement rename for inline Field
+- [ ] implement rename for frontmatter
+- [ ] implement multi Input Notation in-one code Input block
+- [ ] add basic documentation for API functions
+- [ ] share core function also in the scope of file or eval-expertion
+- [ ] fix: file rename value are relative to target file
+	- [ ] . `/path` is mean path be absolute.
+	- [ ] `../path` get one folder back .
+	- [ ] `./path` do not do anything
+- [ ] 

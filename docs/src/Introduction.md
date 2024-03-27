@@ -15,12 +15,12 @@ This plugin is still in its early stages, so expect changes and updates as it ev
 - Data changes within a markdown file, so it a futer proof to read the content on any other markdown reader.
 - The plugin should be easy to use and understand.
 - The syntax is designed to be straightforward, and easy to write and read
-  - for example: avoiding bidirectional closing parts like parentheses that make you play around with your keyboard.
+  - for example: avoiding bidirectional closing parts like parentheses that make you play around with your keyboard. and And it's nightmare with the multi language keyboard
 - No external libraries are used at this stage, keeping the average load time at around 40ms.
 
 # Capabilities of the Plugin
 
-for now the plugin can support creating `Text Input` with autocomplate `Radio Inputs` and `Button` components in the preview mode.
+for now the plugin can support creating `Text Input` `textarea` with autocomplate `Radio Inputs` and `Button` components in the preview mode.
 the plugin can interact with the context of:
 - File (create, modify content, remove, rename)
 - Header in a file (create, modify, remove, rename)
@@ -40,7 +40,7 @@ Every notation build with those parts:
 
 `<"-id-"?>`: Optional identifier for the input or button element. Helps recognize the element for focus after content refresh or for pattern replacement.
 
-`<"type:">`: Specifies the type of the input element. can be, "text" or "button". It's followed by a colon :.
+`<"type:">`: Specifies the type of the input element. can be, `text`,`textarea` or `button`. It's followed by a colon :.
 
 `<"name|">`: Label or placeholder for the input element. It indicates the purpose of the input field. It's followed by a pipe |.
 

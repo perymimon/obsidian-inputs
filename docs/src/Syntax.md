@@ -79,7 +79,14 @@ it build with the sub pattern that look like that
 	    - For `inline field` and `yaml`, it removes the current value or content entirely.
 	    - For `pattern`, it removes the entire input pattern.
 	- **rename**
-		- For `file`, new value become the new name of target file.
+		- For `file`, new value become the new `path` of target file. 
+			-  if `file` not exist nothing happen
+			- If `path` is exist it generate a new `path` by incrementing index ex. `file 0`, `file 1`, etc
+			- new `path` is coenacted to exist path of the target file
+			- but is legit to be started the `path` with:
+				-  `\` for make the path start from root valut folder
+				- `..` go one folder back relative target file
+				- `.` stay in the same place of target file. ( default ) 
 		-  For other targets such as `inline field`, `yaml`, or `header`, the `rename` method is not applicable yet
 
 

@@ -1,6 +1,6 @@
 // @ts-nocheck
-import {MarkdownView, TFile} from "obsidian";
-import {getStructure, targetFile} from "./api";
+import {MarkdownView, TFile, Notice} from "obsidian";
+import {targetFile} from "./api";
 import {objectGet} from "./objects";
 import {Pattern} from "./main";
 
@@ -9,34 +9,6 @@ var proxyTFileHandler = {
 	get(target, prop, receiver) {
 		return Reflect.get(target, prop) ?? objectGet(target, prop)
 	}
-}
-
-export function getFreeFileName(path: targetFile): string {
-	if (path instanceof TFile) path = path.path;
-	path = (path.startsWith('[[') && path.endsWith(']]')) ? path.slice(2, -2) : path
-	const [, name, ext] = path.match(/(.*?)(\.\w*)?$/)
-	let index = 0, pathName;
-	do {
-		pathName = index ? `${name} ${index}` : name
-		pathName +=(ext || '.md')
-		index++
-		var file = app.vault.getFileByPath(pathName)
-	} while (file)
-	return pathName
-}
-
-export async function waitFileIsReady(tFile: TFile) {
-	var time = 10
-	do {
-		await sleep(time)
-		time *= 2
-		var data = getStructure(tFile)
-	} while (data.dirty)
-}
-
-export function markFileAsDirty(tFile: TFile) {
-	var struct = getStructure(tFile)
-	if (struct) struct.dirty = true
 }
 
 export function addToContextList(tFile: TFile, array: Array) {
@@ -68,7 +40,6 @@ export function identifyAnnotation(pattern: RegExp, fileContent: string, textLin
 		return genNotation(fields, maxId)
 	})
 }
-
 
 export async function refresh() {
 	let focusElement = document.activeElement;
@@ -153,7 +124,6 @@ export function parserTarget(pattern: string = '', defFile: targetFile = ''): Ta
 
 export function parsePattern(pattern: string, regexParser): Pattern | null {
 	var fields = pattern.trim()
-		.toLowerCase()
 		.match(regexParser)?.groups || null
 	return fields
 }
@@ -201,23 +171,10 @@ export function getInlineFields(content: string, key: string = '.*?'): Field[] {
 	return fields;
 }
 
-export function log(fnName: string, varName: string, ...varValue: any[]) {
-	var title = `${fnName} ${varName}:`;
-	console.log(title, ...varValue)
-	new Notice(title)
-}
-
-export function logDecodeAndRun(preExpression: string, expression: string, type: string, result: any) {
-	var strings = []
-	if (preExpression != expression)
-		strings.push(`template "${preExpression}" converted to "${expression}"`)
-	if (type == 'imported') strings.push(` and import`)
-	if (type == 'templater') strings.push(` and templater`)
-	if (type == 'excuted') strings.push(` and executed to `)
-	if (type == 'literal') strings.push(` and return as literal text`)
-
-	log('decodeAndRun', strings.join(''), result)
-
+export function log(funcName: string, message: string, ...exteraData: any[]) {
+	var text = `${message} \n( ${funcName} )`;
+	console.log(text, ...exteraData)
+	new Notice(text, 10_000)
 }
 
 export function isFileNotation(path: string) {

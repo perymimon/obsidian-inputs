@@ -101,7 +101,7 @@ export function parserTarget(pattern: string = '', defFile: targetFile = ''): Ta
 		.filter(Boolean)
 	const fields = leftPattern.trim()
 		.replace(eliminateSquareContent, '$1')
-		.match(/([^:#?*<>"]+?)?(?:(::|:|#)([\w -]+?))?$/) || []
+		.match(/(^[^:#?*<>"]+?)?(?:(::|:|#)(.+?))?$/) || []
 
 	var [, file, targetType = '', path = ''] = fields as TargetArray
 	path = path.trim()

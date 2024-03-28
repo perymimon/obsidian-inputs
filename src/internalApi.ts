@@ -1,10 +1,10 @@
-// @ts-nocheck
+// @ts-nocheck1
 import {MarkdownView, TFile, Notice} from "obsidian";
 import {targetFile} from "./api";
 import {objectGet} from "./objects";
 import {Pattern} from "./main";
 
-var app = global.app
+var app = globalThis.app
 var proxyTFileHandler = {
 	get(target, prop, receiver) {
 		return Reflect.get(target, prop) ?? objectGet(target, prop)

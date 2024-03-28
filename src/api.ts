@@ -1,5 +1,5 @@
 // @ts-nocheck
-import {normalizePath, TFile, moment, PopoverState} from "obsidian";
+import {TFile, moment} from "obsidian";
 import {objectSet, setPrototype} from "./objects";
 import * as api from './api';
 import {
@@ -17,7 +17,7 @@ const lastTouchFiles: TFile[] = []
 const lastCreatedFiles: TFile[] = []
 
 
-var app = global.app
+var app = globalThis.app
 
 export function link(path: TFile | string): string {
 	var file = getTFileIfExist(path?.path || path)
@@ -364,7 +364,7 @@ export async function decodeAndRun(expression: string | undefined, opts: decodeA
 			if (!isFileNotation(expression)) break imported
 			var tFile = getTFileSync(expression)
 			if (!tFile) break imported
-			global.live = api
+			globalThis.live = api
 			if (tFile.path.endsWith('js')) {
 				result = await importJs(tFile)
 				type = 'imported'
@@ -382,7 +382,7 @@ export async function decodeAndRun(expression: string | undefined, opts: decodeA
 			.catch(e => (type = 'literal', expression))
 		return result
 	} finally {
-		delete global.live
+		delete globalThis.live
 		var strings = [`evaluate "${expression}"`]
 		if (type == 'imported') strings.push(` and import "${tFile.path}"`)
 		if (type == 'templater') strings.push(` and templater "${tFile.path}" content`)
@@ -403,12 +403,6 @@ export async function saveValue(text: string, target: Target) {
 			return await setInlineField(text, path, method, file)
 		case 'yaml':
 			return await setFrontmatter(text, path, method, file)
-		case 'text':
-			if (!method) {
-				console.log('save', text, target)
-				break;
-			}
-			break
 		case 'header':
 			return await quickHeader(text, target)
 		case 'file':
@@ -431,4 +425,9 @@ export async function processPattern(preExpression: string, preTarget: string, p
 		...opts
 	})
 	await saveValue(text, targetObject)
+
+	return {
+		targetObject,expression,
+		value:text
+	}
 }

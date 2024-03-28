@@ -1,12 +1,8 @@
 import {Plugin, App, TFile, MarkdownPostProcessorContext} from 'obsidian';
-
-// import {LiveFormSettingTab, DEFAULT_SETTINGS} from "./settings";
-import {createForm, INPUT_PATTERN, replaceCode2Inputs} from "./inputs";
-import {createButton, replaceCode2Buttons} from "./buttons";
+import {createForm} from "./inputs";
+import {createButton} from "./buttons";
 import {getInlineFields, parsePattern} from "./internalApi";
 import {getTFileContent} from "./api";
-// import {replaceCode2Update, update} from "./update";
-// import {MyPluginSettings} from "../settings";
 
 // https://regex101.com/r/FhEQ2Z/1
 // https://regex101.com/r/jC824J/1

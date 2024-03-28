@@ -1,8 +1,7 @@
 import {getStructure, targetFile} from "./api";
 import {TFile} from "obsidian";
-import {Target} from "./internalApi";
 
-var app = global.app
+var app = globalThis.app
 
 export function getFreeFileName(path: targetFile, root: targetFile = ''): string {
 	if (path instanceof TFile) path = path.path;

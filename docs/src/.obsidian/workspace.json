@@ -13,7 +13,7 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "what next.md",
+                "file": "Introduction.md",
                 "mode": "source",
                 "source": true
               }
@@ -50,6 +50,18 @@
             }
           },
           {
+            "id": "86becb8680bf37bb",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "learn in the process.md",
+                "mode": "source",
+                "source": false
+              }
+            }
+          },
+          {
             "id": "c8e370d8d2ec327f",
             "type": "leaf",
             "state": {
@@ -73,7 +85,8 @@
               }
             }
           }
-        ]
+        ],
+        "currentTab": 1
       }
     ],
     "direction": "vertical"
@@ -139,7 +152,7 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "what next.md",
+                "file": "Introduction.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -156,7 +169,7 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "what next.md",
+                "file": "Introduction.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               }
@@ -179,7 +192,7 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "what next.md"
+                "file": "Introduction.md"
               }
             }
           }
@@ -202,11 +215,14 @@
   },
   "active": "551a50d1dc191f45",
   "lastOpenFiles": [
-    "Syntax.md",
-    "what next.md",
+    "learn in the process.md",
     "Introduction.md",
-    "SUMMARY.md",
+    "Pasted image 20240328003240.png",
+    "Pasted image 20240328003625.png",
     "Global API and Context.md",
+    "what next.md",
+    "Syntax.md",
+    "SUMMARY.md",
     "Settings.md"
   ]
 }

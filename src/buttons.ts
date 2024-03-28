@@ -1,6 +1,4 @@
-// @ts-nocheck
-import {App, MarkdownPostProcessorContext,sleep} from "obsidian";
-import {MyPluginSettings} from "../draft/settings";
+// @ts-nocheck1
 import {processPattern} from "./api";
 import {parsePattern} from "./internalApi";
 import {PATTERN} from "./main";
@@ -19,7 +17,7 @@ export function createButton(pattern: string, fields) {
 	return buttonEl
 }
 
-global.document.on('click', 'button.live-form', async function (e, delegateTarget) {
+globalThis.document.on('click', 'button.live-form', async function (e, delegateTarget) {
 	var patterns = delegateTarget.title.trim().split('\n')
 	for (let pattern of patterns) {
 		const {expression, target} = parsePattern(pattern, PATTERN)

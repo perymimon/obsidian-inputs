@@ -1,9 +1,9 @@
 import {App, MarkdownPostProcessorContext, MarkdownView, TFile} from "obsidian";
 import {MyPluginSettings} from "../draft/settings";
 import {decodeAndRun, saveValue} from "./api";
-import {getInlineFields, log, parserTarget} from "./internalApi";
+import {log, parserTarget} from "./internalApi";
 
-var app = global.app
+var app = globalThis.app
 
 export const UPDATE_PATTERN = /(?:^|`)update\|\s*?(?<expression>.*?)\s*?(?<target>>.*?)?(?:$|`)/i
 

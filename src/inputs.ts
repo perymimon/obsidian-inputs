@@ -1,12 +1,10 @@
-// @ts-nocheck
-import {App, Editor, MarkdownPostProcessorContext, TFile} from "obsidian";
-import {MyPluginSettings} from "../draft/settings";
+// @ts-nocheck1
 import {InputSuggest} from "./InputSuggest";
-import {link, processPattern, saveValue} from "./api";
+import {processPattern, saveValue} from "./api";
 import {parsePattern, parserTarget} from "./internalApi";
 import {PATTERN} from "./main";
 
-var app = global.app
+var app = globalThis.app
 
 
 export function createForm(pattern: string, fields: Record<string, string>) {
@@ -24,11 +22,11 @@ export function createForm(pattern: string, fields: Record<string, string>) {
 	return formEl
 }
 
-global.document.on('change', 'form.live-form', triggerSave)
-global.document.on('select', 'form.live-form', triggerSave)
-global.document.on('submit', 'form.live-form', e => e.preventDefault())
-global.document.on('save', 'form.live-form', triggerSave)
-global.document.on('click', 'form.live-form', async (e:InputEvent, delegateTarget) => {
+globalThis.document.on('change', 'form.live-form', triggerSave)
+globalThis.document.on('select', 'form.live-form', triggerSave)
+globalThis.document.on('submit', 'form.live-form', e => e.preventDefault())
+globalThis.document.on('save', 'form.live-form', triggerSave)
+globalThis.document.on('click', 'form.live-form', async (e:InputEvent, delegateTarget) => {
 	if (e.target!.tagName == 'BUTTON') {
 		var target = parserTarget(delegateTarget.title)
 		var button = e.target!
@@ -40,7 +38,7 @@ global.document.on('click', 'form.live-form', async (e:InputEvent, delegateTarge
 		return triggerSave(e,delegateTarget)
 	}
 })
-global.document.on('keydown', 'form.live-form', (e:InputEvent, delegateTarget: HTMLInputElement) => {
+globalThis.document.on('keydown', 'form.live-form', (e:InputEvent, delegateTarget: HTMLInputElement) => {
 	if (!(e.key == "Enter" && (e.metaKey || e.ctrlKey))) return
 	triggerSave(e, delegateTarget)
 })
@@ -52,12 +50,12 @@ async function triggerSave (e:InputEvent, delegateTarget:HTMLElement) {
 		let {expression, id, target} = parsePattern(pattern, PATTERN)
 		expression = expression.replace(/____+/, `{{input}}`)
 		if(!expression.trim()) expression = '{{input}}'
-		await processPattern(expression, target, pattern, {
+		const {targetObject} = await processPattern(expression, target, pattern, {
 			allowImportedLinks: false,
 			vars: {input: e?.target.value}
 		})
 	}
-	if (e.target.type !='radio') e.target!.value = ''
+	if (/append|prepend/.test(targetObject.method)) e.target!.value = ''
 	setTimeout(_ => {
 		document.querySelector('[title="${pattern}"]')
 	}, 10)

@@ -1,7 +1,7 @@
-// @ts-nocheck
+// @ts-nocheck1
 import {asyncEval, replaceAsync} from "./internalApi";
 import {TFile} from "obsidian";
-import {getFileData, link} from "./api";
+import {getFileData} from "./api";
 import {Priority} from "./types";
 import {objectGet, setPrototype} from "./objects";
 

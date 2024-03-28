@@ -1,0 +1,2 @@
+- `global` are not exist on mobile `globalThis`  yes
+- 

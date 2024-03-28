@@ -300,12 +300,11 @@ async function quickFile(text: string, target: Target, createIfNotExist = false)
  * @param target
  */
 async function quickHeader(text: string, target: Target) {
-	var {file, path, method = 'append'} = target;
+	var {file, path, method = 'append',pattern} = target;
 	const {headings = [], frontmatterPosition} = getStructure(file);
 	const tFile = (await getTFile(file))!;
 	var content = await app.vault.read(tFile);
-
-	var iHeader = headings?.findIndex((item) => item.heading == path.trim());
+	var iHeader = headings?.findIndex((item) => item.heading.replace(`\`${pattern}\``,'').trim() == path.trim());
 	// If header not exist default is to add to start of file,unless method is append
 	if (iHeader == -1) text = `## ${path}\n${text}`;
 	if (iHeader == -1 && method == 'replace') method = 'prepend';

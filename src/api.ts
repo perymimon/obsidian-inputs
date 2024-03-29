@@ -172,13 +172,24 @@ export async function setFrontmatter(value, path, method = 'replace', file) {
 
 //\[(.+?::.+?)\]|\((.+?::.+?)\)|\b(\S+?::.+?)$
 // https://regex101.com/r/BExhmA/1
-export async function setInlineField(value: string, key: string, method = 'replace', file?: targetFile) {
+export async function setInlineField(value: string, target:Target) {
+	var { path, method = 'replace', file, pattern} = target
 	const tFile = (await getTFile(file))!
 	var content = await app.vault.read(tFile)
-	var fieldDesc = getInlineFields(content, key)
+	var fieldDescs = getInlineFields(content, path)
+
 	var newContent = ''
-	if (fieldDesc.length) { // field exist
-		let {outerField, oldValue, offset} = fieldDesc.at(0) as Field
+	if (fieldDescs.length) { // field exist
+		var patternOffset = (await getTFileContent(tFile)).indexOf(pattern)
+		var fieldDesc = fieldDescs.map( (desc) =>{
+			var [s,e] = desc.offset
+			if( e >patternOffset)  dis =  Math.abs(s - patternOffset)
+			else dis = Math.abs(e - patternOffset)
+			desc.dis = dis;
+			return desc
+		}).sort( (a,b)=> (a.dis - b.dis)).at(0)
+
+		let {outerField, oldValue, offset} = fieldDesc as Field
 		let [startIndex, endIndex] = offset
 		var newField
 		if (method == 'remove') newField = ''
@@ -193,7 +204,7 @@ export async function setInlineField(value: string, key: string, method = 'repla
 		if (method == 'remove') return 'no field detected'
 		var {frontmatterPosition} = getStructure(file)
 		var offset = frontmatterPosition?.end.offset + 1 ?? 0
-		newContent = spliceString(content, offset, 0, `[${key}::${value}]\n`)
+		newContent = spliceString(content, offset, 0, `[${path}::${value}]\n`)
 		// newContent = [content.slice(0, offset), field, content.slice(offset)].join('\n')
 	}
 	await updateFile(tFile, newContent)
@@ -400,7 +411,7 @@ export async function saveValue(text: string | number, target: Target) {
 	// }
 	switch (targetType) {
 		case 'field':
-			return await setInlineField(text, path, method, file)
+			return await setInlineField(text,target)
 		case 'yaml':
 			return await setFrontmatter(text, path, method, file)
 		case 'header':

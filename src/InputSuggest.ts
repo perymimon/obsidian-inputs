@@ -24,15 +24,15 @@ export class InputSuggest extends AbstractInputSuggest<TFile> {
 		for (let vec of matches.reverse()) {
 			path = path.slice(0, vec[0]) + '<b>' + path.slice(vec[0], vec[1]) + '</b>' + path.slice(vec[1])
 		}
-		el.setHTML(await link(file));
+		el.setHTML(link(file));
 	}
 
 	selectSuggestion(file: TFile, evt: MouseEvent | KeyboardEvent): void {
-		this.setValue(file.path)
+		this.setValue(link(file))
 		// this.textInputEl.value = file.path;
 		// this.textInputEl.trigger("input");
 		this.textInputEl.trigger("select");
-		this.textInputEl.value = '';
+		this.setValue('')
 		// this.close();
 	}
 

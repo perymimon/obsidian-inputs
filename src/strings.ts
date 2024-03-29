@@ -13,19 +13,38 @@ export async function stringTemplate(template: string, customfields: Dictionary 
 	var fileData = await getFileData(file, priority)
 	var fields = setPrototype(customfields, fileData)
 	return await replaceAsync(template, /\{\{([^}]+)}}|@@(.*?)(?:\s|`|$)/g, async (_, expr0, expr1) => {
-		let [exec, arg] = (expr0 || expr1).split(':')
+		let [exec, mod, input] = (expr0 || expr1).split(':')
 		var replacement =
 			await objectGet(fields, exec)
 			?? modifications[exec]
 			?? await asyncEval(exec, fields, modifications, void 0, true)
 				.catch(e => `<error>${String(e)}</error>`)
 
-		return typeof replacement == 'function' ? replacement(arg) : replacement;
+		let value = typeof replacement == 'function' ? await replacement(mod) : replacement;
+
+		// 1) create input field if no data
+		// 1) create input field round/hide
+		// 2) create input field round/hide any way
+		// 3) popup modal so  user feel the input
+		// 4) popup modal if no data
+		//
+		setter = ''
+		if ((input == 'setter?' && !value) || (input == 'setter')) {
+			var id = String(Date.now()).slice(-3)
+			var setter = `\`-${id}- text:set ${exec}|>::${exec}\``
+		}
+		// if(input== 'ask') {
+		// 	value = await modal(`set value for ${exec}`)
+		// 	// need to know where save value
+		// }
+		if (mod == 'field') return `[${exec}::${value}]${setter}`
+		if (mod == 'field-round') return `(${exec}::${value})${setter}`
+		return value
 	})
 
 }
 
-export const modifications = {
+export const modifications: any = {
 	date: (format = 'yyyy-MM-DD') => moment().format(format),
 	time: (format = 'HH:mm') => moment().format(format)
 }
@@ -65,3 +84,55 @@ export const typeMap = {
 	textarea: '💬',
 	time: '⌚'
 }
+
+export function cleanString(string: string, opts = {}) {
+	const {
+		wikiLink = true,
+		inlineField = true,
+		inlineFieldSquare = true,
+		inlineCode = true,
+		inlineFieldRound = true
+	} = opts
+	string = String(string)
+	const eliminateSquareContent = /\[\[(.*)]]/
+	if (inlineCode) string = string.replace(/`+[^`]+`+/g, m => '_'.repeat(m.length))
+	if (wikiLink) string = string.replace(/\[\[.*?]]/g, m => '_'.repeat(m.length))
+	if (inlineField && inlineFieldSquare) string = string.replace(/\[.*?::.*?]/, m => '_'.repeat(m.length))
+	if (inlineField && inlineFieldRound) string = string.replace(/\(.*?::.*?\)/, m => '_'.repeat(m.length))
+	return string
+}
+
+//matcher must be well grouped as https://stackoverflow.com/a/1985709/1919821
+export function cleanMatch(string: string, matcher: RegExp, opts = {}): string[][] {
+	const clean = cleanString(string, opts)
+	const orginals = []
+	const matches = matcher.global ? clean.matchAll(matcher) : [clean.match(matcher)]
+	for (let match of matches) {
+		if (!match) continue
+		let len = 0
+		let subMatchIndex = []
+		subMatchIndex.push([match.index, match.index! + match![0].length])
+		for (let substr of match.slice(1)) {
+			subMatchIndex.push([len, len + (substr || '').length])
+			len += substr.length
+		}
+		let subMatch: string[] = subMatchIndex.map(([str, end]) => string.slice(str, end))
+		orginals.push(subMatch)
+	}
+
+	return orginals
+}
+
+export function sliceFrom(string: string, subString: string, include = true) {
+	let i = string.indexOf(subString)
+	if (i == -1) return ''
+	return string.slice(i + (include ? 0 : subString.length))
+}
+
+export function lastSliceFrom(string: string, subString: string, include = true) {
+	let i = string.lastIndexOf(subString)
+	if (i == -1) return ''
+	return string.slice(i + (include ? 0 : subString.length))
+}
+
+

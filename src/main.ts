@@ -77,10 +77,12 @@ export default class InputsPlugin extends Plugin {
 
 		setTimeout(async () => {
 			const mdFiles = app.vault.getMarkdownFiles()
-			for (let file of mdFiles) {
-				let content = await getTFileContent(file)
-				let cache = app.metadataCache.getFileCache(file) ?? {}
-				updateStrucure(file, content, cache)
+			for (let tFile of mdFiles) {
+				// let content = await getTFileContent(file)
+				let cache = app.metadataCache.getFileCache(tFile)
+				if (!cache) continue
+				const content = await app.vault.cachedRead(tFile)
+				updateStrucure(tFile, content, cache)
 			}
 		}, 500)
 

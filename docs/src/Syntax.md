@@ -50,9 +50,10 @@ it build with the sub pattern that look like that
 	- if there is not `path` target-type is the `file` If it not provide current file in the context
 	- if the file not exist it created it Otherwise it just modified it
 - `<"(::|#|:)path">` 
-	- `::path` - Specifies the `targetType` is in `inline field` into the file
-	- `:path` - Specifies the `targetType` is `yaml` in the frontmatter of the file
-	- `#path` - Specifies the `targetType` is `header` in the file
+	- `::path` - Specifies the `targetType` to be `inline field` in target file
+	- `:path` - Specifies the `targetType` to be `yaml` in the frontmatter in target file
+	- `#path` - path is a name of  `header` in the target file
+		-  when comparing  the header name you should ignore `pattern` if you write it in the same line of the header
 	- if nothing provide the `targetType` is called `pattern` which affects the current `input-pattern` and can replace it with the new value
 - `<" method">` followed by space there is the method that can be one of the next action. 
 	the meaning of the action change a littel by the `targetType`

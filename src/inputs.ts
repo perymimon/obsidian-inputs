@@ -26,19 +26,20 @@ globalThis.document.on('change', 'form.live-form', triggerSave)
 globalThis.document.on('select', 'form.live-form', triggerSave)
 globalThis.document.on('submit', 'form.live-form', e => e.preventDefault())
 globalThis.document.on('save', 'form.live-form', triggerSave)
-globalThis.document.on('click', 'form.live-form', async (e:InputEvent, delegateTarget) => {
+globalThis.document.on('click', 'form.live-form', async (e:MouseEvent, delegateTarget) => {
 	if (e.target!.tagName == 'BUTTON') {
 		var target = parserTarget(delegateTarget.title)
 		var button = e.target!
 		if (button.name == 'clear') target.method = 'clear'
 		if (button.name == 'remove') target.method = 'remove'
+		target.targetType = 'pattern'
 		await saveValue('', target)
 	}
 	if (e.target!.tagName == 'INPUT' && e.target.type =='radio') {
 		return triggerSave(e,delegateTarget)
 	}
 })
-globalThis.document.on('keydown', 'form.live-form', (e:InputEvent, delegateTarget: HTMLInputElement) => {
+globalThis.document.on('keydown', 'form.live-form', (e:KeyboardEvent, delegateTarget: HTMLInputElement) => {
 	if (!(e.key == "Enter" && (e.metaKey || e.ctrlKey))) return
 	triggerSave(e, delegateTarget)
 })
@@ -54,8 +55,9 @@ async function triggerSave (e:InputEvent, delegateTarget:HTMLElement) {
 			allowImportedLinks: false,
 			vars: {input: e?.target.value}
 		})
+		if (/append|prepend/.test(targetObject.method)) e.target!.value = ''
 	}
-	if (/append|prepend/.test(targetObject.method)) e.target!.value = ''
+
 	setTimeout(_ => {
 		document.querySelector('[title="${pattern}"]')
 	}, 10)

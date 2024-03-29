@@ -1,6 +1,6 @@
 // @ts-nocheck
 import {Target} from "./internalApi";
-import {getFileData, link} from "./api";
+import {getFileData, getTFileSync, link} from "./api";
 import {TFile} from "obsidian";
 
 export function deepAssign(target: object, ...sources: any[]) {
@@ -103,10 +103,14 @@ export function objectGet(root:object, path:string | string[]) {
 		path:
 		path.split(/\[([ \w]+)\]|\.|\["([ \w]+)"\]|\['([ \w]+)'\]/).filter(Boolean)
 	let current = root;
+	if(paths.length == 0) return current
 	do {
 		if (current == void 0) return void 0;
+		if( typeof current == 'string')
+			current =  getTFileSync(current) || current
 		if( current instanceof TFile)
 			return objectGet( getFileData(current),paths)
+
 		let p = paths.shift()
 		// @ts-ignore I count on undefined
 		current = current[p]
@@ -115,7 +119,6 @@ export function objectGet(root:object, path:string | string[]) {
 	if(Number(current) ) return Number(current)
 	return current
 }
-
 export function setPrototype(a: object, ...protos: object[]) {
 	// @ts-ignore
 	let lastProto = a
@@ -124,4 +127,24 @@ export function setPrototype(a: object, ...protos: object[]) {
 		lastProto = proto
 	}
 	return a;
+}
+
+export function objectHaveKey(root:object, path:string | string[]) {
+	let paths = Array.isArray(path)?
+		path:
+		path.split(/\[([ \w]+)\]|\.|\["([ \w]+)"\]|\['([ \w]+)'\]/).filter(Boolean)
+	let current = root;
+	if(paths.length == 0) return current
+	do {
+		if (current == void 0) return false
+		if( typeof current == 'string')
+			current =  getTFileSync(current) || current
+		if( current instanceof TFile)
+			return objectGet( getFileData(current),paths)
+
+		let p = paths.shift()
+		// @ts-ignore I count on undefined
+		current = current[p]
+	} while (paths.length)
+	return true
 }

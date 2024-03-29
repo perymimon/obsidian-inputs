@@ -178,13 +178,13 @@ export async function setInlineField(value: string, key: string, method = 'repla
 	var fieldDesc = getInlineFields(content, key)
 	var newContent = ''
 	if (fieldDesc.length) { // field exist
-		let {outerField, fullValue, offset} = fieldDesc.at(0) as Field
+		let {outerField, oldValue, offset} = fieldDesc.at(0) as Field
 		let [startIndex, endIndex] = offset
 		var newField
 		if (method == 'remove') newField = ''
 		else {
-			value = manipulateValue(fullValue, value, method)
-			newField = outerField.replace(`::${fullValue}`, `::${value}`)
+			value = manipulateValue(oldValue, value, method)
+			newField = outerField.replace(`::${oldValue}`, `::${value}`)
 		}
 		if (outerField == newField) return false
 		log(`inline field update from "${outerField}" to "${newField}"`)
@@ -222,9 +222,10 @@ async function quickText(text: string, target: Target) {
 	const {file, pattern, method = 'replace'} = target
 	const tFile = await getTFile(file)
 	var content = await app.vault.read(tFile)
-
+	var escaped = pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+	var eatSpaces = new RegExp(`\`\\s*${escaped}\\s*\``)
 	if (method == "clear") {
-		var startPatternIndex = content.indexOf(pattern)
+		var startPatternIndex = content.match(eatSpaces)?.index
 		var startLineIndex = content.lastIndexOf('\n', startPatternIndex) + 1
 		var line = content.slice(startLineIndex, startPatternIndex)
 		var field = getInlineFields(line).pop()
@@ -239,8 +240,7 @@ async function quickText(text: string, target: Target) {
 		let [indexStart, indexEnd = startPatternIndex] = slice
 		newContent = sliceRemover(content, indexStart, indexEnd)
 	} else {
-		var escaped = pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-		var eatSpaces = new RegExp(`\`\\s*${escaped}\\s*\``)
+
 		var newContent = content.replace(eatSpaces, (match) => {
 			if (method == "append") return `${match}${text}`
 			if (method == "prepend") return `${text}${match}`
@@ -392,11 +392,12 @@ export async function decodeAndRun(expression: string | undefined, opts: decodeA
 	}
 }
 
-export async function saveValue(text: string, target: Target) {
+export async function saveValue(text: string | number, target: Target) {
 	const {file, targetType, path, method} = target
-	if (!text && !(targetType == 'file' || method == 'create')) {
-		return 'no save because text is empty'
-	}
+	if(text == void 0) return `no save because value is undefined`
+	// if (String(text).trim() == '' && !(targetType == 'file' || method == 'create')) {
+	// 	return 'no save because text value is empty'
+	// }
 	switch (targetType) {
 		case 'field':
 			return await setInlineField(text, path, method, file)

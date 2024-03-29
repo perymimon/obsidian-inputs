@@ -3,6 +3,7 @@ import {MarkdownView, TFile, Notice} from "obsidian";
 import {targetFile} from "./api";
 import {objectGet} from "./objects";
 import {Pattern} from "./main";
+import {cleanString, lastSliceFrom} from "./strings";
 
 var app = globalThis.app
 var proxyTFileHandler = {
@@ -95,12 +96,10 @@ type TargetArray = [string, Target['file'], Target['targetType'], Target['path']
 
 export function parserTarget(pattern: string = '', defFile: targetFile = ''): Target {
 	//https://regex101.com/r/Z0v3rv/1
-	const eliminateSquareContent = /\[\[(.*)]]/
-	var [leftPattern = '', method] = String(pattern.match(/>.*$/) || '')
-		.split(/>|(append|replace|prepend|create|clear|remove|rename)$/)
-		.filter(Boolean)
-	const fields = leftPattern.trim()
-		.replace(eliminateSquareContent, '$1')
+	var targetPattern = lastSliceFrom(pattern || '', ">", false)
+	var [leftPattern = '', method] = targetPattern
+		.split(/ (append|replace|prepend|create|clear|remove|rename)$/)
+	const fields = leftPattern
 		.match(/(^[^:#?*<>"]+?)?(?:(::|:|#)(.+?))?$/) || []
 
 	var [, file, targetType = '', path = ''] = fields as TargetArray
@@ -118,19 +117,17 @@ export function parserTarget(pattern: string = '', defFile: targetFile = ''): Ta
 		targetType: type,
 		path,
 		method,
-		pattern: `${tag}${pattern}${tag}`
+		pattern: `${pattern}`
 	}
 }
 
 export function parsePattern(pattern: string, regexParser): Pattern | null {
-	var fields = pattern.trim()
-		.match(regexParser)?.groups || null
-	return fields
+	return pattern.trim().match(regexParser)?.groups as Pattern || null
 }
 
 export type Field = {
 	outerField: string, innerField: string, key: string,
-	value: string, fullKey: string, fullValue: string
+	value: string, fullKey: string, oldValue: string
 	offset: [number, number],
 	keyOffset: [number, number],
 	valueOffset: [number, number]
@@ -139,12 +136,9 @@ export type Field = {
 export function getInlineFields(content: string, key?: string): Field[] {
 	// const regex = /\[\s*(.*?)\s*::(.*?)]|\b(.*?)::(.*?)$|\(\s*(.*?)\s*::(.*?)\)/gm
 	var def = '.*?', freeDef = '[^\\s]+'
-	const regex = new RegExp(`\\[(\\s*${key || def}\\s*)::(.*?)\\]|\\((\\s*${key || def}\\s*)::(.*?)\\)|(${key ||freeDef})::(.*?)$`, 'gm')
-	var cleanContent = content
-		.replace(/`+[^`]+`+/g, m => '_'.repeat(m.length)) // remove inline code
-		.replace(/\[\[.*?]]/g, m => '_'.repeat(m.length)) // remove wiki links
-
-	const fields = [];
+	const regex = new RegExp(`(\\[)(\\s*${key || def}\\s*)::(.*?)(\\])|(\\()(\\s*${key || def}\\s*)::(.*?)(\\))|()(${key ||freeDef})::(.*?)()$`, 'gm')
+	var cleanContent = cleanString(content, {inlineField: false})
+	const fields: Field[] = [];
 	let match;
 	while ((match = regex.exec(cleanContent)) !== null) {
 		// note to myself: don't take values from clean content
@@ -161,7 +155,7 @@ export function getInlineFields(content: string, key?: string): Field[] {
 			startValue = endKey + 2,
 			endValue = startValue + fullValue.length
 		fields.push({
-			outerField, innerField, key, value, fullKey, fullValue,
+			outerField, innerField, key, value, fullKey, oldValue: fullValue,
 			offset: [startOffset, endOffset],
 			keyOffset: [startKey, endKey],
 			valueOffset: [startValue, endValue]

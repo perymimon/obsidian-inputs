@@ -8,24 +8,12 @@
         "type": "tabs",
         "children": [
           {
-            "id": "551a50d1dc191f45",
-            "type": "leaf",
-            "state": {
-              "type": "markdown",
-              "state": {
-                "file": "Introduction.md",
-                "mode": "source",
-                "source": true
-              }
-            }
-          },
-          {
             "id": "56566bf01fd9cd11",
             "type": "leaf",
             "state": {
               "type": "markdown",
               "state": {
-                "file": "SUMMARY.md",
+                "file": "Introduction.md",
                 "mode": "source",
                 "source": false
               }
@@ -213,16 +201,16 @@
       "command-palette:Open command palette": false
     }
   },
-  "active": "551a50d1dc191f45",
+  "active": "56566bf01fd9cd11",
   "lastOpenFiles": [
     "learn in the process.md",
     "Introduction.md",
+    "Syntax.md",
+    "what next.md",
+    "SUMMARY.md",
     "Pasted image 20240328003240.png",
     "Pasted image 20240328003625.png",
     "Global API and Context.md",
-    "what next.md",
-    "Syntax.md",
-    "SUMMARY.md",
     "Settings.md"
   ]
 }

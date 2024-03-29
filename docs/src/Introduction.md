@@ -38,6 +38,8 @@ Every notation build with those parts:
 
 `<"-id-"?> <"type:"> <"name|"> <"expression"> <", opts"> <">target">`
 
+and all part called `pattern` on `input notation`
+
 `<"-id-"?>`: Optional identifier for the input or button element. Helps recognize the element for focus after content refresh or for pattern replacement.
 
 `<"type:">`: Specifies the type of the input element. can be, `text`,`textarea` or `button`. It's followed by a colon :.

@@ -18,27 +18,31 @@ export async function stringTemplate(template: string, customfields: Dictionary 
 			await objectGet(fields, exec)
 			?? modifications[exec]
 			?? await asyncEval(exec, fields, modifications, void 0, true)
-				.catch(e => `<error>${String(e)}</error>`)
+				// .catch(e => `<error>${String(e)}</error>`)
+				.catch(e => e)
 
 		let value = typeof replacement == 'function' ? await replacement(mod) : replacement;
-
-		// 1) create input field if no data
-		// 1) create input field round/hide
-		// 2) create input field round/hide any way
-		// 3) popup modal so  user feel the input
-		// 4) popup modal if no data
-		//
-		setter = ''
-		if ((input == 'setter?' && !value) || (input == 'setter')) {
-			var id = String(Date.now()).slice(-3)
-			var setter = `\`-${id}- text:set ${exec}|>::${exec}\``
+		if( mod == 'field' || mod == 'field-round') {
+			// 1) create input field if no data
+			// 1) create input field round/hide
+			// 2) create input field round/hide any way
+			// 3) popup modal so  user feel the input
+			// 4) popup modal if no data
+			//
+			if ( value instanceof Error) value = ''
+			setter = ''
+			if ((input == 'setter?' && value == void 0) || (input == 'setter')) {
+				var id = String(Date.now()).slice(-3)
+				var setter = `\`-${id}- text:set ${exec}|>::${exec}\``
+			}
+			// if(input== 'ask') {
+			// 	value = await modal(`set value for ${exec}`)
+			// 	// need to know where save value
+			// }
+			if (mod == 'field') return `[${exec}::${value}]${setter}`
+			if (mod == 'field-round') return `(${exec}::${value})${setter}`
 		}
-		// if(input== 'ask') {
-		// 	value = await modal(`set value for ${exec}`)
-		// 	// need to know where save value
-		// }
-		if (mod == 'field') return `[${exec}::${value}]${setter}`
-		if (mod == 'field-round') return `(${exec}::${value})${setter}`
+		if ( value instanceof Error) return `<error>${String(value)}</error>`
 		return value
 	})
 

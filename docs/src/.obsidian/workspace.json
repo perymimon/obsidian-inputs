@@ -6,6 +6,7 @@
       {
         "id": "796caff36feef55e",
         "type": "tabs",
+        "dimension": 50.06345177664975,
         "children": [
           {
             "id": "56566bf01fd9cd11",
@@ -18,12 +19,38 @@
                 "source": false
               }
             }
+          },
+          {
+            "id": "f7db9be3f694c2c8",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "SUMMARY.md",
+                "mode": "source",
+                "source": false
+              }
+            }
+          },
+          {
+            "id": "9c72c13d74537529",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "Introduction.md",
+                "mode": "source",
+                "source": false
+              }
+            }
           }
-        ]
+        ],
+        "currentTab": 2
       },
       {
         "id": "348ec6eb393b2907",
         "type": "tabs",
+        "dimension": 49.93654822335025,
         "children": [
           {
             "id": "37727ab9c58af2b8",
@@ -45,6 +72,18 @@
               "state": {
                 "file": "learn in the process.md",
                 "mode": "source",
+                "source": false
+              }
+            }
+          },
+          {
+            "id": "6c7dc42db77d4b84",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "Introduction.md",
+                "mode": "preview",
                 "source": false
               }
             }
@@ -73,8 +112,7 @@
               }
             }
           }
-        ],
-        "currentTab": 1
+        ]
       }
     ],
     "direction": "vertical"
@@ -201,13 +239,15 @@
       "command-palette:Open command palette": false
     }
   },
-  "active": "56566bf01fd9cd11",
+  "active": "9c72c13d74537529",
   "lastOpenFiles": [
-    "learn in the process.md",
-    "Introduction.md",
     "Syntax.md",
-    "what next.md",
+    "API for Expression.md",
+    "Introduction.md",
+    "learn in the process.md",
     "SUMMARY.md",
+    "How to install.md",
+    "what next.md",
     "Pasted image 20240328003240.png",
     "Pasted image 20240328003625.png",
     "Global API and Context.md",

@@ -1,7 +1,13 @@
-import {getStructure, targetFile} from "./api";
+import {getStructure, getTFile, targetFile} from "./api";
 import {TFile} from "obsidian";
+import {log} from "./internalApi";
 
 var app = globalThis.app
+
+export async function getTFileContent(file: targetFile) {
+	var tFile = getTFile(file)
+	return await app.vault.read(tFile)
+}
 
 export function getFreeFileName(path: targetFile, root: targetFile = ''): string {
 	if (path instanceof TFile) path = path.path;
@@ -46,12 +52,28 @@ export async function waitFileIsReady(tFile: TFile) {
 	var time = 10
 	do {
 		await sleep(time)
-		time *= 2
+		if (time > 2000) throw `more then 2s and the file ${tFile.path} not ready`
 		var data = getStructure(tFile)
+		time *= 2
 	} while (data.dirty)
 }
 
 export function markFileAsDirty(tFile: TFile) {
 	var struct = getStructure(tFile)
 	if (struct) struct.dirty = true
+}
+
+export async function renameFile(file: targetFile, newPath: targetFile) {
+	var tFile = getTFile(file)
+	if (!tFile) return
+	newPath = getFreeFileName(newPath, tFile)
+	var originalPath = tFile.path
+	await app.vault.rename(tFile!, newPath)
+	log('renameFile', `"${originalPath}" rename to "${newPath}"`)
+}
+
+export async function removeFile(path: targetFile) {
+	var tFile = getTFile(path)
+	if (!tFile) return
+	await app.vault.trash(tFile!, false)
 }

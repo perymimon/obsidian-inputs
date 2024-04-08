@@ -40,6 +40,11 @@ form.live-form {
 		display: grid;
 		grid-template-columns: 1fr 1fr 1fr;
 	}
+	& > button{
+		height: 20px;
+		padding: 0;
+		padding-inline: 0.3em;
+	}
 }
 
 

@@ -22,11 +22,11 @@ export function createForm(pattern: string, fields: Record<string, string>) {
 	return formEl
 }
 
-globalThis.document.on('change', 'form.live-form', triggerSave)
-globalThis.document.on('select', 'form.live-form', triggerSave)
+globalThis.document.on('change', 'form.live-form', save)
+globalThis.document.on('select', 'form.live-form', save)
 globalThis.document.on('submit', 'form.live-form', e => e.preventDefault())
-globalThis.document.on('save', 'form.live-form', triggerSave)
-globalThis.document.on('click', 'form.live-form', async (e:MouseEvent, delegateTarget) => {
+// globalThis.document.on('save', 'form.live-form', triggerSave)
+globalThis.document.on('click', 'form.live-form', async (e: MouseEvent, delegateTarget) => {
 	if (e.target!.tagName == 'BUTTON') {
 		var target = parserTarget(delegateTarget.title)
 		var button = e.target!
@@ -35,27 +35,32 @@ globalThis.document.on('click', 'form.live-form', async (e:MouseEvent, delegateT
 		target.targetType = 'pattern'
 		await saveValue('', target)
 	}
-	if (e.target!.tagName == 'INPUT' && e.target.type =='radio') {
-		return triggerSave(e,delegateTarget)
-	}
+	// if (e.target!.tagName == 'INPUT' && e.target.type =='radio') {
+	// 	return save(e,delegateTarget)
+	// }
 })
-globalThis.document.on('keydown', 'form.live-form', (e:KeyboardEvent, delegateTarget: HTMLInputElement) => {
+globalThis.document.on('keydown', 'form.live-form', (e: KeyboardEvent, delegateTarget: HTMLInputElement) => {
 	if (!(e.key == "Enter" && (e.metaKey || e.ctrlKey))) return
-	triggerSave(e, delegateTarget)
+	save(e, delegateTarget)
 })
 
-async function triggerSave (e:InputEvent, delegateTarget:HTMLElement) {
+async function save(e: InputEvent, delegateTarget: HTMLElement) {
 	if (e!.target.value == '') return;
+	if (e!.target.checked == 'false') return;
+	var {value} = e!.target
+	if (e.target.type == 'radio') e.target.checked = false
+	else e.target!.value = ''
+
 	const patterns = delegateTarget.title.trim().split('\n')
 	for (let pattern of patterns) {
 		let {expression, id, target} = parsePattern(pattern, PATTERN)
 		expression = expression.replace(/____+/, `{{input}}`)
-		if(!expression.trim()) expression = '{{input}}'
+		if (!expression.trim()) expression = '{{input}}'
 		const {targetObject} = await processPattern(expression, target, pattern, {
 			allowImportedLinks: false,
-			vars: {input: e?.target.value}
+			vars: {input: value}
 		})
-		if (/append|prepend/.test(targetObject.method)) e.target!.value = ''
+
 	}
 
 	setTimeout(_ => {
@@ -74,14 +79,14 @@ function createInputEl(fields: Record<string, string>, queries: string[]) {
 	return inputEl
 }
 
-function createRadioEls(label:string, pairs:Record<string, string>[]) {
+function createRadioEls(label: string, pairs: Record<string, string>[]) {
 	const fragment = createFragment()
-	if(!pairs.length) return fragment
-	if(label.trim()) fragment.createEl('label', {text:label+ ": "})
+	if (!pairs.length) return fragment
+	if (label.trim()) fragment.createEl('label', {text: label + ": "})
 	const name = Date.now()
 	for (const {text, value} of pairs) {
 		let label = fragment.createEl('label')
-		label.createEl('input', {type: 'radio', attr:{name, value}})
+		label.createEl('input', {type: 'radio', attr: {name, value}})
 		label.createSpan({text})
 	}
 	return fragment

@@ -1,6 +1,6 @@
 // @ts-nocheck
 import {Target} from "./internalApi";
-import {getFileData, getTFileSync, link} from "./api";
+import {getFileData, getTFile, link} from "./api";
 import {TFile} from "obsidian";
 
 export function deepAssign(target: object, ...sources: any[]) {
@@ -107,7 +107,7 @@ export function objectGet(root:object, path:string | string[]) {
 	do {
 		if (current == void 0) return void 0;
 		if( typeof current == 'string')
-			current =  getTFileSync(current) || current
+			current =  getTFile(current) || current
 		if( current instanceof TFile)
 			return objectGet( getFileData(current),paths)
 
@@ -138,7 +138,7 @@ export function objectHaveKey(root:object, path:string | string[]) {
 	do {
 		if (current == void 0) return false
 		if( typeof current == 'string')
-			current =  getTFileSync(current) || current
+			current =  getTFile(current) || current
 		if( current instanceof TFile)
 			return objectGet( getFileData(current),paths)
 

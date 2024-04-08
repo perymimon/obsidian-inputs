@@ -1,17 +1,22 @@
-import {Plugin, App, TFile, MarkdownPostProcessorContext} from 'obsidian';
+import {Plugin, App, TFile, MarkdownPostProcessorContext, Notice} from 'obsidian';
 import {createForm} from "./inputs";
 import {createButton} from "./buttons";
 import {getInlineFields, parsePattern} from "./internalApi";
-import {getTFileContent} from "./api";
+import inputModal from './inputModal'
+import {setInlineField} from "./quicky";
+import {getStructure, getTFile, letTFile, updateFile} from "./api";
+import {getTFileContent} from "./files";
 
+export let app: App
 // https://regex101.com/r/FhEQ2Z/1
 // https://regex101.com/r/jC824J/1
 // https://regex101.com/r/GiYmUD/1
 export const PATTERN = new RegExp([
 	/(?:`|^)/,
 	/(?<id>-\w+-)?\s*/,
-	/(?:(?<type>[\w-]*?)\:)?/,
-	/(?:(?<name>.*?)\|)?/,
+	/(?:(?<type>[\w-]*?))?/,
+	/(?::(?<name>.*?))?/,
+	/\|/,
 	/\s*(?<expression>.*?)/,
 	/(?:,(?<options>.+?))?/,
 	/\s*(?<target>>.*?)?/,
@@ -32,11 +37,12 @@ function updateStrucure(file: TFile, content: string, cache: any) {
 	const fieldsObject: object = inlineFields.reduce(
 		(obj, line) => (obj[line.key] = line.value, obj), {}
 	)
+	cache.allInlineFields = inlineFields
 	cache.inlineFields = fieldsObject
 	cache.dirty = false
 }
 
-export let app: App
+
 export default class InputsPlugin extends Plugin {
 	// settings :MyPluginSettings  = {};
 	settings = {}
@@ -45,18 +51,6 @@ export default class InputsPlugin extends Plugin {
 	async onload() {
 		app = this.app;
 		console.log('loading Inputs plugin');
-		// this.app.workspace.on('editor-change', async editor => {
-		// 	let cur = editor.getCursor()
-		// 	// let textLine = editor.getLine(cur.line)
-		// 	let fileContent = editor.getValue()
-		// 	// let reformatText = identifyAnnotation(INPUT_PATTERN, fileContent, textLine)
-		// 	// let reformatText = identifyAnnotation(BUTTON_PATTERN, fileContent, textLine, generateButtonNotation)
-		// 	// if (textLine === reformatText) return;
-		// 	// editor.setLine(cur.line, reformatText)
-		// 	// editor.setCursor(cur)
-		// 	// MarkdownSourceView
-		// })
-
 		this.registerMarkdownPostProcessor(
 			(rootEl: HTMLElement, ctx: MarkdownPostProcessorContext) => {
 				const codesEl = rootEl.findAll('code')
@@ -65,7 +59,6 @@ export default class InputsPlugin extends Plugin {
 					if (!element) continue
 					codeEl.replaceWith(element)
 				}
-				// replaceCode2Update(root, ctx, this.settings, this.app)
 			}
 		)
 
@@ -100,7 +93,7 @@ export default class InputsPlugin extends Plugin {
 		const patterns = source.split("\n").filter((row) => row.trim().length > 0);
 		const pattern = patterns[0]
 		const fields = parsePattern(pattern, PATTERN)
-		if (!(fields?.type && 'name' in (fields ?? {}))) return null;
+		if (!fields?.type) return null;
 		var element: HTMLElement
 		if (fields?.type == 'button') {
 			element = createButton(source, fields)
@@ -123,4 +116,38 @@ export default class InputsPlugin extends Plugin {
 	// }
 }
 
+
+globalThis.document.on('click', '.dataview.inline-field', async (e: MouseEvent, delegateTarget) => {
+	var mode = app!.workspace.activeEditor.getMode()
+	if (mode == 'source') return
+	var root = app!.workspace.activeEditor.contentEl
+	var rootContent = root.querySelector('.markdown-reading-view')
+	var allFieldsEl = Array.from(rootContent.querySelectorAll('.inline-field'))
+	// var {allInlineFields = []} = getStructure(tFile)
+	var tFile = getTFile()
+	var {allInlineFields = [], dirty} = getStructure(tFile)
+	if (dirty) return
+	var fieldsEl = delegateTarget.matchParent('li')?.querySelectorAll('.inline-field') ?? [delegateTarget];
+	// find index of html element
+	var indexs = Array.from(fieldsEl).map(fieldEl => {
+		var index = allFieldsEl.indexOf(fieldEl)
+		if (index == -1) return
+		var compensation = allInlineFields.slice(0, index)
+			.filter(field => !(field.isRound || field.isSquare))
+			.length
+		return index + compensation
+	})
+	let modal = new inputModal(app, allInlineFields, indexs)
+	modal.open()
+	var result = (await modal)
+	var tFile = getTFile()
+	var content = await getTFileContent(tFile)
+	var newContent = content
+	for (let field of result) {
+		newContent = setInlineField(newContent, field.value, {file: tFile, method: 'replace'}, field)
+	}
+	if (content == newContent) return
+	await updateFile(tFile, newContent)
+
+})
 

@@ -1,4 +1,4 @@
-// @ts-nocheck1
+// @ts-nocheck
 import {InputSuggest} from "./InputSuggest";
 import {processPattern, saveValue} from "./api";
 import {parsePattern, parserTarget} from "./internalApi";

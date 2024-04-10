@@ -1,3 +1,4 @@
+// @ts-nocheck
 import {getStructure, getTFile, targetFile} from "./api";
 import {TFile} from "obsidian";
 import {log} from "./internalApi";

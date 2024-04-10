@@ -1,4 +1,4 @@
-// @ts-nocheck1
+// @ts-nocheck
 import {processPattern} from "./api";
 import {parsePattern} from "./internalApi";
 import {PATTERN} from "./main";

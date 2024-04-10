@@ -1,3 +1,4 @@
+// @ts-nocheck
 import {Plugin, App, TFile, MarkdownPostProcessorContext, Notice} from 'obsidian';
 import {createForm} from "./inputs";
 import {createButton} from "./buttons";

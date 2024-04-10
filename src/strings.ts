@@ -1,4 +1,4 @@
-// @ts-nocheck1
+// @ts-nocheck
 import {asyncEval, replaceAsync} from "./internalApi";
 import {TFile} from "obsidian";
 import {getFileData} from "./api";

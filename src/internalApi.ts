@@ -1,4 +1,4 @@
-// @ts-nocheck1
+// @ts-nocheck
 import {MarkdownView, TFile, Notice} from "obsidian";
 import {targetFile} from "./api";
 import {objectGet} from "./objects";

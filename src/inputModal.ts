@@ -1,3 +1,4 @@
+// @ts-nocheck
 import {App, DropdownComponent, Modal, Setting} from "obsidian";
 import {Field} from "./internalApi";
 

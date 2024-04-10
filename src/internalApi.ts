@@ -187,8 +187,3 @@ export function log(funcName: string, message: string, ...exteraData: any[]) {
 	new Notice(text, 10_000)
 }
 
-export function isFileNotation(path: string) {
-	if (path.startsWith('[[') && path.endsWith(']]')) return true
-	return /\.(js|md)$/.test(path);
-
-}

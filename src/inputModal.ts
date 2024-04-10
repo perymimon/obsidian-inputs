@@ -4,7 +4,9 @@ import {Field} from "./internalApi";
 export default class extends Modal {
 	result: string;
 	chanchesPairs:{ value: string, field: Field }[] =  new Set()
-	pageInlineFields = []
+	pageFields = []
+	indexs:number[]
+	setting
 
 	resolve = (a: any) => {
 	}
@@ -16,45 +18,25 @@ export default class extends Modal {
 		this.reject = onRejected
 	}
 
-	setting
 
-	constructor(app: App, pageFields: Field[], indexes = []) {
+	constructor(app: App, pageFields: Field[], indexs = []) {
 		super(app);
 		// this.pairs.push({key, value})
-		this.pageInlineFields = pageFields
-		const {contentEl} = this;
+		this.pageFields = pageFields
+		this.indexs = indexs
+		this.generateUI()
 
+	}
+	generateUI(){
+		const {contentEl} = this;
+		contentEl.empty();
 		contentEl.createEl("h1", {text: "What's your mind?"});
 
 		new Setting(contentEl)
 			.setName('Update inline field')
 
-		for (let index of indexes) {
-			let field = pageFields[Number(index)]
-			let setting = new Setting(contentEl)
-				.setName(field.key || 'not selected')
-				.setDesc(`offset ${field.offset[0]}, ${field.outerField}`)
-				.addDropdown((dropdown: DropdownComponent) => {
-					for (let [index, field] of pageFields.entries()) {
-						dropdown.addOption(String(index), field.key)
-					}
-					dropdown.setValue(String(index))
-					dropdown.onChange((index: string) => {
-						let field = pageFields[Number(index)]
-						// dropdown.setValue(String(index))
-						setting
-							.setName(field.key)
-							.setDesc(`offset ${field.offset[0]}, ${field.outerField}`)
-					})
-				})
-				.addText((text) => {
-					text
-						.setValue(field.value)
-						.onChange((value) => {
-							field.value = value
-							this.chanchesPairs.add(field)
-						})
-				});
+		for (let index of this.indexs) {
+			this.createFieldInput(index)
 		}
 
 
@@ -68,10 +50,34 @@ export default class extends Modal {
 						this.close();
 					})
 			})
-
-		return this
 	}
 
+	createFieldInput(index:number){
+		var {contentEl, pageFields} = this
+		var field = pageFields[index]
+		new Setting(contentEl)
+			.setName(field.key || 'not selected')
+			.setDesc(`offset ${field.offset[0]}, ${field.outerField}`)
+			.addDropdown((dropdown: DropdownComponent) => {
+				for (let [index, field] of pageFields.entries()) {
+					dropdown.addOption(String(index), field.key)
+				}
+				dropdown.setValue(String(index))
+				dropdown.onChange((newIndex: string) => {
+					var i = this.indexs.indexOf(index)
+					this.indexs.splice(i,1, newIndex)
+					this.generateUI()
+				})
+			})
+			.addText((text) => {
+				text
+					.setValue(field.value)
+					.onChange((value) => {
+						field.value = value
+						this.chanchesPairs.add(field)
+					})
+			});
+	}
 
 	onOpen() {
 		return this

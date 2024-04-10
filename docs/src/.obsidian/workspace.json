@@ -6,7 +6,7 @@
       {
         "id": "796caff36feef55e",
         "type": "tabs",
-        "dimension": 50.06345177664975,
+        "dimension": 48.73096446700508,
         "children": [
           {
             "id": "56566bf01fd9cd11",
@@ -38,7 +38,7 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Introduction.md",
+                "file": "API for Expression.md",
                 "mode": "source",
                 "source": false
               }
@@ -50,56 +50,8 @@
       {
         "id": "348ec6eb393b2907",
         "type": "tabs",
-        "dimension": 49.93654822335025,
+        "dimension": 51.26903553299492,
         "children": [
-          {
-            "id": "37727ab9c58af2b8",
-            "type": "leaf",
-            "state": {
-              "type": "markdown",
-              "state": {
-                "file": "Introduction.md",
-                "mode": "source",
-                "source": false
-              }
-            }
-          },
-          {
-            "id": "86becb8680bf37bb",
-            "type": "leaf",
-            "state": {
-              "type": "markdown",
-              "state": {
-                "file": "learn in the process.md",
-                "mode": "source",
-                "source": false
-              }
-            }
-          },
-          {
-            "id": "6c7dc42db77d4b84",
-            "type": "leaf",
-            "state": {
-              "type": "markdown",
-              "state": {
-                "file": "Introduction.md",
-                "mode": "preview",
-                "source": false
-              }
-            }
-          },
-          {
-            "id": "c8e370d8d2ec327f",
-            "type": "leaf",
-            "state": {
-              "type": "markdown",
-              "state": {
-                "file": "Settings.md",
-                "mode": "source",
-                "source": false
-              }
-            }
-          },
           {
             "id": "9a44a47637b79c5f",
             "type": "leaf",
@@ -107,6 +59,18 @@
               "type": "markdown",
               "state": {
                 "file": "Global API and Context.md",
+                "mode": "source",
+                "source": false
+              }
+            }
+          },
+          {
+            "id": "5ba2548cfb5a45fb",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "Input notation syntax.md",
                 "mode": "source",
                 "source": false
               }
@@ -178,7 +142,7 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "Introduction.md",
+                "file": "Global API and Context.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -195,7 +159,7 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "Introduction.md",
+                "file": "Global API and Context.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               }
@@ -218,7 +182,7 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "Introduction.md"
+                "file": "Global API and Context.md"
               }
             }
           }
@@ -239,18 +203,19 @@
       "command-palette:Open command palette": false
     }
   },
-  "active": "9c72c13d74537529",
+  "active": "9a44a47637b79c5f",
   "lastOpenFiles": [
-    "Syntax.md",
     "API for Expression.md",
-    "Introduction.md",
-    "learn in the process.md",
+    "API.md",
+    "Global API and Context.md",
+    "Input notation syntax.md",
     "SUMMARY.md",
+    "Settings.md",
+    "Pasted image 20240328003625.png",
+    "learn in the process.md",
+    "Introduction.md",
     "How to install.md",
     "what next.md",
-    "Pasted image 20240328003240.png",
-    "Pasted image 20240328003625.png",
-    "Global API and Context.md",
-    "Settings.md"
+    "Pasted image 20240328003240.png"
   ]
 }

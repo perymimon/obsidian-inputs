@@ -6,7 +6,7 @@
 - [ ] Support for memory target
 - [x] add new placeholder syntax with @@ or something not paired like `{{}}`
 - [ ] improve reloading or disable of the plugin . remove global callbacks
-- [ ] Inline field auto update the closes one when there is multi field with same name
+- [x] Inline field auto update the closes one when there is multi field with same name
 - [ ] `import` must be before try to import a file in `decodeAndRun`
 - [ ] syntax highlight Input Notation
 - [x] implement rename for file
@@ -16,14 +16,20 @@
 - [ ] implement multi Input Notation in-one code Input block
 - [ ] add basic documentation for API functions
 - [ ] share core function also in the scope of file or eval-expertion
-- [ ] fix: file rename value are relative to target file
-	- [ ] . `/path` is mean path be absolute.
-	- [ ] `../path` get one folder back .
-	- [ ] `./path` do not do anything
+- [x] fix: file rename value are relative to target file
+	- [x] . `/path` is mean path be absolute.
+	- [x] `../path` get one folder back .
+	- [x] `./path` do not do anything
 - [ ] build screen to show data of page (and context file)
 	- [ ] add to that page all api function
 - [x] make it work on mobile
 - [ ] upload this doc to google doc
-- [ ] tell GPT to write Relese note
-- [ ] add new type of syntax variable that create inline input in the result
-- [ ] add by me coffee or patirun to this list
+- [ ] tell GPT to write Release note
+- [x] add new type of syntax variable that create inline input in the result
+	- [ ] add to that syntax a way to show input to set that inline-field
+- [ ] add by me coffee or Patrion to this list
+- [ ] new Type of input : markdown Editor 
+- [ ] make List a type of source
+- [ ] make a list as type of target
+- [ ] click on inlineField open a popup with `clear` `delete` and `set` value
+- [ ] 

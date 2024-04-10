@@ -1,2 +1,2 @@
 - `global` are not exist on mobile `globalThis`  yes
-- 
+-  `string.match` can get string as argument . that string converted to Regext like `new Regext(string)`

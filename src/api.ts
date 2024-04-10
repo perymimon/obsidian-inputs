@@ -3,12 +3,18 @@ import {TFile, moment} from "obsidian";
 import {setPrototype} from "./objects";
 import * as api from './api';
 import {
-	getActiveFile, isFileNotation, log, parserTarget, addToContextList,
+	getActiveFile, log, parserTarget, addToContextList,
 	Target
 } from "./internalApi";
 import {stringTemplate} from "./strings";
 import {Priority} from "./types";
-import {getFreeFileName, waitFileIsReady, markFileAsDirty, getTFileContent} from "./files";
+import {
+	getFreeFileName,
+	waitFileIsReady,
+	markFileAsDirty,
+	getTFileContent,
+	isFileNotation
+} from "./files";
 import {quickFile, quickHeader, quickText, setFrontmatter, setInlineField} from "./quicky.ts";
 import {executeCode, importJs} from "./jsEngine";
 
@@ -49,17 +55,12 @@ export async function updateFile(path: targetFile, content: string) {
 	addToContextList(tFile, lastTouchFiles)
 }
 
-export function getTFileIfExist(path: string): TFile | null {
-	path = (path.startsWith('[[') && path.endsWith(']]')) ? path.slice(2, -2) : path
-	let tFile = app.metadataCache.getFirstLinkpathDest(path, "")
-	return tFile;
-}
-
 export function getTFile(path?: targetFile): TFile {
 	if (path instanceof TFile) return path as TFile;
 	path = (path || '').trim()
 	if (!path || path == 'activeFile') return getActiveFile()
-	return getTFileIfExist(path)
+	path = (path.startsWith('[[') && path.endsWith(']]')) ? path.slice(2, -2) : path
+	return app.metadataCache.getFirstLinkpathDest(path, "")
 }
 
 export async function letTFile(path?: targetFile): Promise<TFile> {
@@ -147,18 +148,20 @@ type decodeAndRunOpts = {
 	priority?: Priority | string,
 	vars?: {},
 	file?: targetFile,
-	literalExpression?: boolean
-	notImport?: boolean,
-	allowImportedLinks?: boolean
+	// literalExpression?: boolean
+	// notImport?: boolean,
+	// allowImportedLinks?: boolean
 }
 
 export async function decodeAndRun(expression: string | undefined, opts: decodeAndRunOpts = {}) {
 	if (!expression || expression.trim() == '') return ''
-	const {vars = {}, file, literalExpression = false, allowImportedLinks = true} = opts
+	const {vars = {}, file} = opts
 	var result = '', type = ''
+
 	try {
-		if (literalExpression) throw 'ask for literal expression string'
-		imported: if (allowImportedLinks) {
+		var importTest = /^\s*import\s*/gm
+		imported: if (importTest.test(expression)) {
+			expression = expression.replace(importTest, '')
 			if (!isFileNotation(expression)) break imported
 			var tFile = getTFile(expression)
 			if (!tFile) break imported

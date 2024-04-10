@@ -77,3 +77,8 @@ export async function removeFile(path: targetFile) {
 	if (!tFile) return
 	await app.vault.trash(tFile!, false)
 }
+export function isFileNotation(path: string) {
+	if (path.startsWith('[[') && path.endsWith(']]')) return true
+	return /\.(js|md)$/.test(path);
+
+}

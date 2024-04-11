@@ -9,8 +9,8 @@
 		"version": "node version-bump.mjs && git add manifest.json versions.json",
 		"bump-patch": "npm version patch && node scripts/update-manifest.js",
 		"bump-minor ": "npm version patch",
-		"doc-dev": "mdbook serve docs --open",
-		"doc-build": "mdbook build docs"
+		"doc-dev": "mdbook serve docsrc --open",
+		"doc-build": "mdbook build docsrc"
 	},
 	"keywords": [],
 	"author": "Pery mimon",

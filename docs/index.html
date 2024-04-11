@@ -1,0 +1,279 @@
+<!DOCTYPE HTML>
+<html lang="en" class="light" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Introduction - Obsidian Inputs</title>
+
+
+        <!-- Custom HTML head -->
+        
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon.svg">
+        <link rel="shortcut icon" href="favicon.png">
+        <link rel="stylesheet" href="css/variables.css">
+        <link rel="stylesheet" href="css/general.css">
+        <link rel="stylesheet" href="css/chrome.css">
+        <link rel="stylesheet" href="css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+        <link rel="stylesheet" href="ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+
+    </head>
+    <body class="sidebar-visible no-js">
+    <div id="body-container">
+        <!-- Provide site root to javascript -->
+        <script>
+            var path_to_root = "";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            var html = document.querySelector('html');
+            html.classList.remove('light')
+            html.classList.add(theme);
+            var body = document.querySelector('body');
+            body.classList.remove('no-js')
+            body.classList.add('js');
+        </script>
+
+        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            var body = document.querySelector('body');
+            var sidebar = null;
+            var sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+            }
+            sidebar_toggle.checked = sidebar === 'visible';
+            body.classList.remove('sidebar-visible');
+            body.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <div class="sidebar-scrollbox">
+                <ol class="chapter"><li class="chapter-item expanded "><a href="intro/introduction.html" class="active"><strong aria-hidden="true">1.</strong> Introduction</a></li><li class="chapter-item expanded "><a href="intro/how-to-install.html"><strong aria-hidden="true">2.</strong> how to install</a></li><li class="chapter-item expanded "><a href="intro/input-notation-syntax.html"><strong aria-hidden="true">3.</strong> Input notation syntax</a></li><li class="chapter-item expanded "><a href="intro/small-examples.html"><strong aria-hidden="true">4.</strong> small examples</a></li><li class="chapter-item expanded "><a href="intro/expression-and-target.html"><strong aria-hidden="true">5.</strong> about expression and target</a></li></ol>
+            </div>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <!-- Track and set sidebar scroll position -->
+        <script>
+            var sidebarScrollbox = document.querySelector('#sidebar .sidebar-scrollbox');
+            sidebarScrollbox.addEventListener('click', function(e) {
+                if (e.target.tagName === 'A') {
+                    sessionStorage.setItem('sidebar-scroll', sidebarScrollbox.scrollTop);
+                }
+            }, { passive: true });
+            var sidebarScrollTop = sessionStorage.getItem('sidebar-scroll');
+            sessionStorage.removeItem('sidebar-scroll');
+            if (sidebarScrollTop) {
+                // preserve sidebar scroll position when navigating via links within sidebar
+                sidebarScrollbox.scrollTop = sidebarScrollTop;
+            } else {
+                // scroll sidebar to current active section when navigating via "next/previous chapter" buttons
+                var activeSection = document.querySelector('#sidebar .active');
+                if (activeSection) {
+                    activeSection.scrollIntoView({ block: 'center' });
+                }
+            }
+        </script>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </label>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Obsidian Inputs</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="introduction-obsidian-inputs"><a class="header" href="#introduction-obsidian-inputs">Introduction Obsidian-Inputs</a></h1>
+<p>Existing Obsidian plugins for creating input components suffer from instability and long loading times due to reliance on complex libraries .
+This issue is significant because it directly affects your experience and workflow efficiency within ObsidianMD. Instability and slow loading times can frustrate you and hinder your productivity.</p>
+<p>The Obsidian-Inputs plugin aim to be a epic small Lightweight that offers a convenient inline-code pattern for creating input and button components within ObsidianMD's preview mode. These components dynamically modify actual markdown files, bridging the gap between the HTML view and the markdown file being edited. And in the result ensures long-term readability even if Obsidian or plugin that you depend on stops working.</p>
+<p>The motivation behind developing this plugin stemmed from dissatisfaction with existing plugins due to their instability and quirk bugs and in not help that they havvy on spin on obsidian. elso when I try to make a simple pattern like "create a file from template and put note about it on my daily" i found it super complex and involve mingling between plugins</p>
+<p>Despite being in its early stages, this plugin boasts a range of features and has the potential to replace multiple existing plugins. Notably, it maintains an average loading time impact of approximately <strong>10ms</strong>.</p>
+<h2 id="principles-guiding-the-plugins-development"><a class="header" href="#principles-guiding-the-plugins-development">Principles Guiding the Plugin's Development</a></h2>
+<ul>
+<li>Data should changes within markdown files for compatibility with diverse markdown readers. and not in any other setting.json\data.json files.</li>
+<li>Emphasize simplicity and user-friendliness syntax. that should easy to read and Understand even if you're read it in the future and not a remember the syntax any more.</li>
+<li>Syntax designed to be easy to write
+<ul>
+<li>Avoiding bidirectional closing parts like parentheses that make you play around with your keyboard. And it is nightmare with bidirectional language</li>
+</ul>
+</li>
+<li>Avoidance reliance on external libraries to maintain negligible average load times.</li>
+<li>Obsidian have enough api to play with, and we should use a simple html element so all the users can style it easily with a there css file</li>
+</ul>
+<h2 id="plugin-capabilities"><a class="header" href="#plugin-capabilities">Plugin Capabilities</a></h2>
+<p><code>inputs</code> plugin design to replace a lot of components that update the documents file and provide:</p>
+<ul>
+<li><strong>Input/Button Creation:</strong> Easily create text inputs, text-areas, radio inputs, and buttons.</li>
+<li><strong>Markdown Text Modification:</strong> Update Markdown text within documents effortlessly, including
+<ul>
+<li>headers and their content,</li>
+<li>dataview-inline-field,</li>
+<li>frontmatter field</li>
+</ul>
+</li>
+<li><strong>File Operations:</strong> Automatically create new files and perform various file operations such as replacing, appending/prepending content, removing, or renaming files.</li>
+<li><strong>Macro Creation:</strong> Create macros to automate steps, allowing easy referencing of previous step results or files in subsequent steps.</li>
+</ul>
+<h3 id="input-sources"><a class="header" href="#input-sources">Input Sources:</a></h3>
+<p>If you want a autocomplete list or static list of option for your input the plugin give you the ability to
+retrieve options from Dataview queries list or input them manually.</p>
+<h3 id="context-modification"><a class="header" href="#context-modification">Context Modification:</a></h3>
+<ul>
+<li><strong>File Operations:</strong> Create, modify, rename, or remove files.</li>
+<li><strong>Header Manipulation:</strong> Create, modify, rename, or remove headers within files.</li>
+<li><strong>Front Matter Management:</strong> Manage front matter fields, including creation, update, and modification (support Array)</li>
+<li><strong>Inline Field Interaction (Dataview):</strong> Interact with inline fields, including creation, update, and modification.</li>
+<li><strong>pattern:</strong> use the input pattern himself as a pivot point to append,prepend value or replace the pattern Completely with the new value make it one time use</li>
+</ul>
+<h3 id="planned-enhancements"><a class="header" href="#planned-enhancements">Planned Enhancements:</a></h3>
+<ul>
+<li>Future releases will introduce additional features and capabilities to further enhance functionality.</li>
+<li>The plugin facilitates writing concise explanations, incorporating variables from within or across pages for enhanced flexibility and efficiency.</li>
+</ul>
+<h1 id="terminology"><a class="header" href="#terminology">Terminology</a></h1>
+<ul>
+<li>The terms "page" and "file" are used interchangeably.</li>
+<li>Actual plugin syntax written on the page is referred to as input <code>notation</code> or <code>pattern</code>.</li>
+<li>Components encompass all UI elements created by the plugin, including inputs and buttons.</li>
+</ul>
+<p>For more detailed syntax information, refer to the <a href="https://chat.openai.com/c/bf891b2f-d195-4145-a9de-d44455b0bddd#">Syntax Documentation</a></p>
+<h2 id="screenshoots"><a class="header" href="#screenshoots">Screenshoots:</a></h2>
+<pre><code>![[Pasted image 20240328003625.png]]
+</code></pre>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+
+                            <a rel="next prefetch" href="intro/how-to-install.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+
+                    <a rel="next prefetch" href="intro/how-to-install.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr.min.js"></script>
+        <script src="mark.min.js"></script>
+        <script src="searcher.js"></script>
+
+        <script src="clipboard.min.js"></script>
+        <script src="highlight.js"></script>
+        <script src="book.js"></script>
+
+        <!-- Custom JS scripts -->
+
+
+    </div>
+    </body>
+</html>

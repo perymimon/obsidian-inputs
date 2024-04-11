@@ -1,0 +1,365 @@
+<!DOCTYPE HTML>
+<html lang="en" class="light" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>about expression and target - Obsidian Inputs</title>
+
+
+        <!-- Custom HTML head -->
+        
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../favicon.svg">
+        <link rel="shortcut icon" href="../favicon.png">
+        <link rel="stylesheet" href="../css/variables.css">
+        <link rel="stylesheet" href="../css/general.css">
+        <link rel="stylesheet" href="../css/chrome.css">
+        <link rel="stylesheet" href="../css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="../fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="../highlight.css">
+        <link rel="stylesheet" href="../tomorrow-night.css">
+        <link rel="stylesheet" href="../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+
+    </head>
+    <body class="sidebar-visible no-js">
+    <div id="body-container">
+        <!-- Provide site root to javascript -->
+        <script>
+            var path_to_root = "../";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            var html = document.querySelector('html');
+            html.classList.remove('light')
+            html.classList.add(theme);
+            var body = document.querySelector('body');
+            body.classList.remove('no-js')
+            body.classList.add('js');
+        </script>
+
+        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            var body = document.querySelector('body');
+            var sidebar = null;
+            var sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+            }
+            sidebar_toggle.checked = sidebar === 'visible';
+            body.classList.remove('sidebar-visible');
+            body.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <div class="sidebar-scrollbox">
+                <ol class="chapter"><li class="chapter-item expanded "><a href="../intro/introduction.html"><strong aria-hidden="true">1.</strong> Introduction</a></li><li class="chapter-item expanded "><a href="../intro/how-to-install.html"><strong aria-hidden="true">2.</strong> how to install</a></li><li class="chapter-item expanded "><a href="../intro/input-notation-syntax.html"><strong aria-hidden="true">3.</strong> Input notation syntax</a></li><li class="chapter-item expanded "><a href="../intro/small-examples.html"><strong aria-hidden="true">4.</strong> small examples</a></li><li class="chapter-item expanded "><a href="../intro/expression-and-target.html" class="active"><strong aria-hidden="true">5.</strong> about expression and target</a></li></ol>
+            </div>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <!-- Track and set sidebar scroll position -->
+        <script>
+            var sidebarScrollbox = document.querySelector('#sidebar .sidebar-scrollbox');
+            sidebarScrollbox.addEventListener('click', function(e) {
+                if (e.target.tagName === 'A') {
+                    sessionStorage.setItem('sidebar-scroll', sidebarScrollbox.scrollTop);
+                }
+            }, { passive: true });
+            var sidebarScrollTop = sessionStorage.getItem('sidebar-scroll');
+            sessionStorage.removeItem('sidebar-scroll');
+            if (sidebarScrollTop) {
+                // preserve sidebar scroll position when navigating via links within sidebar
+                sidebarScrollbox.scrollTop = sidebarScrollTop;
+            } else {
+                // scroll sidebar to current active section when navigating via "next/previous chapter" buttons
+                var activeSection = document.querySelector('#sidebar .active');
+                if (activeSection) {
+                    activeSection.scrollIntoView({ block: 'center' });
+                }
+            }
+        </script>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </label>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Obsidian Inputs</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <p>Syntax for creating input components follows the convention:</p>
+<p><code>&lt;"id"?&gt; &lt;"type"&gt; &lt;":name"&gt; "|" &lt;"expression"&gt; &lt;", opts"&gt; &lt;"&gt;target"&gt;</code></p>
+<h2 id="type"><a class="header" href="#type">"type"</a></h2>
+<p>החלק הזה אחראי על הקומפוננטה שתתרנדר בview.
+שתי האופציות שכרגע נתמכות הן
+text: שמייצר text input, the experstion in this case run after the user unfocus the input
+button: שמייצר button, the expertion in this case run when user click on the input</p>
+<p>צריך לרשום את זה כך
+<code>text:</code> or <code>button:</code></p>
+<h2 id="name"><a class="header" href="#name">":name"</a></h2>
+<p>free text that be the name of the button or the placeholder in the input
+must be end with |</p>
+<h2 id="expression"><a class="header" href="#expression">"expression"</a></h2>
+<p>Expressions undergo evaluation in three steps and can incorporate data from the current or other pages or the last updated file, such as frontmatter fields, dataview inline fields. They can load files as templates or execute JavaScript files or interact with global api.</p>
+<p>Step 1: Utilize pre-processing string template on the <code>expression</code> to replace all placeholders in the format <code>{{path.of.data}}</code> or <code>&amp;path.to.data</code> with corresponding data from frontmatter, inline fields, or file properties.</p>
+<ul>
+<li>If the property exist on frontmatter and elso on dataview-inline-field the priority is by the target type. if target type is frontmatter priority is to read from frontmatter and if it inline-field priority is inline-field</li>
+<li>If the data to inject is a tFile, it's replaced by an Obsidian link (by setting, default: wiki link).</li>
+<li>The last ten files touched by the plugin are referred to as <code>page0</code> to <code>page9</code>. you can refer them and there variable like
+<code>{{ page0.book-name }}</code></li>
+<li>while the last ten files created by the plugin are called <code>new0</code> to <code>new9</code>
+<code>{{ new2.book-name }}</code></li>
+<li>you can refer any file and read it data by using <code>[[file-name]]</code> syntax
+<code>{{ [[harry potter]].book-name }}</code></li>
+<li>Current file is refer by using the name <code>activeFile</code>, most time it can omit, because default context always being to current active file.</li>
+</ul>
+<p>Step 2: After Step 1, the evaluated expression undergoes content testing.</p>
+<p>If the expression matches the pattern <code>import [[file name]]</code>:</p>
+<ul>
+<li>If the file name ends with <code>.md</code>, its content is loaded and processed using the templater, with the result sent to the target.</li>
+<li>If the file name ends with <code>.js</code>, it's imported as a JavaScript module, enabling the use of all Obsidian-Inputs API functions. The <code>export default</code> value is sent to the target. If it's undefined, the target part is not executed.</li>
+<li>If an <strong>error occurs</strong> during templater or JavaScript module import, it's displayed in the developer console.</li>
+</ul>
+<p>Step 3: If the expression doesn't match the import pattern, it's evaluated as a JavaScript expression, and the return value is sent to the target.</p>
+<p>Step 4: If the expression throws an error, it's considered plaintext and sent to the target as is.
+and that is you way to write arbitrary text to the target</p>
+<h2 id="-target"><a class="header" href="#-target">"&gt; target"</a></h2>
+<p>After the &gt; symbol, the target part specifies the area to be modified by the expression value. It is constructed with the following sub-pattern:</p>
+<p><code>&lt;"file"?&gt;&lt;"(::|#|:)path"?&gt;&lt;" method"&gt;</code></p>
+<p>by combine <code>file</code> <code>path</code> the plugin define the type of the entity that should be modified, <code>target type</code> can be <code>file</code>, <code>header</code>, dataview inline <code>field</code>, frontmatter or <code>yaml</code>, <code>pattern</code> himself</p>
+<ul>
+<li>
+<p><code>&lt;"file"?&gt;</code> Optional,Specifies the name of the file or page to be modified.</p>
+<ul>
+<li>If no <code>file</code> is provided, it refers to the current active file.</li>
+<li>If the file does not exist, it is created. Otherwise, it is modified.</li>
+<li>If no next part <code>path</code> is omitted, targetType is the file himself.</li>
+</ul>
+</li>
+<li>
+<p><code>&lt;"(::|#|:)path"&gt;</code></p>
+<ul>
+<li>
+<p><code>::path</code>: Specifies the targetType as an inline field in the target file.</p>
+<ul>
+<li>In the case of multiple fields by the same name the closer one to the pattern will be chosen</li>
+</ul>
+</li>
+<li>
+<p><code>:path</code> - Specifies the targetType as <code>YAML</code> in the front matter of the target file.</p>
+</li>
+<li>
+<p><code>#path</code> - Specifies the targetType as a <code>header</code> in the target file.</p>
+<ul>
+<li>when mention header name you should ignore <code>input pattern</code> if you write it in the same line of the header. so the next line should work</li>
+<li>
+<h2 id="book-list-text-add--just-read-input-book-list"><a class="header" href="#book-list-text-add--just-read-input-book-list">book list <code>text: add | just read &amp;input &gt;#book list </code></a></h2>
+</li>
+</ul>
+</li>
+<li>
+<p>if no <code>file</code> or <code>path</code> provide the <code>targetType</code> is <code>pattern</code> which use the current <code>input-pattern</code> as context</p>
+</li>
+</ul>
+</li>
+<li>
+<p><code>&lt;" method"&gt;</code> followed by space there is the method that can be one of the next actions. the meaning of the action change a little by the <code>targetType</code></p>
+<ul>
+<li><strong>append</strong>
+<ul>
+<li>for <code>inline field</code> and <code>yaml</code> it convert the value to array (if is not) and append the new value to end of the array.</li>
+<li>for <code>header</code> it append the value after the last line of the header content (the not empty line before the next header )</li>
+<li>for <code>file</code> it append the value to bottom of the file</li>
+<li>for <code>pattern</code> it add the value after the <code>input-pattern</code></li>
+</ul>
+</li>
+<li><strong>replace</strong>
+<ul>
+<li>for <code>inline field</code> and <code>yaml</code> it replace the curent value (or array) with the new value</li>
+<li>for <code>header</code> it repace the whol header content with new value</li>
+<li>for <code>file</code> It replaced the whole file with the new value</li>
+<li>for <code>pattern</code> It replaced the whole input pattern with the new value so it actually deleted it
+<ul>
+<li>caution: if there is a two or more pattern that look the same it replaced the first one.  To avoid that use the ID section .etc <code>-identify- text:activity| {{input}}&gt; #Activity</code></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><strong>prepend</strong>
+<ul>
+<li>same as <code>append</code> Just add the new value to the start of everything</li>
+</ul>
+</li>
+<li><strong>create</strong>
+<ul>
+<li>for <code>file</code> it created the file. If the file exist it create a new one with increment free number after the name</li>
+</ul>
+</li>
+<li><strong>clear</strong>
+<ul>
+<li>for <code>header</code>, <code>file</code>, <code>inline field</code> and <code>yaml</code> it clear the current value  or content and ignore the new value</li>
+<li>for <code>pattern</code> it clear the text before <code>input-pattern</code> until first <code>inline field</code> in that line. another run of that target clear the value of the <code>inline field</code>, another run remove all text until start of the line</li>
+</ul>
+</li>
+<li><strong>remove:</strong> Deletes the specified target entirely.
+<ul>
+<li>For <code>header</code>, it removes the entire header and its content.</li>
+<li>For <code>file</code>, it deletes the file entirely.</li>
+<li>For <code>inline field</code> and <code>yaml</code>, it removes the current value or content entirely.</li>
+<li>For <code>pattern</code>, it removes the entire input pattern.</li>
+</ul>
+</li>
+<li><strong>rename</strong>
+<ul>
+<li>For <code>file</code>, new value become the new <code>path</code> of target file.
+<ul>
+<li>if <code>file</code> not exist nothing happen</li>
+<li>If <code>path</code> is exist it generate a new <code>path</code> by incrementing index ex. <code>file 0</code>, <code>file 1</code>, etc</li>
+<li>new <code>path</code> is coenacted to exist path of the target file</li>
+<li>but is legit to be started the <code>path</code> with:
+<ul>
+<li><code>\</code> for make the path start from root valut folder</li>
+<li><code>..</code> go one folder back relative target file</li>
+<li><code>.</code> stay in the same place of target file. ( default )</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>For other targets such as <code>inline field</code>, <code>yaml</code>, or <code>header</code>, the <code>rename</code> method is not applicable yet</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../intro/small-examples.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../intro/small-examples.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+            </nav>
+
+        </div>
+
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../elasticlunr.min.js"></script>
+        <script src="../mark.min.js"></script>
+        <script src="../searcher.js"></script>
+
+        <script src="../clipboard.min.js"></script>
+        <script src="../highlight.js"></script>
+        <script src="../book.js"></script>
+
+        <!-- Custom JS scripts -->
+
+
+    </div>
+    </body>
+</html>

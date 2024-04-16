@@ -1,4 +1,4 @@
-// @ts-nocheck
+// @ts-nocheck1
 import {asyncEval, replaceAsync} from "./internalApi";
 import {TFile} from "obsidian";
 import {getFileData} from "./api";
@@ -8,40 +8,52 @@ import {objectGet, setPrototype} from "./objects";
 type Dictionary = { [any: string]: any }
 declare const moment: (...args: any[]) => any;
 
-export async function stringTemplate(template: string, customfields: Dictionary = {}, file?: string | TFile, priority?: Priority): Promise<string> {
-	if (!String.isString(template)) return template;
-	var fileData = await getFileData(file, priority)
-	var fields = setPrototype(customfields, fileData)
-	//&varname or {{varname}}
-	return await replaceAsync(template, /\{\{([^}]+)}}|&(.*?)(?:\s|`|$)/g, async (_, expr0, expr1) => {
-		//exec:arg|mods
-		let [, exec, args, modifiers] = (expr0 || expr1).match(/(.+?)(?::(.*?))?(?:\|(.*?))?\s*$/)
-		var replacement =
-			 modifications[exec]
-			?? await objectGet(fields, exec)
-			?? await asyncEval(exec, fields, modifications, void 0, false)
-				// .catch(e => `<error>${String(e)}</error>`)
-				.catch(e => e)
-
-		let value = typeof replacement == 'function' ? await replacement(...(args?.split(',') ?? [])) : replacement;
-
-		if (modifiers && value instanceof Error) value = ''
-		if (modifiers == 'field') return `[${exec}::${value}]`
-		if (modifiers == 'field-round') return `(${exec}::${value})`
-		// }
-
-		if (value instanceof Error) return `<error>${String(value)}</error>`
-		return value
-	})
-
-}
-
 export const modifications: any = {
 	'@date': (format = 'yyyy-MM-DD') => {
 		return moment().format(format)
 	},
 	'@time': (format = 'HH:mm') => moment().format(format)
 }
+
+function processPattern(exp: string, fields: Dictionary = {}) {
+	let [, exec, arg] = exp.match(/(.+?)(?::(.*?))?\s*$/) ?? []
+	var replacement = modifications[exec] ?? objectGet(fields, exec)
+	var args = arg?.split(',') ?? []
+	var value = typeof replacement == 'function' ? replacement(...args) : replacement;
+	return {value, key: exec}
+}
+
+export async function stringTemplate(template: string, customfields: Dictionary = {}, file?: string | TFile, priority?: Priority): Promise<string> {
+	if (!String.isString(template)) return template;
+	var fileData = await getFileData(file, priority)
+	var fields = setPrototype(customfields, fileData)
+	//&varname or {{varname}}
+	template = template
+		.replaceAll(/\(.*?\)/g, (exp) => {
+			var {value, key} = processPattern(exp.slice(1,-1), fields)
+			return `(${key}::${value ?? ''})`
+		})
+		.replaceAll(/\[.*?\]/g, (exp) => {
+			var {value, key} = processPattern(exp.slice(1,-1), fields)
+			return `[${key}::${value ?? ''}]`
+		})
+
+	return await replaceAsync(template, /\{\{([^}]+)}}|&(.*?)(?:\s|`|$)/g, async (_, expr0, expr1) => {
+		//exec:arg|mods
+		var {value, key} = processPattern(expr0 || expr1, fields)
+		return value ?? await asyncEval(key, fields, modifications, void 0, false)
+			.catch(e => `<error>${String(e)}</error>`)
+			// .catch(e => e)
+
+		// if (modifiers && value instanceof Error) value = ''
+		// if (modifiers == 'field') return `[${exec}::${value}]`
+		// if (modifiers == 'field-round') return `(${exec}::${value})`
+		// if (value instanceof Error) return `<error>${String(value)}</error>`
+		// return value
+	})
+
+}
+
 
 export function spliceString(string: string, index: number, del: number = 0, text: string = '') {
 	return [string.slice(0, index), text, string.slice(index + del)].join('')

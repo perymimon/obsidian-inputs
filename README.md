@@ -1,4 +1,6 @@
-# Obsidian live-form
+# Obsidian live-form 
+
+(docs)[https://perymimon.github.io/obsidian-inputs/]
 
 thid plugin bring you powerfull way to create input and button compontes in the preivew mode that change the real markdown file . (current or other )
 

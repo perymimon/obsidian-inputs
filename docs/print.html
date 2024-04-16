@@ -89,7 +89,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded "><a href="intro/introduction.html"><strong aria-hidden="true">1.</strong> Introduction</a></li><li class="chapter-item expanded "><a href="intro/how-to-install.html"><strong aria-hidden="true">2.</strong> how to install</a></li><li class="chapter-item expanded "><a href="intro/input-notation-syntax.html"><strong aria-hidden="true">3.</strong> Input notation syntax</a></li><li class="chapter-item expanded "><a href="intro/small-examples.html"><strong aria-hidden="true">4.</strong> small examples</a></li><li class="chapter-item expanded "><a href="intro/expression-and-target.html"><strong aria-hidden="true">5.</strong> about expression and target</a></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded "><a href="intro/introduction.html"><strong aria-hidden="true">1.</strong> Introduction</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="intro/expression-and-target.html"><strong aria-hidden="true">1.1.</strong> about expression and target</a></li></ol></li><li class="chapter-item expanded "><a href="intro/how-to-install.html"><strong aria-hidden="true">2.</strong> how to install</a></li><li class="chapter-item expanded "><a href="intro/input-notation-syntax.html"><strong aria-hidden="true">3.</strong> Input notation syntax</a></li><li class="chapter-item expanded "><a href="intro/small-examples.html"><strong aria-hidden="true">4.</strong> small examples</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle">
                 <div class="sidebar-resize-indicator"></div>
@@ -232,68 +232,6 @@ retrieve options from Dataview queries list or input them manually.</p>
 <h2 id="screenshoots"><a class="header" href="#screenshoots">Screenshoots:</a></h2>
 <pre><code>![[Pasted image 20240328003625.png]]
 </code></pre>
-<div style="break-before: page; page-break-before: always;"></div><p>If you're interested in testing the Obsidian-Inputs plugin before it's published in the plugin community, follow these steps:</p>
-<ul>
-<li>Download the plugin files from the repository or source provided by the developer.</li>
-<li>Open ObsidianMD and navigate to the Settings pane.</li>
-<li>Click on the "Community plugins" tab.</li>
-<li>Locate the "Developers" section and click on the "Load plugin" button.</li>
-<li>Select the downloaded plugin files from your local directory.</li>
-<li>Once loaded, the plugin will appear in the list of installed plugins.</li>
-<li>Enable the plugin by toggling the switch next to its name.</li>
-<li>Test the plugin's functionality within ObsidianMD to provide feedback and report any issues to the developer.</li>
-</ul>
-<p>Please note that as this plugin is still in the testing phase and not yet published in the plugin community, it may have limited features and could encounter bugs or errors. Your feedback as a tester is invaluable in helping improve the plugin before its official release.</p>
-<p>If you encounter any issues during the testing process, provide detailed feedback to the developer to assist in troubleshooting and improvement efforts. You can also collaborate with other testers and developers in the ObsidianMD community forums or Discord channels to share experiences and insights.</p>
-<div style="break-before: page; page-break-before: always;"></div><h2 id="input-notation-syntax"><a class="header" href="#input-notation-syntax">Input Notation Syntax:</a></h2>
-<p>Syntax for creating input components follows the convention:</p>
-<p><code>&lt;"-id-"?&gt; &lt;"type"&gt; &lt;":name"&gt; "|" &lt;"expression"&gt; &lt;", opts"&gt; &lt;"&gt;target"&gt;</code></p>
-<p><code>-id-?</code>: Optional identifier for the Component element, aiding in recognition for refocusing or pattern replacement.</p>
-<p><code>type</code>: Specifies the type of the input element, such as <code>text</code>, <code>textarea</code>, or <code>button</code>, followed by a colon <code>:</code>.
-can be:</p>
-<ul>
-<li><code>text</code>: simple text input. it run the expression when it unfocus and value is not empty</li>
-<li><code>button</code>: simple button. it run the expression when click on it</li>
-<li><code>textarea</code>: text area input that fill the screen</li>
-</ul>
-<p><code>:name</code>:  Label of button or placeholder for inputs. indicating the purpose of the input field.</p>
-<p>now <code>|</code>: Pipe symbol separating the introduction part and the actual expiration/target notation.</p>
-<p><code>expression</code>: Expression generating the value to be injected into the target. It could be a string with placeholder, a JS expression, a JS file to import and run or md template file.
-examples:
-- <strong>placeholder:</strong> <code>I read today the book &amp;book-name</code> or <code>I read today the book {{book-name}} </code> can result to <code>I read today the book Harry Potter</code> if somewhere is the page
-<code>[book-name::Harry Potter] exist</code>
-- <strong>JS expression:</strong> <code>number + 1</code> if somewhere is the page <code>[number::2] exist the result to target will be </code>3<code>	- **JS import:**</code>import [[create-book.js]]<code>that import and run</code>create-book.js<code>if it exists in the vault 	- **md import:**</code>import [[create-book.md]]<code> that read and run throw templater</code>create-book.md<code>if it exists in the vault and return the result  see detail [here](../)</code>, opts`: comma separated values for created radio button or dataview query for  create autocomplete input, start with comma</p>
-<p><code>&gt;target</code>: Specifies where and how the value of the expression part is stored or processed. including the target file or context and the method of saving or updating the target.
-Target own mini pattern
-<code>&lt;filename&gt;&lt;type&gt;&lt;path&gt; &lt;method&gt;</code>
-(#|::|:)</p>
-<div style="break-before: page; page-break-before: always;"></div><h2 id="examples-"><a class="header" href="#examples-">Examples :</a></h2>
-<blockquote>
-<p><strong>Example 1: Create a text input element:</strong><br />
-<code>text: Enter your name| {{input}} &gt;::name</code></p>
-<p>value will saved in inline-field called <code>name</code> in the same file. If the field doesn't exist, it's created.</p>
-</blockquote>
-<blockquote>
-<p><strong>Example 2: Create a text area with autocomplete:</strong><br />
-<code>text:select game| {{input}}, = #games &gt;:games append</code></p>
-<p>Creates an input element that autocompletes from a Dataview query of files tagged with #games, appending the value the end of front matter <code>games::</code> key as an array.</p>
-</blockquote>
-<blockquote>
-<p><strong>Example 3: Create a radio input element</strong><br />
-<code>text: Select color| red, blue, green| = #colors &gt;:selectedColor</code></p>
-</blockquote>
-<blockquote>
-<p><strong>Example 4: Creates a button element that increments the inline field number:</strong><br />
-<code>button:click me| (number || 0)+1 &gt;::number</code></p>
-</blockquote>
-<blockquote>
-<p><strong>Example 5: Create a button to delete a specific header:</strong><br />
-<code>button: Delete section| &gt;::file#Section Name remove</code></p>
-</blockquote>
-<blockquote>
-<p><strong>Example 6: same, just clear the header content:</strong><br />
-<code>button: Delete section| &gt;::file#Section Name clear</code></p>
-</blockquote>
 <div style="break-before: page; page-break-before: always;"></div><p>Syntax for creating input components follows the convention:</p>
 <p><code>&lt;"id"?&gt; &lt;"type"&gt; &lt;":name"&gt; "|" &lt;"expression"&gt; &lt;", opts"&gt; &lt;"&gt;target"&gt;</code></p>
 <h2 id="type"><a class="header" href="#type">"type"</a></h2>
@@ -438,6 +376,68 @@ and that is you way to write arbitrary text to the target</p>
 </ul>
 </li>
 </ul>
+<div style="break-before: page; page-break-before: always;"></div><p>If you're interested in testing the Obsidian-Inputs plugin before it's published in the plugin community, follow these steps:</p>
+<ul>
+<li>Download the plugin files from the repository or source provided by the developer.</li>
+<li>Open ObsidianMD and navigate to the Settings pane.</li>
+<li>Click on the "Community plugins" tab.</li>
+<li>Locate the "Developers" section and click on the "Load plugin" button.</li>
+<li>Select the downloaded plugin files from your local directory.</li>
+<li>Once loaded, the plugin will appear in the list of installed plugins.</li>
+<li>Enable the plugin by toggling the switch next to its name.</li>
+<li>Test the plugin's functionality within ObsidianMD to provide feedback and report any issues to the developer.</li>
+</ul>
+<p>Please note that as this plugin is still in the testing phase and not yet published in the plugin community, it may have limited features and could encounter bugs or errors. Your feedback as a tester is invaluable in helping improve the plugin before its official release.</p>
+<p>If you encounter any issues during the testing process, provide detailed feedback to the developer to assist in troubleshooting and improvement efforts. You can also collaborate with other testers and developers in the ObsidianMD community forums or Discord channels to share experiences and insights.</p>
+<div style="break-before: page; page-break-before: always;"></div><h2 id="input-notation-syntax"><a class="header" href="#input-notation-syntax">Input Notation Syntax:</a></h2>
+<p>Syntax for creating input components follows the convention:</p>
+<p><code>&lt;"-id-"?&gt; &lt;"type"&gt; &lt;":name"&gt; "|" &lt;"expression"&gt; &lt;", opts"&gt; &lt;"&gt;target"&gt;</code></p>
+<p><code>-id-?</code>: Optional identifier for the Component element, aiding in recognition for refocusing or pattern replacement.</p>
+<p><code>type</code>: Specifies the type of the input element, such as <code>text</code>, <code>textarea</code>, or <code>button</code>, followed by a colon <code>:</code>.
+can be:</p>
+<ul>
+<li><code>text</code>: simple text input. it run the expression when it unfocus and value is not empty</li>
+<li><code>button</code>: simple button. it run the expression when click on it</li>
+<li><code>textarea</code>: text area input that fill the screen</li>
+</ul>
+<p><code>:name</code>:  Label of button or placeholder for inputs. indicating the purpose of the input field.</p>
+<p>now <code>|</code>: Pipe symbol separating the introduction part and the actual expiration/target notation.</p>
+<p><code>expression</code>: Expression generating the value to be injected into the target. It could be a string with placeholder, a JS expression, a JS file to import and run or md template file.
+examples:
+- <strong>placeholder:</strong> <code>I read today the book &amp;book-name</code> or <code>I read today the book {{book-name}} </code> can result to <code>I read today the book Harry Potter</code> if somewhere is the page
+<code>[book-name::Harry Potter] exist</code>
+- <strong>JS expression:</strong> <code>number + 1</code> if somewhere is the page <code>[number::2] exist the result to target will be </code>3<code>	- **JS import:**</code>import [[create-book.js]]<code>that import and run</code>create-book.js<code>if it exists in the vault 	- **md import:**</code>import [[create-book.md]]<code> that read and run throw templater</code>create-book.md<code>if it exists in the vault and return the result  see detail [here](../)</code>, opts`: comma separated values for created radio button or dataview query for  create autocomplete input, start with comma</p>
+<p><code>&gt;target</code>: Specifies where and how the value of the expression part is stored or processed. including the target file or context and the method of saving or updating the target.
+Target own mini pattern
+<code>&lt;filename&gt;&lt;type&gt;&lt;path&gt; &lt;method&gt;</code>
+(#|::|:)</p>
+<div style="break-before: page; page-break-before: always;"></div><h2 id="examples-"><a class="header" href="#examples-">Examples :</a></h2>
+<blockquote>
+<p><strong>Example 1: Create a text input element:</strong><br />
+<code>text: Enter your name| {{input}} &gt;::name</code></p>
+<p>value will saved in inline-field called <code>name</code> in the same file. If the field doesn't exist, it's created.</p>
+</blockquote>
+<blockquote>
+<p><strong>Example 2: Create a text area with autocomplete:</strong><br />
+<code>text:select game| {{input}}, = #games &gt;:games append</code></p>
+<p>Creates an input element that autocompletes from a Dataview query of files tagged with #games, appending the value the end of front matter <code>games::</code> key as an array.</p>
+</blockquote>
+<blockquote>
+<p><strong>Example 3: Create a radio input element</strong><br />
+<code>text: Select color| red, blue, green| = #colors &gt;:selectedColor</code></p>
+</blockquote>
+<blockquote>
+<p><strong>Example 4: Creates a button element that increments the inline field number:</strong><br />
+<code>button:click me| (number || 0)+1 &gt;::number</code></p>
+</blockquote>
+<blockquote>
+<p><strong>Example 5: Create a button to delete a specific header:</strong><br />
+<code>button: Delete section| &gt;::file#Section Name remove</code></p>
+</blockquote>
+<blockquote>
+<p><strong>Example 6: same, just clear the header content:</strong><br />
+<code>button: Delete section| &gt;::file#Section Name clear</code></p>
+</blockquote>
 
                     </main>
 
@@ -456,6 +456,22 @@ and that is you way to write arbitrary text to the target</p>
 
         </div>
 
+        <!-- Livereload script (if served using the cli tool) -->
+        <script>
+            const wsProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsAddress = wsProtocol + "//" + location.host + "/" + "__livereload";
+            const socket = new WebSocket(wsAddress);
+            socket.onmessage = function (event) {
+                if (event.data === "reload") {
+                    socket.close();
+                    location.reload();
+                }
+            };
+
+            window.onbeforeunload = function() {
+                socket.close();
+            }
+        </script>
 
 
 

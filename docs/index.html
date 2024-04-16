@@ -88,7 +88,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded "><a href="intro/introduction.html" class="active"><strong aria-hidden="true">1.</strong> Introduction</a></li><li class="chapter-item expanded "><a href="intro/how-to-install.html"><strong aria-hidden="true">2.</strong> how to install</a></li><li class="chapter-item expanded "><a href="intro/input-notation-syntax.html"><strong aria-hidden="true">3.</strong> Input notation syntax</a></li><li class="chapter-item expanded "><a href="intro/small-examples.html"><strong aria-hidden="true">4.</strong> small examples</a></li><li class="chapter-item expanded "><a href="intro/expression-and-target.html"><strong aria-hidden="true">5.</strong> about expression and target</a></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded "><a href="intro/introduction.html" class="active"><strong aria-hidden="true">1.</strong> Introduction</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="intro/expression-and-target.html"><strong aria-hidden="true">1.1.</strong> about expression and target</a></li></ol></li><li class="chapter-item expanded "><a href="intro/how-to-install.html"><strong aria-hidden="true">2.</strong> how to install</a></li><li class="chapter-item expanded "><a href="intro/input-notation-syntax.html"><strong aria-hidden="true">3.</strong> Input notation syntax</a></li><li class="chapter-item expanded "><a href="intro/small-examples.html"><strong aria-hidden="true">4.</strong> small examples</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle">
                 <div class="sidebar-resize-indicator"></div>
@@ -237,7 +237,7 @@ retrieve options from Dataview queries list or input them manually.</p>
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
 
-                            <a rel="next prefetch" href="intro/how-to-install.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="intro/expression-and-target.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <i class="fa fa-angle-right"></i>
                             </a>
 
@@ -248,13 +248,29 @@ retrieve options from Dataview queries list or input them manually.</p>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
 
-                    <a rel="next prefetch" href="intro/how-to-install.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="intro/expression-and-target.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <i class="fa fa-angle-right"></i>
                     </a>
             </nav>
 
         </div>
 
+        <!-- Livereload script (if served using the cli tool) -->
+        <script>
+            const wsProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsAddress = wsProtocol + "//" + location.host + "/" + "__livereload";
+            const socket = new WebSocket(wsAddress);
+            socket.onmessage = function (event) {
+                if (event.data === "reload") {
+                    socket.close();
+                    location.reload();
+                }
+            };
+
+            window.onbeforeunload = function() {
+                socket.close();
+            }
+        </script>
 
 
 

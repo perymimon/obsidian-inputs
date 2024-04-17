@@ -1,9 +1,13 @@
-// @ts-nocheck
-import {getStructure, getTFile, targetFile} from "./api";
+// @ts-nocheck1
 import {TFile} from "obsidian";
-import {log} from "./internalApi";
+import {addToContextList, getActiveFile, log} from "./internalApi";
+import {targetFile} from "./types";
+import {getFileStructure, waitFileStructure} from "./fileData";
 
 var app = globalThis.app
+// context
+export const lastTouchFiles: TFile[] = []
+export const lastCreatedFiles: TFile[] = []
 
 export async function getTFileContent(file: targetFile) {
 	var tFile = getTFile(file)
@@ -49,18 +53,10 @@ export function joinPaths(root: string, relative: string): string {
 	return rootArray.join('/');
 }
 
-export async function waitFileIsReady(tFile: TFile) {
-	var time = 10
-	do {
-		await sleep(time)
-		if (time > 2000) throw `more then 2s and the file ${tFile.path} not ready`
-		var data = getStructure(tFile)
-		time *= 2
-	} while (data.dirty)
-}
+
 
 export function markFileAsDirty(tFile: TFile) {
-	var struct = getStructure(tFile)
+	var struct = getFileStructure(tFile)
 	if (struct) struct.dirty = true
 }
 
@@ -82,4 +78,38 @@ export function isFileNotation(path: string) {
 	if (path.startsWith('[[') && path.endsWith(']]')) return true
 	return /\.(js|md)$/.test(path);
 
+}
+
+export async function modifyFileContent(path: targetFile, content: string) {
+	let tFile = await letTFile(path);
+	await app.vault.modify(tFile, content)
+	markFileAsDirty(tFile)
+	await waitFileStructure(tFile)
+	addToContextList(tFile, lastTouchFiles)
+}
+
+export function getTFile(path?: targetFile): TFile {
+	if (path instanceof TFile) return path as TFile;
+	path = (path || '').trim()
+	if (!path || path == 'activeFile') return getActiveFile()
+	path = (path.startsWith('[[') && path.endsWith(']]')) ? path.slice(2, -2) : path
+	return app.metadataCache.getFirstLinkpathDest(path, "")
+}
+
+export async function letTFile(path?: targetFile): Promise<TFile> {
+	let tFile = getTFile(path)
+	if (tFile) return tFile
+	// if (!autoCreate) return null
+	return await createTFile(path)
+}
+
+export async function createTFile(path: targetFile, text: string = '') {
+	var pathName = getFreeFileName(path)
+	var folders = path.split('/').slice(0, -1).join('/')
+	await app.vault.createFolder(folders).catch(_ => _)
+	const tFile = await app.vault.create(pathName, String(text))
+	await waitFileStructure(tFile)
+	addToContextList(tFile, lastCreatedFiles)
+	addToContextList(tFile, lastTouchFiles)
+	return tFile
 }

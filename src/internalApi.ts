@@ -89,7 +89,7 @@ export type Target = {
 	file?: targetFile,
 	targetType: 'yaml' | 'field' | 'header' | 'file' | 'pattern',
 	path: string,
-	method: 'append' | 'prepend' | 'replace' | 'create' | 'remove' | 'clear'
+	method: 'append' | 'prepend' | 'replace' | 'create' | 'remove' | 'clear' | 'rename'
 	pattern: string
 }
 type TargetArray = [string, Target['file'], Target['targetType'], Target['path'], Target['method']]
@@ -125,61 +125,6 @@ export function parsePattern(pattern: string, regexParser): Pattern | null {
 	return pattern.trim().match(regexParser)?.groups as Pattern || null
 }
 
-export type Field = {
-	outerField: string, innerField: string, key: string,
-	value: string, fullKey: string, oldValue: string
-	offset: [number, number],
-	keyOffset: [number, number],
-	valueOffset: [number, number],
-	isRound:boolean,
-	isSquare:boolean,
-}
-
-export function getInlineFields(content: string, key?: string): Field[] {
-	// const regex = /\[\s*(.*?)\s*::(.*?)]|\b(.*?)::(.*?)$|\(\s*(.*?)\s*::(.*?)\)/gm
-	var def = '.*?', freeDef = '[^\\s]+'
-	// const regex = new RegExp(`(\\[)(\\s*${key || def}\\s*)::(.*?)(\\])|(\\()(\\s*${key || def}\\s*)::(.*?)(\\))|()(${key ||freeDef})::(.*?)()$`, 'gm')
-	var cleanContent = cleanString(content, {inlineField: false})
-	const patterns = [
-		new RegExp(`(\\[)(\\s*${key || def}\\s*)::(.*?)(\\])`,'gm'),
-		new RegExp(`(\\()(\\s*${key || def}\\s*)::(.*?)(\\))`,'gm'),
-			new RegExp(`()(${key ||freeDef})::(.*?)()$`,'gm')
-	]
-	const fields: Field[] = [];
-	let match;
-	for(let inlinePattern of patterns){
-		cleanContent = cleanContent.replace(inlinePattern,(...match)=>{
-			const [field] = Array.from(match).filter(Boolean);
-			const index = match.at(-2)
-			var [startOffset, endOffset] = [index, index + field.length]
-			var outerField = content.slice(startOffset, endOffset)
-			var innerField = outerField.replace(/^[(\[]|[)\]]$/g, '')
-			var [fullKey = '', fullValue = ''] = innerField.split('::')
-			let [key, value] = [fullKey, fullValue].map(t => t.trim())
-			let withBracket = !(outerField.length == innerField.length)
-
-			let startKey = startOffset + (withBracket as unknown as number),
-				endKey = startKey + fullKey.length,
-				startValue = endKey + 2,
-				endValue = startValue + fullValue.length
-			fields.push({
-				isRound:outerField[0] == '[',
-				isSquare:outerField[0] == '(',
-				outerField, innerField, key, value, fullKey, oldValue: fullValue,
-				offset: [startOffset, endOffset],
-				keyOffset: [startKey, endKey],
-				valueOffset: [startValue, endValue]
-			})
-			return '_'.repeat(field.length)
-		})
-	}
-	// while ((match = regex.exec(cleanContent)) !== null) {
-	// 	// note to myself: don't take values from clean content
-	//
-	// }
-
-	return fields.sort( (f1,f2)=> f1.offset[0] - f2.offset[0] )
-}
 
 export function log(funcName: string, message: string, ...exteraData: any[]) {
 	var text = `${message} \n( ${funcName} )`;

@@ -1,15 +1,15 @@
-// @ts-nocheck
+// @ts-nocheck1
 import {InputSuggest} from "./InputSuggest";
 import {processPattern, saveValue} from "./api";
 import {parsePattern, parserTarget} from "./internalApi";
 import {PATTERN} from "./main";
 
-var app = globalThis.app
+const app = globalThis.app
 
 
 export function createForm(pattern: string, fields: Record<string, string>) {
 	const formEl = createEl('form', {cls: 'live-form', title: ''})
-	let {options, name} = fields
+	const {options, name} = fields
 	// var targetObject = parserTarget(pattern)
 	formEl.title = pattern
 	const {opts, queries} = parseOptions(options)
@@ -28,8 +28,8 @@ globalThis.document.on('submit', 'form.live-form', e => e.preventDefault())
 // globalThis.document.on('save', 'form.live-form', triggerSave)
 globalThis.document.on('click', 'form.live-form', async (e: MouseEvent, delegateTarget) => {
 	if (e.target!.tagName == 'BUTTON') {
-		var target = parserTarget(delegateTarget.title)
-		var button = e.target!
+		const target = parserTarget(delegateTarget.title)
+		const button = e.target!
 		if (button.name == 'clear') target.method = 'clear'
 		if (button.name == 'remove') target.method = 'remove'
 		target.targetType = 'pattern'
@@ -47,12 +47,12 @@ globalThis.document.on('keydown', 'form.live-form', (e: KeyboardEvent, delegateT
 async function save(e: InputEvent, delegateTarget: HTMLElement) {
 	if (e!.target.value == '') return;
 	if (e!.target.checked == 'false') return;
-	var {value} = e!.target
+	const {value} = e!.target
 	if (e.target.type == 'radio') e.target.checked = false
 	else e.target!.value = ''
 
 	const patterns = delegateTarget.title.trim().split('\n')
-	for (let pattern of patterns) {
+	for (const pattern of patterns) {
 		let {expression, id, target} = parsePattern(pattern, PATTERN)
 		expression = expression.replace(/____+/, `{{input}}`)
 		if (!expression.trim()) expression = '{{input}}'
@@ -70,7 +70,7 @@ async function save(e: InputEvent, delegateTarget: HTMLElement) {
 
 function createInputEl(fields: Record<string, string>, queries: string[]) {
 	const {type, expression, id, name, target} = fields
-	var inputType = type == 'textarea' ? 'textarea' : 'input'
+	const inputType = type == 'textarea' ? 'textarea' : 'input'
 	const inputEl = createEl(inputType, {type})
 	inputEl.style.setProperty('--widther', expression.match(/_/g)?.length || 4)
 	inputEl.id = id
@@ -85,7 +85,7 @@ function createRadioEls(label: string, pairs: Record<string, string>[]) {
 	if (label.trim()) fragment.createEl('label', {text: label + ": "})
 	const name = Date.now()
 	for (const {text, value} of pairs) {
-		let label = fragment.createEl('label')
+		const label = fragment.createEl('label')
 		label.createEl('input', {type: 'radio', attr: {name, value}})
 		label.createSpan({text})
 	}
@@ -93,16 +93,16 @@ function createRadioEls(label: string, pairs: Record<string, string>[]) {
 }
 
 function createHelperButtons() {
-	let divEl = createEl('div', {cls: 'buttons'})
+	const divEl = createEl('div', {cls: 'buttons'})
 
-	let submitEl = divEl.createEl('input', {cls: 'submit', value: 'save', type: 'submit'})
+	const submitEl = divEl.createEl('input', {cls: 'submit', value: 'save', type: 'submit'})
 	submitEl.tabIndex = -1
 
-	let removeBtn = divEl.createEl('button', {title: 'remove', cls: 'close', text: '🗑'})
+	const removeBtn = divEl.createEl('button', {title: 'remove', cls: 'close', text: '🗑'})
 	removeBtn.tabIndex = -1
 	removeBtn.name = 'remove'
 
-	let clearBtn = divEl.createEl('button', {title: 'clear', cls: 'clear', text: '🧹'})
+	const clearBtn = divEl.createEl('button', {title: 'clear', cls: 'clear', text: '🧹'})
 	clearBtn.tabIndex = -1
 	clearBtn.name = 'clear'
 
@@ -118,10 +118,10 @@ function parseOptions(options: string) {
 	for (let opt of options.split(',')) {
 		opt = opt.trim()
 		if (queryPrefix && opt.startsWith(queryPrefix)) {
-			let query = opt.replace(queryPrefix, '')
+			const query = opt.replace(queryPrefix, '')
 			queries.push(query)
 		} else {
-			let [text, value = text] = opt.split(/:/)
+			const [text, value = text] = opt.split(/:/)
 			opts.push({text, value})
 
 		}

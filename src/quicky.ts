@@ -1,41 +1,44 @@
-// @ts-nocheck
-import {Field, getInlineFields, log, Target} from "./internalApi";
+// @ts-nocheck1
+import {log, Target} from "./internalApi";
 import {manipulateValue, sliceRemover, spliceString} from "./strings";
-import {
-	createTFile,
-	getStructure,
-	letTFile,
-	getTFile,
-	updateFile
-} from "./api";
-import {renameFile, removeFile,getTFileContent} from "./files"
+import {renameFile, removeFile, letTFile, getTFile, createTFile, modifyFileContent} from "./files"
 import {TFile} from "obsidian";
 import {objectSet} from "./objects";
+import {Field, targetFile} from "./types";
+import {getFileStructure, getInlineFields} from "./fileData";
 
-export async function setFrontmatter(value, path, method = 'replace', file) {
-	file = await letTFile(file)
-	await app.fileManager.processFrontMatter(file, obj => {
+const app = globalThis.app
+
+export async function setFrontmatter(value: any, path: string, method: Target["method"] = 'replace', file: targetFile) {
+	const tFile = await letTFile(file)
+	await app.fileManager.processFrontMatter(tFile, obj => {
 		return objectSet(obj, path, value, method)
 	})
 }
 
 function getClosesFieldByTargetPattern(target: Target, content: string) {
-	var {path,  pattern} = target
+	var {path, pattern} = target
 	var fieldDescs = getInlineFields(content, path)
 	if (fieldDescs.length) return null
 	var patternOffset = (content).indexOf(pattern)
-	return fieldDescs.map((desc) => {
-		var [s, e] = desc.offset
-		desc.dis = (e > patternOffset) ?
-			Math.abs(s - patternOffset) :
-			Math.abs(e - patternOffset)
 
-		return desc
-	}).sort((a, b) => (a.dis - b.dis)).at(0)
+	var result = fieldDescs.map((desc) => {
+		var [s, e] = desc.offset
+		return {
+			dis: (e > patternOffset) ?
+				Math.abs(s - patternOffset) :
+				Math.abs(e - patternOffset),
+			desc
+		}
+		// @ts-ignore
+	}).sort((a, b) => (a.dis - b.dis))
+		.at(0)
+
+	return result!.desc
 }
 
-export function setInlineField(content:string, value: string, target: Target, field: Field) {
-	const {method = 'replace', file,path} = target
+export function setInlineField(content: string, value: string, target: Target, field: Field) {
+	const {method = 'replace', file, path} = target
 	var tFile = getTFile(file)
 
 	field = field ?? getClosesFieldByTargetPattern(target, content)
@@ -54,7 +57,7 @@ export function setInlineField(content:string, value: string, target: Target, fi
 		newContent = [content.slice(0, startIndex), newField, content.slice(endIndex)].join('')
 	} else { // create field it not exist
 		if (method == 'remove') return content
-		var {frontmatterPosition} = getStructure(tFile)
+		var {frontmatterPosition} = getFileStructure(tFile)
 		var offset = frontmatterPosition?.end.offset + 1 ?? 0
 		newContent = spliceString(content, offset, 0, `[${path}::${value}]\n`)
 		// newContent = [content.slice(0, offset), field, content.slice(offset)].join('\n')
@@ -82,7 +85,7 @@ export function setInlineField(content:string, value: string, target: Target, fi
  * @param target
  * @returns {Promise<string>}
  */
-export function quickText(content:string, text: string, target: Target) {
+export function quickText(content: string, text: string, target: Target) {
 	const {file, pattern, method = 'replace'} = target
 	var escaped = pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 	var eatSpaces = new RegExp(`\`\\s*${escaped}\\s*\``)
@@ -138,7 +141,7 @@ export async function quickFile(text: string, target: Target, createIfNotExist =
 	if (method == 'create') return await createTFile(file, text)
 	if (method == 'remove') return await removeFile(tFile)
 
-	const {frontmatterPosition} = getStructure(tFile);
+	const {frontmatterPosition} = getFileStructure(tFile);
 	var content = await app.vault.read(tFile)
 	var offset = (frontmatterPosition?.end.offset || -1) + 1
 	let lines = content.slice(offset).split("\n");
@@ -148,7 +151,7 @@ export async function quickFile(text: string, target: Target, createIfNotExist =
 	if (method == "replace") lines = [text]
 	if (method == "append") lines.push(text)
 	if (method == "clear") lines.length = 0
-	await updateFile(tFile, lines.join("\n"))
+	await modifyFileContent(tFile, lines.join("\n"))
 	return tFile
 }
 
@@ -161,9 +164,9 @@ export async function quickFile(text: string, target: Target, createIfNotExist =
  * @param text
  * @param target
  */
-export function quickHeader(content:string, text: string, target: Target) {
+export function quickHeader(content: string, text: string, target: Target) {
 	var {file, path, method = 'append', pattern} = target;
-	const {headings = [], frontmatterPosition} = getStructure(file);
+	const {headings = [], frontmatterPosition} = getFileStructure(file);
 	var iHeader = headings?.findIndex((item) => item.heading.replace(`\`${pattern}\``, '').trim() == path.trim());
 	// If header not exist default is to add to start of file,unless method is append
 	if (iHeader == -1) text = `## ${path}\n${text}`;

@@ -4,12 +4,13 @@ import {Priority} from "./types";
 import {setPrototype} from "./objects";
 import {asyncEval} from "./internalApi";
 import * as api from "./api";
+import {getTFile} from "./files";
+var app = globalThis.app
 
 export async function importJs(path: TFile | string): Promise<unknown> {
-	var tFile = await letTFile(path)
+	var tFile = getTFile(path)
 	if (!TFile) throw `${path} file is not exist`
-	path = tFile.path
-	let fullPath = app.vault.adapter.getResourcePath(path);
+	let fullPath = app.vault.adapter.getResourcePath(tFile.path);
 	let timestamp = new Date().getTime();
 	let busterPath = fullPath.replace(/\?.*$/, `?${timestamp}`)
 	return import(busterPath);

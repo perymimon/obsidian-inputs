@@ -1,12 +1,12 @@
-// @ts-nocheck
+// @ts-nocheck1
 import {Plugin, App, TFile, MarkdownPostProcessorContext, Notice} from 'obsidian';
 import {createForm} from "./inputs";
 import {createButton} from "./buttons";
-import {getInlineFields, parsePattern} from "./internalApi";
+import {parsePattern} from "./internalApi";
 import inputModal from './inputModal'
 import {setInlineField} from "./quicky";
-import {getStructure, getTFile, letTFile, updateFile} from "./api";
-import {getTFileContent} from "./files";
+import {getTFile, getTFileContent, modifyFileContent} from "./files";
+import {updateFileStructure} from "./fileData";
 
 export let app: App
 // https://regex101.com/r/FhEQ2Z/1
@@ -23,25 +23,6 @@ export const PATTERN = new RegExp([
 	/\s*(?<target>>.*?)?/,
 	/\s*(?:$|`)/
 ].map(r => r.source).join(''), 'i')
-export type Pattern = {
-	id: string,
-	type: string,
-	name: string,
-	expression: string,
-	options: string,
-	target: string
-}
-
-// update cache with inline-field meta data
-function updateStrucure(file: TFile, content: string, cache: any) {
-	const inlineFields: any[] = getInlineFields(content)
-	const fieldsObject: object = inlineFields.reduce(
-		(obj, line) => (obj[line.key] = line.value, obj), {}
-	)
-	cache.allInlineFields = inlineFields
-	cache.inlineFields = fieldsObject
-	cache.dirty = false
-}
 
 
 export default class InputsPlugin extends Plugin {
@@ -55,7 +36,7 @@ export default class InputsPlugin extends Plugin {
 		this.registerMarkdownPostProcessor(
 			(rootEl: HTMLElement, ctx: MarkdownPostProcessorContext) => {
 				const codesEl = rootEl.findAll('code')
-				for (let codeEl of codesEl) {
+				for (const codeEl of codesEl) {
 					var element = this.postProcess(codeEl.innerText)
 					if (!element) continue
 					codeEl.replaceWith(element)
@@ -71,16 +52,14 @@ export default class InputsPlugin extends Plugin {
 
 		setTimeout(async () => {
 			const mdFiles = app.vault.getMarkdownFiles()
-			for (let tFile of mdFiles) {
+			for (const tFile of mdFiles) {
 				// let content = await getTFileContent(file)
-				let cache = app.metadataCache.getFileCache(tFile)
-				if (!cache) continue
-				const content = await app.vault.cachedRead(tFile)
-				updateStrucure(tFile, content, cache)
+				await updateFileStructure(tFile).catch( e => console.error(e) );
 			}
 		}, 500)
 
-		app.metadataCache.on("changed", updateStrucure)
+		app.metadataCache.on("changed", updateFileStructure)
+		// app.metadataCache.on("resolve", updateStructure)
 
 		// await this.loadSettings();
 		// This adds a settings tab so the user can configure various aspects of the plugin
@@ -89,17 +68,17 @@ export default class InputsPlugin extends Plugin {
 
 	}
 
-	postProcess(source: string) {
-		if (!source.trim()) return null
-		const patterns = source.split("\n").filter((row) => row.trim().length > 0);
+	postProcess(codeSource: string) {
+		if (!codeSource.trim()) return null
+		const patterns = codeSource.split("\n").filter((row) => row.trim().length > 0);
 		const pattern = patterns[0]
 		const fields = parsePattern(pattern, PATTERN)
 		if (!fields?.type) return null;
 		var element: HTMLElement
 		if (fields?.type == 'button') {
-			element = createButton(source, fields)
+			element = createButton(codeSource, fields)
 		} else {
-			element = createForm(source, fields)
+			element = createForm(codeSource, fields)
 		}
 		return element
 	}
@@ -124,10 +103,8 @@ globalThis.document.on('click', '.dataview.inline-field', async (e: MouseEvent, 
 	var root = app!.workspace.activeEditor.contentEl
 	var rootContent = root.querySelector('.markdown-reading-view')
 	var allFieldsEl = Array.from(rootContent.querySelectorAll('.inline-field'))
-	// var {allInlineFields = []} = getStructure(tFile)
 	var tFile = getTFile()
-	var {allInlineFields = [], dirty} = getStructure(tFile)
-	if (dirty) return
+	var {allInlineFields = []} = await updateFileStructure(tFile)
 	var fieldsEl = delegateTarget.matchParent('li')?.querySelectorAll('.inline-field') ?? [delegateTarget];
 	// find index of html element
 	var indexs = Array.from(fieldsEl).map(fieldEl => {
@@ -141,14 +118,13 @@ globalThis.document.on('click', '.dataview.inline-field', async (e: MouseEvent, 
 	let modal = new inputModal(app, allInlineFields, indexs)
 	modal.open()
 	var result = (await modal)
-	var tFile = getTFile()
 	var content = await getTFileContent(tFile)
 	var newContent = content
-	for (let field of result) {
+	for (const field of result) {
 		newContent = setInlineField(newContent, field.value, {file: tFile, method: 'replace'}, field)
 	}
 	if (content == newContent) return
-	await updateFile(tFile, newContent)
+	await modifyFileContent(tFile, newContent)
 
 })
 

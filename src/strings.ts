@@ -16,31 +16,31 @@ export const modifications: any = {
 }
 
 function processPattern(exp: string, fields: Dictionary = {}) {
-	let [, exec, arg] = exp.match(/(.+?)(?::(.*?))?\s*$/) ?? []
-	var replacement = modifications[exec] ?? objectGet(fields, exec)
-	var args = arg?.split(',') ?? []
-	var value = typeof replacement == 'function' ? replacement(...args) : replacement;
+	const [, exec, arg] = exp.match(/(.+?)(?::(.*?))?\s*$/) ?? []
+	const replacement = modifications[exec] ?? objectGet(fields, exec)
+	const args = arg?.split(',') ?? []
+	const value = typeof replacement == 'function' ? replacement(...args) : replacement;
 	return {value, key: exec}
 }
 
-export async function stringTemplate(template: string, customfields: Dictionary = {}, file?: string | TFile, priority?: Priority): Promise<string> {
+export async function stringTemplate(template: string, customFields: Dictionary = {}, file?: string | TFile, priority?: Priority): Promise<string> {
 	if (!String.isString(template)) return template;
-	var fileData = await getFileData(file, priority)
-	var fields = setPrototype(customfields, fileData)
+	const fileData = await getFileData(file, priority)
+	const fields = setPrototype(customFields, fileData)
 	//&varname or {{varname}}
 	template = template
 		.replaceAll(/\(.*?\)/g, (exp) => {
-			var {value, key} = processPattern(exp.slice(1,-1), fields)
+			const {value, key} = processPattern(exp.slice(1,-1), fields)
 			return `(${key}::${value ?? ''})`
 		})
 		.replaceAll(/\[.*?\]/g, (exp) => {
-			var {value, key} = processPattern(exp.slice(1,-1), fields)
+			const {value, key} = processPattern(exp.slice(1,-1), fields)
 			return `[${key}::${value ?? ''}]`
 		})
 
 	return await replaceAsync(template, /\{\{([^}]+)}}|&(.*?)(?:\s|`|$)/g, async (_, expr0, expr1) => {
 		//exec:arg|mods
-		var {value, key} = processPattern(expr0 || expr1, fields)
+		const {value, key} = processPattern(expr0 || expr1, fields)
 		return value ?? await asyncEval(key, fields, modifications, void 0, false)
 			.catch(e => `<error>${String(e)}</error>`)
 			// .catch(e => e)
@@ -55,16 +55,16 @@ export async function stringTemplate(template: string, customfields: Dictionary 
 }
 
 
-export function spliceString(string: string, index: number, del: number = 0, text: string = '') {
+export function spliceString(string: string, index: number, del = 0, text = '') {
 	return [string.slice(0, index), text, string.slice(index + del)].join('')
 }
 
-export function sliceRemover(string: string, indexStart: number, indexEnd: number, inject: string = '') {
+export function sliceRemover(string: string, indexStart: number, indexEnd: number, inject = '') {
 	return [string.slice(0, indexStart), inject, string.slice(indexEnd)].join('')
 }
 
 export function manipulateValue(oldValue: string, value: string, method: string) {
-	var array = oldValue.split(',').map((t: string) => t.trim()).filter(Boolean)
+	let array = oldValue.split(',').map((t: string) => t.trim()).filter(Boolean)
 	switch (method) {
 		case 'replace':
 			array = [value]
@@ -91,7 +91,7 @@ export const typeMap = {
 	time: '⌚'
 }
 
-export function cleanString(string: string, opts = {}) {
+export function cleanString(string: string, opts:Dictionary = {}) {
 	const {
 		wikiLink = true,
 		inlineField = true,
@@ -113,16 +113,16 @@ export function cleanMatch(string: string, matcher: RegExp, opts = {}): string[]
 	const clean = cleanString(string, opts)
 	const orginals = []
 	const matches = matcher.global ? clean.matchAll(matcher) : [clean.match(matcher)]
-	for (let match of matches) {
+	for (const match of matches) {
 		if (!match) continue
 		let len = 0
-		let subMatchIndex = []
+		const subMatchIndex = []
 		subMatchIndex.push([match.index, match.index! + match![0].length])
-		for (let substr of match.slice(1)) {
+		for (const substr of match.slice(1)) {
 			subMatchIndex.push([len, len + (substr || '').length])
 			len += substr.length
 		}
-		let subMatch: string[] = subMatchIndex.map(([str, end]) => string.slice(str, end))
+		const subMatch: string[] = subMatchIndex.map(([str, end]) => string.slice(str, end))
 		orginals.push(subMatch)
 	}
 
@@ -130,13 +130,13 @@ export function cleanMatch(string: string, matcher: RegExp, opts = {}): string[]
 }
 
 export function sliceFrom(string: string, subString: string, include = true) {
-	let i = string.indexOf(subString)
+	const i = string.indexOf(subString)
 	if (i == -1) return ''
 	return string.slice(i + (include ? 0 : subString.length))
 }
 
 export function lastSliceFrom(string: string, subString: string, include = true) {
-	let i = string.lastIndexOf(subString)
+	const i = string.lastIndexOf(subString)
 	if (i == -1) return ''
 	return string.slice(i + (include ? 0 : subString.length))
 }

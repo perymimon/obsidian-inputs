@@ -1,7 +1,8 @@
-// @ts-nocheck
+// @ts-nocheck1
 import {Target} from "./internalApi";
-import {getFileData, getTFile, link} from "./api";
+import {getFileData, link} from "./api";
 import {TFile} from "obsidian";
+import {getTFile} from "./files";
 
 export function deepAssign(target: object, ...sources: any[]) {
 	for (let source of sources) {
@@ -17,9 +18,9 @@ export function deepAssign(target: object, ...sources: any[]) {
 	return target
 }
 
-export function flatObject(obj) {
+export function flatObject(obj:object) {
 	const flatObject = {};
-	const path = []; // current path
+	const path:string[] = []; // current path
 
 	function dig(obj) {
 		if (obj !== Object(obj))
@@ -66,7 +67,7 @@ function unflattenObject(flattenObject) {
  */
 export function objectSet(root:object, path:string, value:any, method:Target["method"] = 'replace') {
 	let paths = path.split(/\[(\w+)\]|\.|\["(\w+)"\]/).filter(Boolean)
-	let obj = root;
+	let obj:object = root;
 	while (paths.length > 1) {
         let p:string = paths.shift()!;
 		obj[p] = typeof obj[p] == 'object' ? obj[p] as any : {};

@@ -2,7 +2,7 @@
 import {TFile} from "obsidian";
 import {addToContextList, getActiveFile, log} from "./internalApi";
 import {targetFile} from "./types";
-import {getFileStructure, waitFileStructure} from "./fileData";
+import {getFileStructure, waitFileStructureReady} from "./fileData";
 
 var app = globalThis.app
 // context
@@ -84,7 +84,7 @@ export async function modifyFileContent(path: targetFile, content: string) {
 	let tFile = await letTFile(path);
 	await app.vault.modify(tFile, content)
 	markFileAsDirty(tFile)
-	await waitFileStructure(tFile)
+	await waitFileStructureReady(tFile)
 	addToContextList(tFile, lastTouchFiles)
 }
 
@@ -108,7 +108,7 @@ export async function createTFile(path: targetFile, text: string = '') {
 	var folders = path.split('/').slice(0, -1).join('/')
 	await app.vault.createFolder(folders).catch(_ => _)
 	const tFile = await app.vault.create(pathName, String(text))
-	await waitFileStructure(tFile)
+	await waitFileStructureReady(tFile)
 	addToContextList(tFile, lastCreatedFiles)
 	addToContextList(tFile, lastTouchFiles)
 	return tFile

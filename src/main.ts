@@ -1,12 +1,12 @@
 // @ts-nocheck1
-import {Plugin, App, TFile, MarkdownPostProcessorContext, Notice} from 'obsidian';
+import {Plugin, App, MarkdownPostProcessorContext, Notice, WorkspaceLeaf, ItemView} from 'obsidian';
 import {createForm} from "./inputs";
 import {createButton} from "./buttons";
 import {parsePattern} from "./internalApi";
-import inputModal from './inputModal'
-import {setInlineField} from "./quicky";
-import {getTFile, getTFileContent, modifyFileContent} from "./files";
-import {updateFileStructure} from "./fileData";
+import {freshFileStructure} from "./fileData";
+import "./ui"
+import {VIEW_TYPE_PAGE_DATA_VIEW} from "./types";
+import PageDataView from "./ui";
 
 export let app: App
 // https://regex101.com/r/FhEQ2Z/1
@@ -29,6 +29,7 @@ export default class InputsPlugin extends Plugin {
 	// settings :MyPluginSettings  = {};
 	settings = {}
 	id = 1;
+	view: ItemView
 
 	async onload() {
 		app = this.app;
@@ -40,6 +41,7 @@ export default class InputsPlugin extends Plugin {
 					var element = this.postProcess(codeEl.innerText)
 					if (!element) continue
 					codeEl.replaceWith(element)
+
 				}
 			}
 		)
@@ -53,19 +55,34 @@ export default class InputsPlugin extends Plugin {
 		setTimeout(async () => {
 			const mdFiles = app.vault.getMarkdownFiles()
 			for (const tFile of mdFiles) {
-				// let content = await getTFileContent(file)
-				await updateFileStructure(tFile).catch( e => console.error(e) );
+				await freshFileStructure(tFile).catch(e => console.error(e));
 			}
 		}, 500)
 
-		app.metadataCache.on("changed", updateFileStructure)
+		app.metadataCache.on("changed", freshFileStructure)
 		// app.metadataCache.on("resolve", updateStructure)
 
 		// await this.loadSettings();
 		// This adds a settings tab so the user can configure various aspects of the plugin
 		// this.addSettingTab(new LiveFormSettingTab(this.app, this));
-		// this.app.workspace.on('editor-change',(editor) => console.log('editor-change', editor) )
+		this.registerView(
+			VIEW_TYPE_PAGE_DATA_VIEW,
+			(leaf: WorkspaceLeaf) => (this.view = new PageDataView(leaf))
+		);
 
+		this.addCommand({
+			id: "show-pageData-view",
+			name: "Open pageData view",
+			checkCallback: (checking: boolean) => {
+				if (checking) {
+					return (
+						this.app.workspace.getLeavesOfType(VIEW_TYPE_PAGE_DATA_VIEW).length === 0
+					);
+				}
+				this.initPageDataViewLeaf();
+			},
+		});
+		app.workspace.onLayoutReady(() => this.initPageDataViewLeaf())
 	}
 
 	postProcess(codeSource: string) {
@@ -87,6 +104,15 @@ export default class InputsPlugin extends Plugin {
 
 	}
 
+	initPageDataViewLeaf() {
+		if (app.workspace.getLeavesOfType(VIEW_TYPE_PAGE_DATA_VIEW).length) {
+			return;
+		}
+		app.workspace.getRightLeaf(false).setViewState({
+			type: VIEW_TYPE_PAGE_DATA_VIEW,
+		});
+	}
+
 	// async loadSettings() {
 	// 	this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
 	// }
@@ -96,35 +122,4 @@ export default class InputsPlugin extends Plugin {
 	// }
 }
 
-
-globalThis.document.on('click', '.dataview.inline-field', async (e: MouseEvent, delegateTarget) => {
-	var mode = app!.workspace.activeEditor.getMode()
-	if (mode == 'source') return
-	var root = app!.workspace.activeEditor.contentEl
-	var rootContent = root.querySelector('.markdown-reading-view')
-	var allFieldsEl = Array.from(rootContent.querySelectorAll('.inline-field'))
-	var tFile = getTFile()
-	var {allInlineFields = []} = await updateFileStructure(tFile)
-	var fieldsEl = delegateTarget.matchParent('li')?.querySelectorAll('.inline-field') ?? [delegateTarget];
-	// find index of html element
-	var indexs = Array.from(fieldsEl).map(fieldEl => {
-		var index = allFieldsEl.indexOf(fieldEl)
-		if (index == -1) return
-		var compensation = allInlineFields.slice(0, index)
-			.filter(field => !(field.isRound || field.isSquare))
-			.length
-		return index + compensation
-	})
-	let modal = new inputModal(app, allInlineFields, indexs)
-	modal.open()
-	var result = (await modal)
-	var content = await getTFileContent(tFile)
-	var newContent = content
-	for (const field of result) {
-		newContent = setInlineField(newContent, field.value, {file: tFile, method: 'replace'}, field)
-	}
-	if (content == newContent) return
-	await modifyFileContent(tFile, newContent)
-
-})
 

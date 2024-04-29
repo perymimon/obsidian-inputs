@@ -23,8 +23,21 @@ export type Pattern = {
 }
 
 export type targetFile = TFile | string
-export type reachStructure = CachedMetadata & {
+export type CachedStructure = CachedMetadata & {
 	allInlineFields?: Field[],
 	dirty:boolean,
 	inlineFields?:object
 }
+
+export type Target = {
+	file?: targetFile,
+	targetType: 'yaml' | 'field' | 'header' | 'file' | 'pattern',
+	path: string,
+	method: 'append' | 'prepend' | 'replace' | 'create' | 'remove' | 'clear' | 'rename'
+	pattern: string
+}
+
+export type fieldUpdate = { value: string, field: Field, method?: Target['method'] }
+
+export const VIEW_TYPE_PAGE_DATA_VIEW = 'page-data'
+export const TRIGGER_PAGE_DATA_OPEN = "page-data:open";

@@ -1,83 +1,107 @@
 // @ts-nocheck
 import {App, DropdownComponent, Modal, Setting} from "obsidian";
 import {Field} from "./internalApi";
+import {fieldUpdate, Target} from "./types";
+
 
 export default class extends Modal {
 	result: string;
-	chanchesPairs:{ value: string, field: Field }[] =  new Set()
 	pageFields = []
-	indexs:number[]
+	workingFields: fieldUpdate[]
+	indexes: number[]
 	setting
 
-	resolve = (a: any) => {
-	}
-	reject = (e: any) => {
-	}
-
-	then(onFulfilled, onRejected) {
-		this.resolve = onFulfilled
-		this.reject = onRejected
-	}
-
-
-	constructor(app: App, pageFields: Field[], indexs = []) {
+	constructor(app: App, pageFields: Field[], indexes:number[] = []) {
 		super(app);
 		// this.pairs.push({key, value})
 		this.pageFields = pageFields
-		this.indexs = indexs
-		this.generateUI()
+		this.indexes = indexes
+		this.workingFields = this.pageFields
+			.map((field) => ({value: field.value, method: 'replace', field}))
+		this.render()
 
 	}
-	generateUI(){
+
+	render() {
 		const {contentEl} = this;
 		contentEl.empty();
 		contentEl.createEl("h1", {text: "What's your mind?"});
+		contentEl.createEl("h3", {text: 'Update inline field'});
 
-		new Setting(contentEl)
-			.setName('Update inline field')
-
-		for (let index of this.indexs) {
+		for (let index of this.indexes) {
 			this.createFieldInput(index)
 		}
 
-
 		new Setting(contentEl)
-			.addButton((btn) => {
-				btn
+			.addButton((btnSubmit) => {
+				var {indexes, workingFields} = this
+				btnSubmit
 					.setButtonText("Submit")
 					.setCta()
 					.onClick(() => {
-						this.resolve(this.chanchesPairs)
+						var changed = indexes.map(i => workingFields[i])
+							.filter(wf => wf.value != wf.field.value)
+						this.resolve(changed)
 						this.close();
 					})
 			})
 	}
 
-	createFieldInput(index:number){
-		var {contentEl, pageFields} = this
-		var field = pageFields[index]
-		new Setting(contentEl)
+	fillWithFieldList(dropDown: DropdownComponent) {
+		for (let [index, field] of this.pageFields.entries()) {
+			dropDown.addOption(String(index), field.key)
+		}
+	}
+
+	createFieldInput(index: number) {
+		var {contentEl, workingFields, indexes} = this
+		var workingField = workingFields[index]
+		var field = workingField.field
+		const settingLine = new Setting(contentEl)
 			.setName(field.key || 'not selected')
 			.setDesc(`offset ${field.offset[0]}, ${field.outerField}`)
-			.addDropdown((dropdown: DropdownComponent) => {
-				for (let [index, field] of pageFields.entries()) {
-					dropdown.addOption(String(index), field.key)
-				}
-				dropdown.setValue(String(index))
-				dropdown.onChange((newIndex: string) => {
-					var i = this.indexs.indexOf(index)
-					this.indexs.splice(i,1, newIndex)
-					this.generateUI()
+			.setClass(`method-${workingField.method}`)
+
+			.addDropdown((changerField: DropdownComponent) => {
+				this.fillWithFieldList(changerField)
+				changerField.setValue(String(index))
+				changerField.onChange((newIndex: string) => {
+					var i = indexes.indexOf(index)
+					indexes[i] = newIndex
+					this.render()
 				})
 			})
+
 			.addText((text) => {
+				text.inputEl.type = 'search'
 				text
-					.setValue(field.value)
+					.setValue(workingField.value)
 					.onChange((value) => {
-						field.value = value
-						this.chanchesPairs.add(field)
+						workingField.value = value
+						workingField.method = 'replace'
+						let parent = text.inputEl.matchParent('.setting-item')
+						parent.classList.remove('method-remove')
+						parent.classList.remove('method-clear')
 					})
-			});
+
+			})
+			.addExtraButton((button) => {
+				button
+					.setIcon('eraser')
+					.onClick(() => {
+						workingField.method = 'clear'
+						this.render()
+					})
+			})
+			.addExtraButton((button) => {
+				button
+					.setIcon('trash-2')
+					.onClick(() => {
+						workingField.method = 'remove'
+						this.render()
+					})
+			})
+
 	}
 
 	onOpen() {
@@ -90,5 +114,14 @@ export default class extends Modal {
 		this.reject('close')
 	}
 
+	resolve = (a: any) => {
+	}
+	reject = (e: any) => {
+	}
+
+	then(onFulfilled, onRejected) {
+		this.resolve = onFulfilled
+		this.reject = onRejected
+	}
 
 }

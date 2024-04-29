@@ -4,7 +4,7 @@ import {setPrototype} from "./objects";
 import * as api from './api';
 import {log, parserTarget, Target} from "./internalApi";
 import {stringTemplate} from "./strings";
-import {Priority, reachStructure, targetFile} from "./types";
+import {Priority, CachedStructure, targetFile} from "./types";
 import {
 	getTFileContent,getTFile,letTFile,
 	isFileNotation, modifyFileContent
@@ -37,22 +37,7 @@ export function duration(start: string, end: string, format = 'HH:mm', as = 'hou
 }
 
 
-/**
- * @param file
- * @param priority 'yaml'|'field'
- */
-export function getFileData(file?: targetFile, priority: Priority = 'field') {
-	const context: any = {}
-	for (let i in lastTouchFiles) context[`page${i}`] = lastTouchFiles[i]
-	for (let i in lastCreatedFiles) context[`new${i}`] = lastCreatedFiles[i]
-	let tFile = getTFile(file)
-	if (!tFile) return context
-	const {frontmatter = {}, inlineFields = {}, dirty} = getFileStructure(tFile)
-	context.dirty = dirty
-	if (priority == 'field') return setPrototype(inlineFields, frontmatter, context)
-	if (priority == 'yaml') return setPrototype(frontmatter, inlineFields, context)
-	return setPrototype(inlineFields, frontmatter, context)
-}
+
 
 // https://github.com/SilentVoid13/Templater/blob/26c35559bd63765f6078d43f6febd53435530741/src/core/Templater.ts#L110
 /**
@@ -168,7 +153,7 @@ export async function saveValue(text: string | number, target: Target) {
 			break
 
 		case 'pattern':
-			newContent = quickText(text, target)
+			newContent = quickText(content, text, target)
 			break
 
 	}

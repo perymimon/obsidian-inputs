@@ -3,6 +3,7 @@ import {InputSuggest} from "./InputSuggest";
 import {processPattern, saveValue} from "./api";
 import {parsePattern, parserTarget} from "./internalApi";
 import {PATTERN} from "./main";
+import {ButtonComponent, setIcon} from "obsidian";
 
 const app = globalThis.app
 
@@ -57,7 +58,6 @@ async function save(e: InputEvent, delegateTarget: HTMLElement) {
 		expression = expression.replace(/____+/, `{{input}}`)
 		if (!expression.trim()) expression = '{{input}}'
 		const {targetObject} = await processPattern(expression, target, pattern, {
-			allowImportedLinks: false,
 			vars: {input: value}
 		})
 
@@ -93,18 +93,25 @@ function createRadioEls(label: string, pairs: Record<string, string>[]) {
 }
 
 function createHelperButtons() {
+
+	// const conenaier = createEl('div', {cls: 'buttons'})
 	const divEl = createEl('div', {cls: 'buttons'})
 
-	const submitEl = divEl.createEl('input', {cls: 'submit', value: 'save', type: 'submit'})
+	const submitEl = divEl.createEl('button', {title: 'submit', cls: 'submit'})
 	submitEl.tabIndex = -1
+	submitEl.name = 'submit'
+	setIcon(submitEl,'hard-drive-download')
 
 	const removeBtn = divEl.createEl('button', {title: 'remove', cls: 'close', text: '🗑'})
 	removeBtn.tabIndex = -1
 	removeBtn.name = 'remove'
+	setIcon(removeBtn,'trash-2')
 
-	const clearBtn = divEl.createEl('button', {title: 'clear', cls: 'clear', text: '🧹'})
-	clearBtn.tabIndex = -1
-	clearBtn.name = 'clear'
+
+	const cleanBtn = divEl.createEl('button', {title: 'erase value', cls: 'erase', text: '🧹'})
+	cleanBtn.tabIndex = -1
+	cleanBtn.name = 'clear'
+	setIcon(cleanBtn,'eraser')
 
 	return divEl
 }

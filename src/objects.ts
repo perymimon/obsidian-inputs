@@ -1,8 +1,9 @@
 // @ts-nocheck1
 import {Target} from "./internalApi";
-import {getFileData, link} from "./api";
+import {link} from "./api";
 import {TFile} from "obsidian";
 import {getTFile} from "./files";
+import {getFileData} from "./fileData";
 
 export function deepAssign(target: object, ...sources: any[]) {
 	for (let source of sources) {

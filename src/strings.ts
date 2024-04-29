@@ -1,9 +1,9 @@
 // @ts-nocheck1
 import {asyncEval, replaceAsync} from "./internalApi";
 import {TFile} from "obsidian";
-import {getFileData} from "./api";
 import {Priority} from "./types";
 import {objectGet, setPrototype} from "./objects";
+import {getFileData} from "./fileData";
 
 type Dictionary = { [any: string]: any }
 declare const moment: (...args: any[]) => any;

@@ -22,3 +22,6 @@
 
 > **Example 6: same, just clear the header content:**  
 > `button: Delete section| >::file#Section Name clear`
+
+> **Example 7: mood tracking**
+> `text:Mood| - (@time) {{input}} [reasone], ☺️,😑,🥰,😎,🤩,🤔,🫥,😮,😏,🤑 >#Activities`

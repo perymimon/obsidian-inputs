@@ -1,10 +1,10 @@
 import {TFile} from "obsidian";
-import {getFileData, letTFile} from "./api";
 import {Priority} from "./types";
 import {setPrototype} from "./objects";
 import {asyncEval} from "./internalApi";
 import * as api from "./api";
 import {getTFile} from "./files";
+import {getFileData} from "./fileData";
 var app = globalThis.app
 
 export async function importJs(path: TFile | string): Promise<unknown> {

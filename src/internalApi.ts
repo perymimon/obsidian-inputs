@@ -1,9 +1,10 @@
-// @ts-nocheck
+// @ts-nocheck1
 import {MarkdownView, TFile, Notice} from "obsidian";
 import {targetFile} from "./api";
 import {objectGet} from "./objects";
 import {Pattern} from "./main";
 import {cleanString, lastSliceFrom} from "./strings";
+import {Target} from "./types";
 
 var app = globalThis.app
 var proxyTFileHandler = {
@@ -85,13 +86,7 @@ export async function replaceAsync(string: string, regexp: RegExp, replacer: rep
 	return string.replace(regexp, () => replacements[i++]);
 }
 
-export type Target = {
-	file?: targetFile,
-	targetType: 'yaml' | 'field' | 'header' | 'file' | 'pattern',
-	path: string,
-	method: 'append' | 'prepend' | 'replace' | 'create' | 'remove' | 'clear' | 'rename'
-	pattern: string
-}
+
 type TargetArray = [string, Target['file'], Target['targetType'], Target['path'], Target['method']]
 
 export function parserTarget(pattern: string = '', defFile: targetFile = ''): Target {
@@ -127,7 +122,7 @@ export function parsePattern(pattern: string, regexParser): Pattern | null {
 
 
 export function log(funcName: string, message: string, ...exteraData: any[]) {
-	var text = `${message} \n( ${funcName} )`;
+	var text = `${message}\n( ${funcName} )`;
 	console.log(text, ...exteraData)
 	new Notice(text, 10_000)
 }

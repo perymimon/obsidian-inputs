@@ -1,10 +1,8 @@
 // @ts-nocheck1
 import {MarkdownView, TFile, Notice} from "obsidian";
-import {targetFile} from "./api";
 import {objectGet} from "./objects";
-import {Pattern} from "./main";
-import {cleanString, lastSliceFrom} from "./strings";
-import {Target} from "./types";
+import {lastSliceFrom} from "./strings";
+import {Pattern, Target, targetFile} from "./types";
 
 var app = globalThis.app
 var proxyTFileHandler = {
@@ -60,7 +58,7 @@ export function getActiveFile(): TFile {
 }
 
 
-export async function asyncEval(code: string, fields = {}, api = {}, priority = 'api', debug = false) {
+export async function asyncEval(code: string, fields = {}, api = {}, debug = false) {
 	const AsyncFunction = Object.getPrototypeOf(async function () {
 	}).constructor
 	const func = new AsyncFunction('fields', 'api', 'debug', `
@@ -69,11 +67,7 @@ export async function asyncEval(code: string, fields = {}, api = {}, priority = 
 	    	return (${code}) 
 	    }
 	`)
-
-	if (priority == 'api')
-		return await func.call(this, fields, api, debug)
-	if (priority == 'fields')
-		return await func.call(this, api, fields, debug)
+	return await func.call(this, fields, api, debug)
 }
 
 type replacer = (substring: string, ...args: any[]) => Promise<string>
@@ -100,7 +94,7 @@ export function parserTarget(pattern: string = '', defFile: targetFile = ''): Ta
 	var [, file, targetType = '', path = ''] = fields as TargetArray
 	path = path.trim()
 	file = (typeof file == 'string') ? file.trim() : file
-	const typeMap: Record<string | undefined, string> = {
+	const typeMap: Record<string, string> = {
 		':': 'yaml',
 		'::': 'field',
 		'#': 'header',
@@ -116,7 +110,7 @@ export function parserTarget(pattern: string = '', defFile: targetFile = ''): Ta
 	}
 }
 
-export function parsePattern(pattern: string, regexParser): Pattern | null {
+export function parsePattern(pattern: string, regexParser: RegExp): Pattern | null {
 	return pattern.trim().match(regexParser)?.groups as Pattern || null
 }
 

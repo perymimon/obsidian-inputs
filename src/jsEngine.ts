@@ -19,5 +19,5 @@ export async function importJs(path: TFile | string): Promise<unknown> {
 export async function executeCode(code: string, vars, contextFile?: string | TFile, priority?: Priority, debug?: boolean) {
 	var fileData = getFileData(contextFile, priority)
 	var fields = setPrototype(vars, fileData)
-	return await asyncEval(code, fields, api, 'api', debug)
+	return await asyncEval(code, fields, api, debug)
 }

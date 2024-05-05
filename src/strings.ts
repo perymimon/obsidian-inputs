@@ -16,6 +16,7 @@ export const modifications: any = {
 }
 
 function processPattern(exp: string, fields: Dictionary = {}) {
+	// split field to exec and argument by ':'
 	const [, exec, arg] = exp.match(/(.+?)(?::(.*?))?\s*$/) ?? []
 	const replacement = modifications[exec] ?? objectGet(fields, exec)
 	const args = arg?.split(',') ?? []
@@ -28,28 +29,25 @@ export async function stringTemplate(template: string, customFields: Dictionary 
 	const fileData = await getFileData(file, priority)
 	const fields = setPrototype(customFields, fileData)
 	//&varname or {{varname}}
+
 	template = template
+		// replace (key) => (key::value)
 		.replaceAll(/\(.*?\)/g, (exp) => {
 			const {value, key} = processPattern(exp.slice(1,-1), fields)
 			return `(${key}::${value ?? ''})`
 		})
+		// replace [key] to [key::value]
 		.replaceAll(/\[.*?\]/g, (exp) => {
 			const {value, key} = processPattern(exp.slice(1,-1), fields)
 			return `[${key}::${value ?? ''}]`
 		})
 
+	// run expression in {{exp}} or &exp
 	return await replaceAsync(template, /\{\{([^}]+)}}|&(.*?)(?:\s|`|$)/g, async (_, expr0, expr1) => {
 		//exec:arg|mods
 		const {value, key} = processPattern(expr0 || expr1, fields)
-		return value ?? await asyncEval(key, fields, modifications, void 0, false)
+		return value ?? await asyncEval(key, fields, modifications, false)
 			.catch(e => `<error>${String(e)}</error>`)
-			// .catch(e => e)
-
-		// if (modifiers && value instanceof Error) value = ''
-		// if (modifiers == 'field') return `[${exec}::${value}]`
-		// if (modifiers == 'field-round') return `(${exec}::${value})`
-		// if (value instanceof Error) return `<error>${String(value)}</error>`
-		// return value
 	})
 
 }

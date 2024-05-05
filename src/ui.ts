@@ -1,23 +1,49 @@
 import {getTFile, getTFileContent, modifyFileContent} from "./files";
-import {freshFileStructure} from "./fileData";
+import {refreshFileStructure} from "./fileData";
 import inputModal from "./inputModal";
 import {CachedStructure, fieldUpdate, TRIGGER_PAGE_DATA_OPEN, VIEW_TYPE_PAGE_DATA_VIEW} from "./types";
 import {setInlineField} from "./quicky";
-import {App, getIcon, ItemView, stringifyYaml, TFile, WorkspaceLeaf} from "obsidian";
+import {
+	App,
+	Component,
+	getIcon,
+	ItemView,
+	MarkdownPreviewView,
+	MarkdownView,
+	stringifyYaml,
+	TFile,
+	WorkspaceLeaf
+} from "obsidian";
 import {app} from "./main";
 
-function queryAllActiveInlineFieldElementsInDoc(){
+export class GlobalComponent extends Component{
+	onload() {
+		/* register events to global for avoid other plugins (like dataview)
+ 			to disrupt this plugin by replacing the dom */
+		super.onload();
+		globalThis.document.on('click', '.dataview.inline-field',openInlineFieldModal)
+	}
+	onunload(){
+		super.onunload();
+		globalThis.document.off('click', '.dataview.inline-field',openInlineFieldModal)
+
+	}
+}
+
+function queryInlineFieldsElInDoc() {
 	var root = app!.workspace.activeEditor.contentEl
 	var rootContent = root.querySelector('.markdown-reading-view')
 	return Array.from(rootContent.querySelectorAll('.inline-field'))
 }
 
-globalThis.document.on('click', '.dataview.inline-field', async (e: MouseEvent, delegateTarget) => {
+
+
+async function openInlineFieldModal(e: MouseEvent, delegateTarget:HTMLBodyElement ) {
 	var mode = app!.workspace.activeEditor.getMode()
 	if (mode == 'source') return
-	var allFieldsEl = queryAllActiveInlineFieldElementsInDoc()
+	var allFieldsEl = queryInlineFieldsElInDoc()
 	var tFile = getTFile()
-	var {allInlineFields = []} = await freshFileStructure(tFile)
+	var {allInlineFields = []} = await refreshFileStructure(tFile)
 	var selectedInlineFieldsEl = delegateTarget.matchParent('li')?.querySelectorAll('.inline-field') ?? [delegateTarget];
 	// find index of html element
 	var indexes = Array.from(selectedInlineFieldsEl).map(fieldEl => {
@@ -31,27 +57,29 @@ globalThis.document.on('click', '.dataview.inline-field', async (e: MouseEvent, 
 	let modal = new inputModal(app, allInlineFields, indexes)
 	modal.open()
 	var result = (await modal)
-	let newContent = result.reduce((content:string,change:fieldUpdate)=>{
-		let {field,value, method} = change
+	let newContent = result.reduce((content: string, change: fieldUpdate) => {
+		let {field, value, method} = change
 		return setInlineField(content, value, {file: tFile, method}, field)
 	}, await getTFileContent(tFile))
 	await modifyFileContent(tFile, newContent)
 
-})
-
+}
 
 export default class PageDataView extends ItemView {
-	pageData:CachedStructure
+	pageData: CachedStructure
+
 	constructor(leaf: WorkspaceLeaf) {
 		super(leaf);
 		// this.registerEvent();
 		this.navigation = false;
-		this.registerEvent(leaf.workspace.on('active-leaf-change',(activeLeaf)=>{
+		this.registerEvent(leaf.workspace.on('active-leaf-change', (activeLeaf) => {
 			// const tFile = activeLeaf.workspace.lastActiveFile
 			const tFile = app.workspace.getActiveFile()
 			this.render(tFile)
 		}))
-
+		this.registerEvent(app.metadataCache.on("changed", (targetFile) => {
+			this.render(targetFile)
+		}))
 	}
 
 	getViewType(): string {
@@ -67,7 +95,6 @@ export default class PageDataView extends ItemView {
 	}
 
 	onClose(): Promise<void> {
-
 		return Promise.resolve();
 	}
 
@@ -76,29 +103,41 @@ export default class PageDataView extends ItemView {
 		// to feed in additional sources.
 
 	}
-	async render(tFile: TFile){
-		if(!tFile) return null;
-		const {contentEl, } = this;
+
+	async render(tFile: TFile) {
+		if (!tFile) return null;
+		const {contentEl,} = this;
 		contentEl.empty()
 		contentEl.classList.add('page-data-view');
-		var pageData = await freshFileStructure(tFile)
-		const {allInlineFields,frontmatter} = pageData
+		var pageData = await refreshFileStructure(tFile)
+		const {allInlineFields, frontmatter} = pageData
 
-		const h1 = contentEl.createEl('h1',{text:'Page Input Data for '})
-		h1.createEl('span',{text:tFile.name})
-		contentEl.createEl('h2',{text:'inline field'})
+		const h1 = contentEl.createEl('h1', {text: 'Page Input Data for '})
+		h1.createEl('span', {text: tFile.name})
+		contentEl.createEl('h2', {text: 'inline field'})
 		{
-			let dl = contentEl.createEl('dl', {cls: 'page-data-list'})
 			var index = 0
 			for (let inlineField of allInlineFields!) {
+				let dl = contentEl.createEl('dl', {cls: 'page-data-list'})
 				dl.createEl('dt', {cls: 'dataview inline-field-key', text: String(index++)})
 				dl.createEl('dt', {cls: 'dataview inline-field-key', text: inlineField.key})
 				dl.createEl('dd', {cls: 'dataview inline-field-value', text: inlineField.value ?? '-'})
+				// dl.addEventListener('click', (e) => {
+				// 	let view = app.workspace.getLeaf().view
+				// if(view instanceof MarkdownView ) {
+				// 	debugger
+				// 	let editor = view.editor
+				// 	if(!editor) return null
+				// 	let {offset} = inlineField
+				// 	let poses = offset.map(o => editor.offsetToPos(o))
+				// 	editor.scrollIntoView({from:poses[0], to:poses[1]}, true)
+				// }
+				// })
 			}
 		}
 		{
 			contentEl.createEl('h2', {text: 'front matter'})
-			let dl = contentEl.createEl('dl',{cls:'page-data-list'})
+			let dl = contentEl.createEl('dl', {cls: 'page-data-list'})
 			for (let key in frontmatter!) {
 				dl.createEl('dt', {cls: 'dataview inline-field-key', text: ''})
 				dl.createEl('dt', {cls: 'dataview inline-field-key', text: key})

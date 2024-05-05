@@ -1,7 +1,7 @@
 // update cache with inline-field meta data
 import {CachedMetadata, TFile} from "obsidian";
 import {cleanString} from "./strings";
-import {Field, Priority, CachedStructure, targetFile} from "./types";
+import {InlineField, Priority, CachedStructure, targetFile} from "./types";
 import {app} from "./main";
 import {getTFile, lastCreatedFiles, lastTouchFiles} from "./files";
 import {setPrototype} from "./objects";
@@ -43,7 +43,7 @@ export async function waitFileStructureReady(tFile: TFile) {
 	return data
 }
 
-export async function freshFileStructure(targetFile?: targetFile) {
+export async function refreshFileStructure(targetFile?: targetFile) {
 	let tFile = getTFile(targetFile)
 	let cache = await waitFileStructureReady(tFile)
 	if (!cache) throw `No cache found. for ${tFile.path}`;
@@ -61,7 +61,7 @@ export async function freshFileStructure(targetFile?: targetFile) {
 }
 
 
-export function getInlineFields(content: string, key?: string): Field[] {
+export function getInlineFields(content: string, key?: string): InlineField[] {
 	// const regex = /\[\s*(.*?)\s*::(.*?)]|\b(.*?)::(.*?)$|\(\s*(.*?)\s*::(.*?)\)/gm
 	var def = '.*?', freeDef = '[^\\s]+'
 	// const regex = new RegExp(`(\\[)(\\s*${key || def}\\s*)::(.*?)(\\])|(\\()(\\s*${key || def}\\s*)::(.*?)(\\))|()(${key ||freeDef})::(.*?)()$`, 'gm')
@@ -71,7 +71,7 @@ export function getInlineFields(content: string, key?: string): Field[] {
 		new RegExp(`(\\()(\\s*${key || def}\\s*)::(.*?)(\\))`, 'gm'),
 		new RegExp(`()(${key ||freeDef})::(.*?)()$`, 'gm')
 	]
-	const fields: Field[] = [];
+	const fields: InlineField[] = [];
 	let match;
 	for (let inlinePattern of patterns) {
 		cleanContent = cleanContent.replace(inlinePattern, (...match) => {

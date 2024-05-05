@@ -1,10 +1,10 @@
-// @ts-nocheck1
+// @ts-nocheck
 import {log, Target} from "./internalApi";
 import {manipulateValue, sliceRemover, spliceString} from "./strings";
 import {renameFile, removeFile, letTFile, getTFile, createTFile, modifyFileContent} from "./files"
 import {TFile} from "obsidian";
 import {objectSet} from "./objects";
-import {Field, targetFile} from "./types";
+import {InlineField, targetFile} from "./types";
 import {getFileStructure, getInlineFields} from "./fileData";
 
 const app = globalThis.app
@@ -16,35 +16,35 @@ export async function setFrontmatter(value: any, path: string, method: Target["m
 	})
 }
 
-function getClosesFieldByTargetPattern(target: Target, content: string) {
+function  getClosesFieldByTargetPattern(target: Target, content: string) {
 	var {path, pattern} = target
-	var fieldDescs = getInlineFields(content, path)
-	if (fieldDescs.length) return null
-	var patternOffset = (content).indexOf(pattern)
+	var inlineFields = getInlineFields(content, path)
+	if (!inlineFields.length) return null
+	var targetOffset = (content).indexOf(pattern)
 
-	var result = fieldDescs.map((desc) => {
+	var result = inlineFields.map((desc) => {
 		var [s, e] = desc.offset
 		return {
-			dis: (e > patternOffset) ?
-				Math.abs(s - patternOffset) :
-				Math.abs(e - patternOffset),
+			dis: (e > targetOffset) ?
+				Math.abs(s - targetOffset) :
+				Math.abs(e - targetOffset),
 			desc
 		}
-		// @ts-ignore
+
 	}).sort((a, b) => (a.dis - b.dis))
 		.at(0)
 
 	return result!.desc
 }
 
-export function setInlineField(content: string, value: string, target: Target, field: Field) {
+export function setInlineField(content: string, value: string, target: Target, field: InlineField) {
 	const {method = 'replace', file, path} = target
 	var tFile = getTFile(file)
 
 	field = field ?? getClosesFieldByTargetPattern(target, content)
 	var newContent = ''
 	if (field) { // field exist
-		let {outerField, oldValue, offset} = field as Field
+		let {outerField, oldValue, offset} = field as InlineField
 		let [startIndex, endIndex] = offset
 		var newField
 		if (method == 'remove') newField = ''

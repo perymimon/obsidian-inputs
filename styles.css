@@ -98,6 +98,7 @@ form.live-form:has(textarea) {
 	& dl.page-data-list{
 		display: grid;
 		grid-template-columns: 3em auto 1fr;
+		margin-block: 0.1em;
 		& dt{
 			font-weight: bolder;
 		}

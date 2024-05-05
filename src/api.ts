@@ -2,16 +2,16 @@
 import {TFile, moment} from "obsidian";
 import {setPrototype} from "./objects";
 import * as api from './api';
-import {log, parserTarget, Target} from "./internalApi";
+import {log, parsePattern, parserTarget, Target} from "./internalApi";
 import {stringTemplate} from "./strings";
 import {Priority, CachedStructure, targetFile} from "./types";
 import {
-	getTFileContent,getTFile,letTFile,
+	getTFileContent, getTFile, letTFile,
 	isFileNotation, modifyFileContent
 } from "./files";
 import {quickFile, quickHeader, quickText, setFrontmatter, setInlineField} from "./quicky.ts";
 import {executeCode, importJs} from "./jsEngine";
-
+import {PATTERN} from "./main";
 
 
 var app = globalThis.app
@@ -35,8 +35,6 @@ export function duration(start: string, end: string, format = 'HH:mm', as = 'hou
 	var to = moment(end, format)
 	return moment.duration(to.diff(from)).humanize()
 }
-
-
 
 
 // https://github.com/SilentVoid13/Templater/blob/26c35559bd63765f6078d43f6febd53435530741/src/core/Templater.ts#L110
@@ -177,5 +175,15 @@ export async function processPattern(preExpression: string, preTarget: string, p
 	return {
 		targetObject, expression,
 		value: text
+	}
+}
+
+export async function runSequence(patterns: string, opts: decodeAndRunOpts = {}) {
+	for (let pattern of patterns.matchAll(/\|[^|]+/g)) {
+		let {expression, target} = parsePattern(String(pattern), PATTERN)!
+		if (expression.trim() == '')
+			if (opts.defaultExpertion) expression = opts.defaultExpertion
+			else return null
+		await processPattern(expression, target, String(pattern), opts)
 	}
 }

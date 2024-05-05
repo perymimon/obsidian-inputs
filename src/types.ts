@@ -3,7 +3,7 @@ import {CachedMetadata, TFile} from "obsidian";
 export type Priority = 'yaml' | 'field'
 declare const moment: (...args: any[]) => any;
 
-export type Field = {
+export type InlineField = {
 	outerField: string, innerField: string, key: string,
 	value: string, fullKey: string, oldValue: string
 	offset: [number, number],
@@ -24,7 +24,7 @@ export type Pattern = {
 
 export type targetFile = TFile | string
 export type CachedStructure = CachedMetadata & {
-	allInlineFields?: Field[],
+	allInlineFields?: InlineField[],
 	dirty:boolean,
 	inlineFields?:object
 }
@@ -37,7 +37,7 @@ export type Target = {
 	pattern: string
 }
 
-export type fieldUpdate = { value: string, field: Field, method?: Target['method'] }
+export type fieldUpdate = { value: string, field: InlineField, method?: Target['method'] }
 
 export const VIEW_TYPE_PAGE_DATA_VIEW = 'page-data'
 export const TRIGGER_PAGE_DATA_OPEN = "page-data:open";

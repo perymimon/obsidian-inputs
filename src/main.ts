@@ -1,12 +1,12 @@
 // @ts-nocheck1
-import {Plugin, App, MarkdownPostProcessorContext, Notice, WorkspaceLeaf, ItemView} from 'obsidian';
-import {createForm} from "./inputs";
-import {createButton} from "./buttons";
+import {Plugin, App, MarkdownPostProcessorContext, Notice, WorkspaceLeaf, ItemView, PluginManifest} from 'obsidian';
+import {createForm, InputsComponent} from "./inputsComponent";
+import {ButtonsComponent, createButton} from "./buttonsComponent";
 import {parsePattern} from "./internalApi";
-import {freshFileStructure} from "./fileData";
+import {refreshFileStructure} from "./fileData";
 import "./ui"
 import {VIEW_TYPE_PAGE_DATA_VIEW} from "./types";
-import PageDataView from "./ui";
+import PageDataView, {GlobalComponent} from "./ui";
 
 export let app: App
 // https://regex101.com/r/FhEQ2Z/1
@@ -31,9 +31,17 @@ export default class InputsPlugin extends Plugin {
 	id = 1;
 	view: ItemView
 
+	constructor(app:App, manifest:PluginManifest) {
+		super(app, manifest);
+		this.addChild(new InputsComponent)
+		this.addChild(new ButtonsComponent)
+		this.addChild(new GlobalComponent)
+	}
+
 	async onload() {
 		app = this.app;
 		console.log('loading Inputs plugin');
+
 		this.registerMarkdownPostProcessor(
 			(rootEl: HTMLElement, ctx: MarkdownPostProcessorContext) => {
 				const codesEl = rootEl.findAll('code')
@@ -55,11 +63,11 @@ export default class InputsPlugin extends Plugin {
 		setTimeout(async () => {
 			const mdFiles = app.vault.getMarkdownFiles()
 			for (const tFile of mdFiles) {
-				await freshFileStructure(tFile).catch(e => console.error(e));
+				await refreshFileStructure(tFile).catch(e => console.error(e));
 			}
 		}, 500)
 
-		app.metadataCache.on("changed", freshFileStructure)
+		this.registerEvent(app.metadataCache.on("changed", refreshFileStructure))
 		// app.metadataCache.on("resolve", updateStructure)
 
 		// await this.loadSettings();
@@ -87,9 +95,9 @@ export default class InputsPlugin extends Plugin {
 
 	postProcess(codeSource: string) {
 		if (!codeSource.trim()) return null
-		const patterns = codeSource.split("\n").filter((row) => row.trim().length > 0);
-		const pattern = patterns[0]
-		const fields = parsePattern(pattern, PATTERN)
+		// const patterns = codeSource.split("\n").filter((row) => row.trim().length > 0);
+		const pattern = codeSource.match(/^[^|]+\|/)
+		const fields = parsePattern(String(pattern) || '', PATTERN)
 		if (!fields?.type) return null;
 		var element: HTMLElement
 		if (fields?.type == 'button') {

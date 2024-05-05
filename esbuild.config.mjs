@@ -40,15 +40,14 @@ const context = await esbuild.context({
 	logLevel: "info",
 	sourcemap: prod ? false : "inline",
 	treeShaking: true,
-	outfile: "main.js",
+	outfile: "test_vault/.obsidian/plugins/obsidian-inputs/main.js",
 	plugins:[
 		copy({
 			resolveFrom: "cwd",
 			assets: [
-				{ from: "./styles.css", to: `dist/styles.css` },
-				{ from: "./main.js", to: `dist/main.js` },
-				{ from: "./manifest.json", to: `dist/manifest.json` },
-				{ from: "./data.json", to: `dist/data.json` }
+				{ from: "src/styles.css", to: `test_vault/.obsidian/plugins/obsidian-inputs/styles.css` },
+				{ from: "src/manifest.json", to: `test_vault/.obsidian/plugins/obsidian-inputs/manifest.json` },
+				{ from: "data.json", to: `test_vault/.obsidian/plugins/obsidian-inputs/data.json` }
 			],
 			watch: false
 		})

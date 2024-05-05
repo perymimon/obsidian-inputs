@@ -1,10 +1,9 @@
 // @ts-nocheck1
 import {TFile, moment} from "obsidian";
-import {setPrototype} from "./objects";
 import * as api from './api';
-import {log, parsePattern, parserTarget, Target} from "./internalApi";
+import {log, parsePattern, parserTarget} from "./internalApi";
 import {stringTemplate} from "./strings";
-import {Priority, CachedStructure, targetFile} from "./types";
+import {Priority, Target, targetFile} from "./types";
 import {
 	getTFileContent, getTFile, letTFile,
 	isFileNotation, modifyFileContent
@@ -16,8 +15,8 @@ import {PATTERN} from "./main";
 
 var app = globalThis.app
 
-export function link(path: TFile | string): string {
-	var file = getTFile(path?.path || path)
+export function link(path: targetFile): string {
+	var file = getTFile((path as TFile)?.path || path)
 	if (!file) return path as any
 	var filename = app.metadataCache.fileToLinktext(file, '', true)
 	return `[[${filename}]]`
@@ -54,7 +53,8 @@ export function duration(start: string, end: string, format = 'HH:mm', as = 'hou
  *         };
  *     }
  */
-export async function templater(templateContent: string, port? = {}, targetFile?: targetFile) {
+export async function templater(templateContent: string, port = {}, targetFile?: targetFile) {
+	//@ts-ignore
 	const {templater} = app.plugins.plugins['templater-obsidian'];
 	targetFile = await letTFile(targetFile)
 	const runningConfig = templater.create_running_config(void 0, targetFile, 0)
@@ -89,17 +89,17 @@ export async function decodeAndRun(expression: string | undefined, opts: decodeA
 	if (!expression || expression.trim() == '') return ''
 	const {vars = {}, file} = opts
 	var result = '', type = ''
-
+	var tFile:TFile
 	try {
 		var importTest = /^\s*import\s*/gm
 		imported: if (importTest.test(expression)) {
 			expression = expression.replace(importTest, '')
 			if (!isFileNotation(expression)) break imported
-			var tFile = getTFile(expression)
+			tFile = getTFile(expression)
 			if (!tFile) break imported
 			globalThis.live = api
 			if (tFile.path.endsWith('js')) {
-				var result = await importJs(tFile)
+				var result = (await importJs(tFile))
 				type = 'imported'
 				return result.default ?? void 0
 			} else if (tFile.path.endsWith('md')) {
@@ -115,10 +115,11 @@ export async function decodeAndRun(expression: string | undefined, opts: decodeA
 			.catch(e => (type = 'literal', expression))
 		return result
 	} finally {
+		//@ts-ignore
 		delete globalThis.live
 		var strings = [`evaluate "${expression}"`]
-		if (type == 'imported') strings.push(`\n import "${tFile.path}"`)
-		if (type == 'templater') strings.push(`\n templater "${tFile.path}" content`)
+		if (type == 'imported') strings.push(`\n import "${tFile!.path}"`)
+		if (type == 'templater') strings.push(`\n templater "${tFile!.path}" content`)
 		if (type == 'executed') strings.push(`\n return ${result} `)
 		if (type == 'literal') strings.push(`\n return it as literal text`)
 

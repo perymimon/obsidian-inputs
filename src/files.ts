@@ -29,6 +29,7 @@ export function getFreeFileName(path: targetFile, root: targetFile = ''): string
 		pathName = index ? `${joinPath} ${index}` : joinPath
 		pathName += (ext || '.md')
 		index++
+		//@ts-ignore getFileByPath exist in vault
 		var file = app.vault.getFileByPath(pathName)
 	} while (file)
 	return pathName
@@ -88,11 +89,11 @@ export async function modifyFileContent(path: targetFile, content: string) {
 	addToContextList(tFile, lastTouchFiles)
 }
 
-export function getTFile(path?: targetFile): TFile {
-	if (path instanceof TFile) return path as TFile;
-	path = (path || '').trim()
-	if (!path || path == 'activeFile') return getActiveFile()
-	path = (path.startsWith('[[') && path.endsWith(']]')) ? path.slice(2, -2) : path
+export function getTFile(file?: targetFile): TFile {
+	if (file instanceof TFile) return file as TFile;
+	file = (file || '').trim()
+	if (!file || file == 'activeFile') return getActiveFile()
+	let path:string = (file.startsWith('[[') && file.endsWith(']]')) ? file.slice(2, -2) : file
 	return app.metadataCache.getFirstLinkpathDest(path, "")
 }
 
@@ -100,14 +101,14 @@ export async function letTFile(path?: targetFile): Promise<TFile> {
 	let tFile = getTFile(path)
 	if (tFile) return tFile
 	// if (!autoCreate) return null
-	return await createTFile(path)
+	return await createTFile(path as string)
 }
 
-export async function createTFile(path: targetFile, text: string = '') {
+export async function createTFile(path: targetFile, content: string = '') {
 	var pathName = getFreeFileName(path)
 	var folders = path.split('/').slice(0, -1).join('/')
 	await app.vault.createFolder(folders).catch(_ => _)
-	const tFile = await app.vault.create(pathName, String(text))
+	const tFile = await app.vault.create(pathName, String(content))
 	await waitFileStructureReady(tFile)
 	addToContextList(tFile, lastCreatedFiles)
 	addToContextList(tFile, lastTouchFiles)

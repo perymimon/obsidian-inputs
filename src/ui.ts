@@ -4,12 +4,8 @@ import inputModal from "./inputModal";
 import {CachedStructure, fieldUpdate, TRIGGER_PAGE_DATA_OPEN, VIEW_TYPE_PAGE_DATA_VIEW} from "./types";
 import {setInlineField} from "./quicky";
 import {
-	App,
 	Component,
-	getIcon,
 	ItemView,
-	MarkdownPreviewView,
-	MarkdownView,
 	stringifyYaml,
 	TFile,
 	WorkspaceLeaf
@@ -31,6 +27,7 @@ export class GlobalComponent extends Component{
 }
 
 function queryInlineFieldsElInDoc() {
+	//@ts-ignore
 	var root = app!.workspace.activeEditor.contentEl
 	var rootContent = root.querySelector('.markdown-reading-view')
 	return Array.from(rootContent.querySelectorAll('.inline-field'))
@@ -39,6 +36,7 @@ function queryInlineFieldsElInDoc() {
 
 
 async function openInlineFieldModal(e: MouseEvent, delegateTarget:HTMLBodyElement ) {
+	//@ts-ignore
 	var mode = app!.workspace.activeEditor.getMode()
 	if (mode == 'source') return
 	var allFieldsEl = queryInlineFieldsElInDoc()
@@ -46,9 +44,8 @@ async function openInlineFieldModal(e: MouseEvent, delegateTarget:HTMLBodyElemen
 	var {allInlineFields = []} = await refreshFileStructure(tFile)
 	var selectedInlineFieldsEl = delegateTarget.matchParent('li')?.querySelectorAll('.inline-field') ?? [delegateTarget];
 	// find index of html element
-	var indexes = Array.from(selectedInlineFieldsEl).map(fieldEl => {
+	var indexes:number[] = Array.from(selectedInlineFieldsEl).map(fieldEl => {
 		var index = allFieldsEl.indexOf(fieldEl)
-		if (index == -1) return
 		var compensation = allInlineFields.slice(0, index)
 			.filter(field => !(field.isRound || field.isSquare))
 			.length
@@ -56,6 +53,7 @@ async function openInlineFieldModal(e: MouseEvent, delegateTarget:HTMLBodyElemen
 	})
 	let modal = new inputModal(app, allInlineFields, indexes)
 	modal.open()
+	//@ts-ignore
 	var result = (await modal)
 	let newContent = result.reduce((content: string, change: fieldUpdate) => {
 		let {field, value, method} = change
@@ -72,7 +70,8 @@ export default class PageDataView extends ItemView {
 		super(leaf);
 		// this.registerEvent();
 		this.navigation = false;
-		this.registerEvent(leaf.workspace.on('active-leaf-change', (activeLeaf) => {
+		//@ts-ignore
+		this.registerEvent(leaf.workspace.on('active-leaf-change', () => {
 			// const tFile = activeLeaf.workspace.lastActiveFile
 			const tFile = app.workspace.getActiveFile()
 			this.render(tFile)
@@ -104,7 +103,7 @@ export default class PageDataView extends ItemView {
 
 	}
 
-	async render(tFile: TFile) {
+	async render(tFile: TFile | null ) {
 		if (!tFile) return null;
 		const {contentEl,} = this;
 		contentEl.empty()

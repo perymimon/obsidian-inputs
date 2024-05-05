@@ -7,7 +7,7 @@ import {getTFile} from "./files";
 import {getFileData} from "./fileData";
 var app = globalThis.app
 
-export async function importJs(path: TFile | string): Promise<unknown> {
+export async function importJs(path: TFile | string): Promise<object> {
 	var tFile = getTFile(path)
 	if (!TFile) throw `${path} file is not exist`
 	let fullPath = app.vault.adapter.getResourcePath(tFile.path);
@@ -16,7 +16,7 @@ export async function importJs(path: TFile | string): Promise<unknown> {
 	return import(busterPath);
 }
 
-export async function executeCode(code: string, vars, contextFile?: string | TFile, priority?: Priority, debug?: boolean) {
+export async function executeCode(code: string, vars:object, contextFile?: string | TFile, priority?: Priority, debug?: boolean) {
 	var fileData = getFileData(contextFile, priority)
 	var fields = setPrototype(vars, fileData)
 	return await asyncEval(code, fields, api, debug)

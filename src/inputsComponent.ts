@@ -1,9 +1,9 @@
 // @ts-nocheck1
-import {InputSuggest} from "./InputSuggest";
-import {processPattern, runSequence, saveValue} from "./api";
-import {parsePattern, parserTarget} from "./internalApi";
-import {PATTERN, app} from "./main";
-import {ButtonComponent, Component, setIcon} from "obsidian";
+import { InputSuggest } from "./InputSuggest";
+import { runSequence, saveValue } from "./api";
+import { parserTarget } from "./internalApi";
+import { app } from "./main";
+import { Component, setIcon } from "obsidian";
 
 
 

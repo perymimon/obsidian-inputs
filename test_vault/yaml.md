@@ -1,6 +1,16 @@
 ---
 book:
-  name: database/ספרים/קהלת.md
+  name: "[[קהלת]]"
   page: 878
 ---
-**Reading**: `text:book| {{input}},= #book >:book.name` `text:page| {{input}} >:book.page` 
+[mood::😍]
+[book::sdf]
+**Reading**:    
+
+`radio:mood?🤯,😍|> ::mood` r  
+
+`text:moodie?😒,💕|> ::mood`
+
+`text:book?= #book | > :book.name`
+
+[[קהלת]]

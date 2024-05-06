@@ -39,5 +39,7 @@ export type Target = {
 
 export type fieldUpdate = { value: string, field: InlineField, method?: Target['method'] }
 
+export type inputOption = { text: string, value: string }[]
+
 export const VIEW_TYPE_PAGE_DATA_VIEW = 'page-data'
 export const TRIGGER_PAGE_DATA_OPEN = "page-data:open";

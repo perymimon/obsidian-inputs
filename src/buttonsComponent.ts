@@ -1,6 +1,6 @@
 // @ts-nocheck
 import {processPattern, runSequence, saveValue} from "./api";
-import {parsePattern, parserTarget} from "./internalApi";
+import {parsePattern, parserTarget, patternToTitle} from "./internalApi";
 import {PATTERN} from "./main";
 import {Component} from "obsidian";
 
@@ -33,7 +33,7 @@ export function createButton(pattern: string, fields) {
 	const buttonEl = createEl('button', {cls: 'live-form'})
 	const {name, target = ''} = fields
 	buttonEl.textContent = name || target || 'no name'
-	buttonEl.title = pattern.replaceAll('\n','').replaceAll('|','\n\t')
+	buttonEl.title = patternToTitle(pattern)
 	return buttonEl
 }
 

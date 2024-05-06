@@ -3,7 +3,7 @@ import {TFile, moment} from "obsidian";
 import * as api from './api';
 import {log, parsePattern, parserTarget} from "./internalApi";
 import {stringTemplate} from "./strings";
-import {Priority, Target, targetFile} from "./types";
+import {Pattern, Priority, Target, targetFile} from "./types";
 import {
 	getTFileContent, getTFile, letTFile,
 	isFileNotation, modifyFileContent
@@ -188,3 +188,4 @@ export async function runSequence(patterns: string, opts: decodeAndRunOpts = {})
 		await processPattern(expression, target, String(pattern), opts)
 	}
 }
+

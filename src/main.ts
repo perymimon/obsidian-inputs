@@ -17,9 +17,9 @@ export const PATTERN = new RegExp([
 	/(?<id>-\w+-)?\s*/,
 	/(?:(?<type>[\w-]*?))?/,
 	/(?::(?<name>.*?))?/,
+	/(?:\?(?<options>.+?))?/,
 	/\|/,
 	/\s*(?<expression>.*?)/,
-	/(?:,(?<options>.+?))?/,
 	/\s*(?<target>>.*?)?/,
 	/\s*(?:$|`)/
 ].map(r => r.source).join(''), 'i')
@@ -95,7 +95,7 @@ export default class InputsPlugin extends Plugin {
 
 	postProcess(codeSource: string) {
 		if (!codeSource.trim()) return null
-		// const patterns = codeSource.split("\n").filter((row) => row.trim().length > 0);
+		// pattern text until first |
 		const pattern = codeSource.match(/^[^|]+\|/)
 		const fields = parsePattern(String(pattern) || '', PATTERN)
 		if (!fields?.type) return null;

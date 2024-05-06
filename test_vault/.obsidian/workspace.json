@@ -37,7 +37,7 @@
                 "state": {
                   "type": "markdown",
                   "state": {
-                    "file": "tests/input buttons (clear,remove)test.md",
+                    "file": "yaml.md",
                     "mode": "preview",
                     "source": false
                   }
@@ -112,7 +112,7 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "tests/input buttons (clear,remove)test.md",
+                "file": "yaml.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -129,7 +129,7 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "tests/input buttons (clear,remove)test.md",
+                "file": "yaml.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               }
@@ -152,7 +152,7 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "tests/input buttons (clear,remove)test.md"
+                "file": "yaml.md"
               }
             }
           },
@@ -224,6 +224,10 @@
   },
   "active": "cc7c104e75ed065f",
   "lastOpenFiles": [
+    "template/file-template.md",
+    "template/test Quick File.md",
+    "template/game-log-template.md",
+    "tests/input buttons (clear,remove)test.md",
     "tests/input arrayies test.md",
     "yaml.md",
     "tests/file.md",
@@ -247,10 +251,6 @@
     "append 1231313 continues values with pre text with magic word.md",
     "tests/test inlinefield.md",
     "database/game-log/game-log 4.md",
-    "database/game-log/game-log 3.md",
-    "database/game-log/game-log 2.md",
-    "tests/test button file.md",
-    "tests/input buttons (clear,remove)test.md",
     "book.page",
     "book.name",
     "deep/deep 2",

@@ -2,7 +2,9 @@
 import {MarkdownView, TFile, Notice} from "obsidian";
 import {objectGet} from "./objects";
 import {lastSliceFrom} from "./strings";
-import {Pattern, Target, targetFile} from "./types";
+import {inputOption, Pattern, Target, targetFile} from "./types";
+import {PATTERN} from "./main";
+import {processPattern} from "./api";
 
 var app = globalThis.app
 var proxyTFileHandler = {
@@ -121,3 +123,71 @@ export function log(funcName: string, message: string, ...exteraData: any[]) {
 	new Notice(text, 10_000)
 }
 
+export function patternToTitle(pattern: string) {
+	return pattern.replaceAll('\n', '').replaceAll('|', '\n\t')
+}
+
+export function titleToPattern(title: string) {
+	return title.replaceAll('\n\t', '|')
+}
+
+export function waitFor(element: HTMLElement, eventName: string) {
+	const {promise, resolve, reject} = Promise.withResolvers()
+	element.addEventListener(eventName, resolve, {once: true})
+	return promise;
+}
+
+export function globalWaitFor(element: HTMLElement, eventName: keyof DocumentEventMap, selector: string) {
+	const {promise, resolve, reject} = Promise.withResolvers()
+	const resolver = (event: UIEvent, delegateTarget: HTMLElement) => {
+		if (delegateTarget != element) return;
+		resolve([event, delegateTarget])
+		globalThis.document.off(eventName, selector, resolver)
+	}
+	globalThis.document.on(eventName, selector, resolver)
+	return promise;
+}
+
+export async function dataviewQuery(queries: string[]) {
+	let querying = queries.map((query: string) => DataviewAPI.query(`list from ${query}`))
+	let results = await Promise.all(querying)
+	return results.map(result => {
+		result = result.value;
+		const primaryMeaning = result.primaryMeaning.type
+		debugger
+		return result.values.map((ft: any) => ft[primaryMeaning])
+	})
+}
+
+export async function loopPatterns(patterns: string, callback: (a: Pattern) => decodeAndRunOpts) {
+	var lastOpts = {}
+	for (let pattern of patterns.matchAll(/\|[^|]+/g)) {
+		let patternFields = parsePattern(String(pattern), PATTERN)!
+		let opts: decodeAndRunOpts = await callback(patternFields)
+		lastOpts = opts || lastOpts
+		const {expression, target} = patternFields
+		await processPattern(expression, target, String(pattern), lastOpts)
+	}
+	return loopPatterns(patterns, callback)
+}
+
+export async function resolveOptions(options: string) {
+	const optionsResults: inputOption = []
+	if (!options) return optionsResults
+	const prefix = DataviewAPI.settings.inlineQueryPrefix
+	for (let opt of options.split(',')) {
+		opt = opt.trim()
+		if(prefix && opt.startsWith(prefix)) {
+			const {value} = await DataviewAPI.query(`list from ${opt.slice(prefix.length)}`)
+			const primaryMeaning = value.primaryMeaning.type
+			optionsResults.push(
+				...value.values.map((ft: any) => ({text:ft[primaryMeaning],value:ft}))
+			)
+		} else {
+			const [text, value = text] = opt.split(/:/)
+			optionsResults.push({text, value})
+		}
+
+	}
+	return optionsResults
+}

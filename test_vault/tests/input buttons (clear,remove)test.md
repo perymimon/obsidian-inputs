@@ -4,7 +4,7 @@ sdfsfs
 [key::]123qe123213`-test- input| __clear__ >prepend` erwersdfsfd
 
 
-`-test- input| __file related__ >file prepend`
+`-test- input:name| __file related__ >file prepend`
 
 
 `-12- input|__header__>file#header prepend`

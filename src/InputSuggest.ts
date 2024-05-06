@@ -1,8 +1,9 @@
-// @ts-nocheck
+// @ts-nocheck1
 // Credits go to Liam's Periodic Notes Plugin: https://github.com/liamcain/obsidian-periodic-notes
 
 import {AbstractInputSuggest, App, TFile, prepareFuzzySearch} from "obsidian";
 import {link} from "./api";
+import {resolveOptions} from "./internalApi";
 
 export enum FileSuggestMode {
 	TemplateFiles,
@@ -10,53 +11,45 @@ export enum FileSuggestMode {
 }
 
 export class InputSuggest extends AbstractInputSuggest<TFile> {
-	query: string
+	options: string
 
-	constructor(app: App, textInputEl: HTMLInputElement | HTMLDivElement, queries: string[]) {
+	constructor(app: App, textInputEl: HTMLInputElement | HTMLDivElement, options: string) {
 		super(app, textInputEl);
 
-		this.queries = queries.map(q => q.trim());
-		textInputEl.addEventListener('change', (event) => event.stopPropagation())
+		this.options = options
+		// textInputEl.addEventListener('change', (event) => event.stopPropagation())
 	}
 
-	async renderSuggestion(file, el: HTMLElement) {
-		let {matches = [], path} = file
+	renderSuggestion(choice, el: HTMLElement) {
+		let {text, value, matches, score} = choice
 		for (let vec of matches.reverse()) {
-			path = path.slice(0, vec[0]) + '<b>' + path.slice(vec[0], vec[1]) + '</b>' + path.slice(vec[1])
+			text = text.slice(0, vec[0]) + '<b>' + text.slice(vec[0], vec[1]) + '</b>' + text.slice(vec[1])
 		}
-		el.setHTML(link(file));
+		if ('path' in value)
+			el.innerHTML = (link(value));
+		else
+			el.innerHTML = (text)
 	}
 
-	selectSuggestion(file: TFile, evt: MouseEvent | KeyboardEvent): void {
-		this.setValue(link(file))
-		// this.textInputEl.value = file.path;
-		// this.textInputEl.trigger("input");
-		this.textInputEl.trigger("select");
+	selectSuggestion(choice): void {
+		let {text, value, matches, score} = choice
+		var v = 'path' in value ? link(value) : value
+		this.setValue(v)
+		this.textInputEl.trigger("change");
 		this.setValue('')
 		// this.close();
 	}
 
 	async getSuggestions(input_str: string) {
 		let fuzzy = prepareFuzzySearch(input_str.toLowerCase())
-		let querying = this.queries.map(query => DataviewAPI.query(`list from ${query}`))
-		let results = await Promise.all(querying)
-		let sorted = results.flatMap(result => {
-			const primaryMeaning = result.value.primaryMeaning.type
-			return result.value.values
-				.map(ft => {
-					let result = fuzzy(ft[primaryMeaning]);
-					// console.log(ft.path, result?.score ?? -Infinity);
-					//todo:filter out infinity
-					let [, extension] = ft.path.match(/\.(.*)$/) ?? ''
-					return {...ft, primaryMeaning, extension, ...result};
-				})
+		let choices = await resolveOptions(this.options)
+		return choices.map(({text, value}) => {
+			let {score, matches} = fuzzy(text) ?? {score: Infinity, matches: []};
+			return {text, value, matches, score};
 		})
-			.filter(ft => Math.abs(ft.score) < Infinity)
-			.sort(ft => ft?.score ?? -Infinity)
-		// console.log('----------');
-		return sorted
+			.filter(c => Math.abs(c.score) < Infinity)
+			.sort(c => c.score ?? -Infinity)
 
-		// return result.value.values.filter( ft=> ft.path.contains(input_str))
 	}
 
 }

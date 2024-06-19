@@ -116,9 +116,20 @@ It depend on the contenxt
 
 ## Road Map
 
-- syntax higligher
+- syntax highlighter
 - target lists in a page
 - inline multi row commands (combo)
 - toggle input (can change value from two options )
 - roller view ( can change value from multiple options )
-- all around templater replace soulution, so not need toggle between multi syntax
+- all around templater replace solution, so not need toggle between multi syntax
+
+Pricing
+This plugin is provided to everyone for free, however if you would like to
+say thanks or help support continued development, feel free to send a little thanks
+through one of the following methods:
+
+<a href='https://ko-fi.com/V7V8ZIG94' target='_blank'><img height='36' style='border:0px;height:36px;' src='https://storage.ko-fi.com/cdn/kofi2.png?v=3' border='0' alt='Buy Me a Coffee at ko-fi.com' /></a>
+
+- [GitHub Sponsors](https://github.com/sponsors/perymimon)
+- [Ko-fi](https://ko-fi.com/perymimon)
+- [PayPal](https://www.paypal.me/perymimon)

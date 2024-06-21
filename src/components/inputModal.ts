@@ -1,7 +1,7 @@
-// @ts-nocheck
-import {App, DropdownComponent, Modal, Setting} from "obsidian";
-import {Field} from "./internalApi";
-import {fieldUpdate, Target} from "./types";
+// @ts-nocheck-1
+import type {App, DropdownComponent} from "obsidian";
+import {Modal, Setting} from "obsidian"
+import {fieldUpdate, Target} from "../types";
 
 export default class extends Modal {
 	result: string;

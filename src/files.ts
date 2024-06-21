@@ -1,15 +1,16 @@
-// @ts-nocheck1
+// @ts-nocheck-cancel
 import {TFile} from "obsidian";
-import {addToContextList, getActiveFile, log} from "./internalApi";
+import {addToContextList, getActiveFile} from "./internalApi";
 import {targetFile} from "./types";
-import {getFileStructure, waitFileStructureReady} from "./fileData";
+import {getFileStructure, waitFileStructureReady} from "./data";
+import {log} from "./tracer";
 
 var app = globalThis.app
 // context
 export const lastTouchFiles: TFile[] = []
 export const lastCreatedFiles: TFile[] = []
 
-export async function getTFileContent(file: targetFile) {
+export async function getTFileContent(file?: targetFile) {
 	var tFile = getTFile(file)
 	return await app.vault.read(tFile)
 }
@@ -22,7 +23,7 @@ export function getFreeFileName(path: targetFile, root: targetFile = ''): string
 		//remove the name
 		root = root.path.split('/').slice(0, -1).join('/')
 	}
-	const [, joinPath, ext] = joinPaths(root, path).match(/(.*?)(\.\w*)?$/)
+	const [, joinPath, ext] = joinPaths(root, path).match(/(.*?)(\.\w*)?$/)!
 	// find a free name
 	let index = 0, pathName;
 	do {
@@ -76,9 +77,9 @@ export async function removeFile(path: targetFile) {
 	await app.vault.trash(tFile!, false)
 }
 export function isFileNotation(path: string) {
-	if (path.startsWith('[[') && path.endsWith(']]')) return true
-	return /\.(js|md)$/.test(path);
-
+	if (path.startsWith('[[') && path.endsWith(']]')) return path.slice(2,-2)
+	if (/\.(js|md)$/.test(path)) return path
+	return ''
 }
 
 export async function modifyFileContent(path: targetFile, content: string) {
@@ -89,7 +90,7 @@ export async function modifyFileContent(path: targetFile, content: string) {
 	addToContextList(tFile, lastTouchFiles)
 }
 
-export function getTFile(file?: targetFile): TFile {
+export function getTFile(file?: targetFile):  TFile | null {
 	if (file instanceof TFile) return file as TFile;
 	file = (file || '').trim()
 	if (!file || file == 'activeFile') return getActiveFile()

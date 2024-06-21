@@ -1,8 +1,9 @@
 ---
 book:
-  name: "[[קהלת]]"
+  name: "[[אילון מאסק - הספר]]"
   page: 878
 ---
+
 [mood::😍]
 [book::sdf]
 **Reading**:    
@@ -13,4 +14,5 @@ book:
 
 `text:book?= #book | > :book.name`
 
+`text:book?= #book| import {{input}} >#book content replace`
 [[קהלת]]

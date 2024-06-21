@@ -1,6 +1,6 @@
 import {getTFile, getTFileContent, modifyFileContent} from "./files";
-import {refreshFileStructure} from "./fileData";
-import inputModal from "./inputModal";
+import {refreshFileStructure} from "./data";
+import inputModal from "./components/inputModal";
 import {CachedStructure, fieldUpdate, TRIGGER_PAGE_DATA_OPEN, VIEW_TYPE_PAGE_DATA_VIEW} from "./types";
 import {setInlineField} from "./quicky";
 import {
@@ -12,19 +12,19 @@ import {
 } from "obsidian";
 import {app} from "./main";
 
-export class GlobalComponent extends Component{
-	onload() {
-		/* register events to global for avoid other plugins (like dataview)
- 			to disrupt this plugin by replacing the dom */
-		super.onload();
-		globalThis.document.on('click', '.dataview.inline-field',openInlineFieldModal)
-	}
-	onunload(){
-		super.onunload();
-		globalThis.document.off('click', '.dataview.inline-field',openInlineFieldModal)
-
-	}
-}
+// export class GlobalComponent extends Component{
+// 	onload() {
+// 		/* register events to global for avoid other plugins (like dataview)
+//  			to disrupt this plugin by replacing the dom */
+// 		super.onload();
+// 		globalThis.document.on('click', '.dataview.inline-field',openInlineFieldModal)
+// 	}
+// 	onunload(){
+// 		super.onunload();
+// 		globalThis.document.off('click', '.dataview.inline-field',openInlineFieldModal)
+//
+// 	}
+// }
 
 function queryInlineFieldsElInDoc() {
 	//@ts-ignore
@@ -33,9 +33,10 @@ function queryInlineFieldsElInDoc() {
 	return Array.from(rootContent.querySelectorAll('.inline-field'))
 }
 
-
-
-async function openInlineFieldModal(e: MouseEvent, delegateTarget:HTMLBodyElement ) {
+/**
+* handles opening an input modal for inline fields in a document, processes user input, updates inline fields, and modifies the file content accordingly.
+*/
+export async function openInlineFieldModal(e: MouseEvent, delegateTarget:HTMLBodyElement ) {
 	//@ts-ignore
 	var mode = app!.workspace.activeEditor.getMode()
 	if (mode == 'source') return
@@ -63,6 +64,9 @@ async function openInlineFieldModal(e: MouseEvent, delegateTarget:HTMLBodyElemen
 
 }
 
+/**
+ * Obsidian plugin view that displays a page's metadata, including inline fields and front matter, and updates the view when the active file or metadata changes.
+ */
 export default class PageDataView extends ItemView {
 	pageData: CachedStructure
 

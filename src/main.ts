@@ -1,29 +1,19 @@
 // @ts-nocheck1
-import {Plugin, App, MarkdownPostProcessorContext, Notice, WorkspaceLeaf, ItemView, PluginManifest} from 'obsidian';
-import {createForm, InputsComponent} from "./inputsComponent";
-import {ButtonsComponent, createButton} from "./buttonsComponent";
+import type {App, MarkdownPostProcessorContext, WorkspaceLeaf, ItemView, PluginManifest} from 'obsidian';
+import {Plugin} from 'obsidian';
+import {createForm, InputsComponent} from "./components/inputsComponent";
+import {ButtonsComponent, createButton} from "./components/buttonsComponent";
 import {parsePattern} from "./internalApi";
-import {refreshFileStructure} from "./fileData";
+import {refreshFileStructure} from "./data";
 import "./ui"
-import {VIEW_TYPE_PAGE_DATA_VIEW} from "./types";
-import PageDataView, {GlobalComponent} from "./ui";
+import {Listener, VIEW_TYPE_PAGE_DATA_VIEW} from "./types";
+import PageDataView, { openInlineFieldModal} from "./ui";
+import {PATTERN} from "./consts";
 
 export let app: App
 // https://regex101.com/r/FhEQ2Z/1
 // https://regex101.com/r/jC824J/1
 // https://regex101.com/r/GiYmUD/1
-export const PATTERN = new RegExp([
-	/(?:`|^)/,
-	/(?<id>-\w+-)?\s*/,
-	/(?:(?<type>[\w-]*?))?/,
-	/(?::(?<name>.*?))?/,
-	/(?:\?(?<options>.+?))?/,
-	/\|/,
-	/\s*(?<expression>.*?)/,
-	/\s*(?<target>>.*?)?/,
-	/\s*(?:$|`)/
-].map(r => r.source).join(''), 'i')
-
 
 export default class InputsPlugin extends Plugin {
 	// settings :MyPluginSettings  = {};
@@ -35,13 +25,20 @@ export default class InputsPlugin extends Plugin {
 		super(app, manifest);
 		this.addChild(new InputsComponent)
 		this.addChild(new ButtonsComponent)
-		this.addChild(new GlobalComponent)
+		// this.addChild(new GlobalComponent)
 	}
 
+	handleGlobalEvent = (event: keyof DocumentEventMap , selector:string , listener:Listener) => {
+		this.registerDomEvent(document, event, (event: MouseEvent) => {
+			const target = event.target as HTMLElement;
+			if (target.matches(selector))
+				listener.call(document, event, target);
+		})
+	}
 	async onload() {
 		app = this.app;
 		console.log('loading Inputs plugin');
-
+		this.handleGlobalEvent('click', '.dataview.inline-field',openInlineFieldModal)
 		this.registerMarkdownPostProcessor(
 			(rootEl: HTMLElement, ctx: MarkdownPostProcessorContext) => {
 				const codesEl = rootEl.findAll('code')

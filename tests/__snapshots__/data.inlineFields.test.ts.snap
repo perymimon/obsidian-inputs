@@ -1,0 +1,202 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`getInlineFields [variable::[[value]]] 1`] = `
+[{
+    "isRound": "true",
+    "isSquare": "false",
+    "outerField": "[variable::[[value]]]",
+    "innerField": "variable::[[value]]",
+    "key": "variable",
+    "value": "[[value]]",
+    "fullKey": "variable",
+    "oldValue": "[[value]]",
+    "offset": "[30,51]",
+    "keyOffset": "[31,39]",
+    "valueOffset": "[41,50]"
+  }]
+`;
+
+exports[`getInlineFields [variable::value] [variable::value] 1`] = `
+[{
+    "isRound": "true",
+    "isSquare": "false",
+    "outerField": "[variable::value]",
+    "innerField": "variable::value",
+    "key": "variable",
+    "value": "value",
+    "fullKey": "variable",
+    "oldValue": "value",
+    "offset": "[30,47]",
+    "keyOffset": "[31,39]",
+    "valueOffset": "[41,46]"
+  },{
+    "isRound": "true",
+    "isSquare": "false",
+    "outerField": "[variable::value]",
+    "innerField": "variable::value",
+    "key": "variable",
+    "value": "value",
+    "fullKey": "variable",
+    "oldValue": "value",
+    "offset": "[48,65]",
+    "keyOffset": "[49,57]",
+    "valueOffset": "[59,64]"
+  }]
+`;
+
+exports[`getInlineFields from bulk of content [variable::value] [variable::value] 1`] = `
+[{
+    "isRound": "true",
+    "isSquare": "false",
+    "outerField": "[variable::value]",
+    "innerField": "variable::value",
+    "key": "variable",
+    "value": "value",
+    "fullKey": "variable",
+    "oldValue": "value",
+    "offset": "[30,47]",
+    "keyOffset": "[31,39]",
+    "valueOffset": "[41,46]"
+  },{
+    "isRound": "true",
+    "isSquare": "false",
+    "outerField": "[variable::value]",
+    "innerField": "variable::value",
+    "key": "variable",
+    "value": "value",
+    "fullKey": "variable",
+    "oldValue": "value",
+    "offset": "[48,65]",
+    "keyOffset": "[49,57]",
+    "valueOffset": "[59,64]"
+  }]
+`;
+
+exports[`getInlineFields from bulk of content with wikiLink as value [variable::[[value]]] 1`] = `
+[{
+    "isRound": "true",
+    "isSquare": "false",
+    "outerField": "[variable::[[value]]]",
+    "innerField": "variable::[[value]]",
+    "key": "variable",
+    "value": "[[value]]",
+    "fullKey": "variable",
+    "oldValue": "[[value]]",
+    "offset": "[30,51]",
+    "keyOffset": "[31,39]",
+    "valueOffset": "[41,50]"
+  }]
+`;
+
+exports[`getInlineFields from bulk of content with wikiLink as value variable::[[value]] and more after text (time::10) 1`] = `
+[{
+    "isRound": "true",
+    "isSquare": "false",
+    "outerField": "[::[[value]]]",
+    "innerField": "::[[value]]",
+    "key": "",
+    "value": "[[value]]",
+    "fullKey": "",
+    "oldValue": "[[value]]",
+    "offset": "[12,25]",
+    "keyOffset": "[13,13]",
+    "valueOffset": "[15,24]"
+  },{
+    "isRound": "false",
+    "isSquare": "false",
+    "outerField": "variable::[[value]] and more after text (time::10)",
+    "innerField": "variable::[[value]] and more after text (time::10",
+    "key": "variable",
+    "value": "[[value]] and more after text (time",
+    "fullKey": "variable",
+    "oldValue": "[[value]] and more after text (time",
+    "offset": "[42,92]",
+    "keyOffset": "[43,51]",
+    "valueOffset": "[53,88]"
+  },
+  {
+    "isRound": "false",
+    "isSquare": "true",
+    "outerField": "(time::10)",
+    "innerField": "time::10",
+    "key": "time",
+    "value": "10",
+    "fullKey": "time",
+    "oldValue": "10",
+    "offset": "[82,92]",
+    "keyOffset": "[83,87]",
+    "valueOffset": "[89,91]"
+  }]
+`;
+
+exports[`getInlineFields from bulk of content with wikiLink as value variable::[[value]] and more after text 1`] = `
+[{
+    "isRound": "true",
+    "isSquare": "false",
+    "outerField": "[::[[value]]]",
+    "innerField": "::[[value]]",
+    "key": "",
+    "value": "[[value]]",
+    "fullKey": "",
+    "oldValue": "[[value]]",
+    "offset": "[12,25]",
+    "keyOffset": "[13,13]",
+    "valueOffset": "[15,24]"
+  },{
+    "isRound": "false",
+    "isSquare": "false",
+    "outerField": "variable::[[value]] and more after text",
+    "innerField": "variable::[[value]] and more after text",
+    "key": "variable",
+    "value": "[[value]] and more after text",
+    "fullKey": "variable",
+    "oldValue": "[[value]] and more after text",
+    "offset": "[42,81]",
+    "keyOffset": "[42,50]",
+    "valueOffset": "[52,81]"
+  }]
+`;
+
+exports[`getInlineFields with wikiLink as value [variable::[[value]]] 1`] = `
+[{
+    "isRound": "true",
+    "isSquare": "false",
+    "outerField": "[variable::[[value]]]",
+    "innerField": "variable::[[value]]",
+    "key": "variable",
+    "value": "[[value]]",
+    "fullKey": "variable",
+    "oldValue": "[[value]]",
+    "offset": "[30,51]",
+    "keyOffset": "[31,39]",
+    "valueOffset": "[41,50]"
+  }]
+`;
+
+exports[`getInlineFields with wikiLink as value variable::[[value]] and more after text 1`] = `
+[{
+    "isRound": "true",
+    "isSquare": "false",
+    "outerField": "[::[[value]]]",
+    "innerField": "::[[value]]",
+    "key": "",
+    "value": "[[value]]",
+    "fullKey": "",
+    "oldValue": "[[value]]",
+    "offset": "[12,25]",
+    "keyOffset": "[13,13]",
+    "valueOffset": "[15,24]"
+  },{
+    "isRound": "false",
+    "isSquare": "false",
+    "outerField": "variable::[[value]] and more after text",
+    "innerField": "variable::[[value]] and more after text",
+    "key": "variable",
+    "value": "[[value]] and more after text",
+    "fullKey": "variable",
+    "oldValue": "[[value]] and more after text",
+    "offset": "[42,81]",
+    "keyOffset": "[42,50]",
+    "valueOffset": "[52,81]"
+  }]
+`;

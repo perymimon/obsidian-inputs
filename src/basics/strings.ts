@@ -1,14 +1,15 @@
 // @ts-nocheck1
-import {asyncEval, replaceAsync} from "./internalApi";
-import {TFile} from "obsidian";
-import {Priority} from "./types";
-import {objectGet, setPrototype} from "./objects";
-import {getFileData} from "./fileData";
+import {replaceAsync} from "../internalApi";
+import type {TFile} from "obsidian";
+import {targetFile} from "../types";
+import {objectGet} from "./objects";
+import {getTFile} from "../files";
+import {asyncEval} from "./jsEngine";
 
 type Dictionary = { [any: string]: any }
 declare const moment: (...args: any[]) => any;
 
-export const modifications: any = {
+export const internalFunctions: any = {
 	'@date': (format = 'yyyy-MM-DD') => {
 		return moment().format(format)
 	},
@@ -17,28 +18,28 @@ export const modifications: any = {
 
 function processPattern(exp: string, fields: Dictionary = {}) {
 	// split field to exec and argument by ':'
-	const [, exec, arg] = exp.match(/(.+?)(?::(.*?))?\s*$/) ?? []
-	const replacement = modifications[exec] ?? objectGet(fields, exec)
+	const [, path, arg] = exp.match(/(.+?)(?::(.*?))?\s*$/) ?? []
+	const replacement = internalFunctions[path] ?? objectGet(fields, path)
 	const args = arg?.split(',') ?? []
 	const value = typeof replacement == 'function' ? replacement(...args) : replacement;
-	return {value, key: exec}
+	return {value, key: path}
 }
 
-export async function stringTemplate(template: string, customFields: Dictionary = {}, file?: string | TFile, priority?: Priority): Promise<string> {
-	if (!String.isString(template)) return template;
-	const fileData = await getFileData(file, priority)
-	const fields = setPrototype(customFields, fileData)
+export async function stringTemplate(template: string | any, fields: Dictionary = {}): Promise<string> {
+	// if (!String.isString(template)) return template;
+	if (typeof template != 'string') return template
+
 	//&varname or {{varname}}
 
 	template = template
 		// replace (key) => (key::value)
 		.replaceAll(/\(.*?\)/g, (exp) => {
-			const {value, key} = processPattern(exp.slice(1,-1), fields)
+			const {value, key} = processPattern(exp.slice(1, -1), fields)
 			return `(${key}::${value ?? ''})`
 		})
 		// replace [key] to [key::value]
 		.replaceAll(/\[.*?\]/g, (exp) => {
-			const {value, key} = processPattern(exp.slice(1,-1), fields)
+			const {value, key} = processPattern(exp.slice(1, -1), fields)
 			return `[${key}::${value ?? ''}]`
 		})
 
@@ -46,20 +47,14 @@ export async function stringTemplate(template: string, customFields: Dictionary 
 	return await replaceAsync(template, /\{\{([^}]+)}}|&(.*?)(?:\s|`|$)/g, async (_, expr0, expr1) => {
 		//exec:arg|mods
 		const {value, key} = processPattern(expr0 || expr1, fields)
-		return value ?? await asyncEval(key, fields, modifications, false)
+		return value ?? await asyncEval(key, fields, internalFunctions, false)
 			.catch(e => `<error>${String(e)}</error>`)
 	})
 
 }
 
 
-export function spliceString(string: string, index: number, del = 0, text = '') {
-	return [string.slice(0, index), text, string.slice(index + del)].join('')
-}
 
-export function sliceRemover(string: string, indexStart: number, indexEnd: number, inject = '') {
-	return [string.slice(0, indexStart), inject, string.slice(indexEnd)].join('')
-}
 
 export function manipulateValue(oldValue: string, value: string, method: string) {
 	let array = oldValue.split(',').map((t: string) => t.trim()).filter(Boolean)
@@ -89,7 +84,7 @@ export const typeMap = {
 	time: '⌚'
 }
 
-export function cleanString(string: string, opts:Dictionary = {}) {
+export function cleanString(string: string, opts: Dictionary = {}) {
 	const {
 		wikiLink = true,
 		inlineField = true,
@@ -129,14 +124,30 @@ export function cleanMatch(string: string, matcher: RegExp, opts = {}): string[]
 
 export function sliceFrom(string: string, subString: string, include = true) {
 	const i = string.indexOf(subString)
-	if (i == -1) return ''
+	if (i == -1) return string
 	return string.slice(i + (include ? 0 : subString.length))
 }
 
 export function lastSliceFrom(string: string, subString: string, include = true) {
 	const i = string.lastIndexOf(subString)
-	if (i == -1) return ''
+	if (i == -1) return string
 	return string.slice(i + (include ? 0 : subString.length))
 }
 
+export function link(path: targetFile): string {
+	var file = getTFile((path as TFile)?.path || path)
+	if (!file) return path as any
+	var filename = app.metadataCache.fileToLinktext(file, '', true)
+	return `[[${filename}]]`
+}
 
+export function spliceString(string: string, index: number, del = 0, text = '') {
+	return [string.slice(0, index), text, string.slice(index + del)].join('')
+}
+export function spliceString2(string: string, fromIndex: number, toIndex:number, text = '') {
+	return [string.slice(0, fromIndex), text, string.slice(toIndex)].join('')
+}
+
+export function sliceRemover(string: string, indexStart: number, indexEnd: number, inject = '') {
+	return [string.slice(0, indexStart), inject, string.slice(indexEnd)].join('')
+}

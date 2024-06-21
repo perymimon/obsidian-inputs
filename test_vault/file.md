@@ -1,5 +1,7 @@
 [abc::8]
-`text:tet|sdfsdf ,sdf, sdf`
+
+`text:test?sdfsdf ,sdf, sdf|`
+
 `text:tel|> #activies`
 
 `button:top-game| [[game-log-template]] > database/game-log/game-log create 
@@ -16,3 +18,4 @@
 ## activies
 34
 424234
+234

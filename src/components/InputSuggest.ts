@@ -1,15 +1,18 @@
 // @ts-nocheck1
 // Credits go to Liam's Periodic Notes Plugin: https://github.com/liamcain/obsidian-periodic-notes
 
-import {AbstractInputSuggest, App, TFile, prepareFuzzySearch} from "obsidian";
-import {link} from "./api";
-import {resolveOptions} from "./internalApi";
+import type {App, TFile, SearchResult} from "obsidian";
+import {AbstractInputSuggest, prepareFuzzySearch} from "obsidian";
+import {link} from "../api";
+import {resolveOptions} from "../internalApi";
+import {inputOption} from "../types";
 
 export enum FileSuggestMode {
 	TemplateFiles,
 	ScriptFiles,
 }
 
+type Choice = SearchResult & inputOption
 export class InputSuggest extends AbstractInputSuggest<TFile> {
 	options: string
 
@@ -20,12 +23,12 @@ export class InputSuggest extends AbstractInputSuggest<TFile> {
 		// textInputEl.addEventListener('change', (event) => event.stopPropagation())
 	}
 
-	renderSuggestion(choice, el: HTMLElement) {
+	renderSuggestion(choice:Choice, el: HTMLElement) {
 		let {text, value, matches, score} = choice
 		for (let vec of matches.reverse()) {
 			text = text.slice(0, vec[0]) + '<b>' + text.slice(vec[0], vec[1]) + '</b>' + text.slice(vec[1])
 		}
-		if ('path' in value)
+		if ('path' in Object(value))
 			el.innerHTML = (link(value));
 		else
 			el.innerHTML = (text)
@@ -33,7 +36,7 @@ export class InputSuggest extends AbstractInputSuggest<TFile> {
 
 	selectSuggestion(choice): void {
 		let {text, value, matches, score} = choice
-		var v = 'path' in value ? link(value) : value
+		var v = 'path' in Object(value) ? link(value) : value
 		this.setValue(v)
 		this.textInputEl.trigger("change");
 		this.setValue('')

@@ -1,18 +1,17 @@
 // @ts-nocheck1
 import {InputSuggest} from "./InputSuggest";
-import {loopPatterns, runSequence, saveValue} from "./api";
+import {loopPatterns, runSequence, saveValue} from "../api";
 import {
-	dataviewQuery,
-	globalWaitFor,
 	parserTarget,
 	patternToTitle,
 	resolveOptions,
 	titleToPattern,
-	waitFor
-} from "./internalApi";
-import {app} from "./main";
-import {Component, setIcon} from "obsidian";
-import {inputOption, Pattern} from "./types";
+} from "../internalApi";
+import {app} from "../main";
+import {Component} from "obsidian";
+import {setIcon} from "obsidian";
+
+import {inputOption, Pattern} from "../types";
 
 
 export class InputsComponent extends Component {

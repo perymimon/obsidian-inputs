@@ -1,12 +1,11 @@
-// @ts-nocheck
-import {processPattern, runSequence, saveValue} from "./api";
-import {parsePattern, parserTarget, patternToTitle} from "./internalApi";
-import {PATTERN} from "./main";
+// @ts-nocheck1
+import {runSequence} from "../api";
+import {patternToTitle} from "../internalApi";
 import {Component} from "obsidian";
 
-export class ButtonsComponent extends Component{
-	async runSequence(e, delegateTarget){
-		await runSequence(delegateTarget.title.replaceAll('\n\t','|'))
+export class ButtonsComponent extends Component {
+	async runSequence(e, delegateTarget) {
+		await runSequence(delegateTarget.title.replaceAll('\n\t', '|'))
 	}
 
 	onload() {
@@ -15,7 +14,8 @@ export class ButtonsComponent extends Component{
 		super.onload();
 		globalThis.document.on('click', 'button.live-form', this.runSequence)
 	}
-	onunload(){
+
+	onunload() {
 		super.onunload();
 		globalThis.document.off('click', 'button.live-form', this.runSequence)
 
@@ -29,7 +29,7 @@ export function generateButtonNotation(fields: Record<string, any>, id = 0) {
 
 //  app: App, frontmatter:Record<string, any>
 // https://regex101.com/r/AN0SOC/1
-export function createButton(pattern: string, fields) {
+export function createButton(pattern: string, fields = {}) {
 	const buttonEl = createEl('button', {cls: 'live-form'})
 	const {name, target = ''} = fields
 	buttonEl.textContent = name || target || 'no name'

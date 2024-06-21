@@ -1,7 +1,0 @@
-{
-  "inputTypes": {
-    "": "text",
-    "//": "date",
-    "#": "number"
-  }
-}

@@ -16,7 +16,7 @@ Despite being in its early stages, this plugin boasts a range of features and ha
 - Syntax designed to be easy to write 
   - Avoiding bidirectional closing parts like parentheses that make you play around with your keyboard. And it is nightmare with bidirectional language 
 - Avoidance reliance on external libraries to maintain negligible average load times.
-- Obsidian have enough api to play with, and we should use a simple html element so all the users can style it easily with a there css file 
+- Obsidian have enough api to play with, and we should use a simple html element so all the obsidian can style it easily with a there css file 
 
 ## Plugin Capabilities
 `inputs` plugin design to replace a lot of components that update the documents file and provide:

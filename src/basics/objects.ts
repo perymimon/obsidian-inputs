@@ -1,9 +1,9 @@
 // @ts-nocheck1
-import {Target} from "./internalApi";
-import {link} from "./api";
+import type {Target} from "../internalApi";
+import {link} from "./strings";
 import {TFile} from "obsidian";
-import {getTFile} from "./files";
-import {getFileData} from "./fileData";
+import {getTFile} from "../files";
+import {getFileData} from "../data";
 
 export function deepAssign(target: object, ...sources: any[]) {
 	for (let source of sources) {
@@ -121,6 +121,7 @@ export function objectGet(root:object, path:string | string[]) {
 	if(Number(current) ) return Number(current)
 	return current
 }
+
 export function setPrototype(a: object, ...protos: object[]) {
 	// @ts-ignore
 	let lastProto = a

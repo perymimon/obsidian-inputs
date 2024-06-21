@@ -1,6 +1,6 @@
 // @ts-nocheck
-import {App, Modal, PluginSettingTab, Setting} from "obsidian";
-import InputsPlugin from "../src/main";
+import type {App, Modal, PluginSettingTab, Setting} from "obsidian";
+import InputsPlugin from "../main";
 
 export interface MyPluginSettings {
 	inputTypes?: {

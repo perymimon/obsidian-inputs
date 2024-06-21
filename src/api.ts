@@ -1,26 +1,25 @@
 // @ts-nocheck1
-import {TFile, moment} from "obsidian";
 import * as api from './api';
-import {log, parsePattern, parserTarget} from "./internalApi";
-import {stringTemplate} from "./strings";
-import {Pattern, Priority, Target, targetFile} from "./types";
+import {parseExpression, parsePattern, parserTarget} from "./internalApi";
+
+export {stringTemplate, link} from "./basics/strings";
+import {decodeAndRunOpts, Expression, Target, targetFile} from "./types";
+import {moment} from "obsidian";
 import {
-	getTFileContent, getTFile, letTFile,
-	isFileNotation, modifyFileContent
+	getTFileContent, letTFile,
+	modifyFileContent
 } from "./files";
-import {quickFile, quickHeader, quickText, setFrontmatter, setInlineField} from "./quicky.ts";
-import {executeCode, importJs} from "./jsEngine";
-import {PATTERN} from "./main";
+import {quickFile, quickText, setFrontmatter, setInlineField} from "./quicky";
+import {importJs, asyncEval} from "./basics/jsEngine";
+import {PATTERN} from "./consts";
+import {getFileData} from "./data";
+import {traceExpression} from "./tracer";
+import {getClosesInlineFieldToPattern, getInlineFields} from "./data.inlineFields";
+import {quickHeader} from "./data.headers";
+import { stringTemplate } from './basics/strings';
 
 
 var app = globalThis.app
-
-export function link(path: targetFile): string {
-	var file = getTFile((path as TFile)?.path || path)
-	if (!file) return path as any
-	var filename = app.metadataCache.fileToLinktext(file, '', true)
-	return `[[${filename}]]`
-}
 
 /**
  * time calculation
@@ -71,121 +70,99 @@ export async function templater(templateContent: string, port = {}, targetFile?:
  * if expression surround by [[]] it is a file to import and run
  * if expression can run without exception it JS and evaluates value is return
  * if it throw it return as literal text
- * @param preExpression
- * @param priority
- * @param vars
- * @param file
+ * @param expression
+ * @param data
  */
-type decodeAndRunOpts = {
-	priority?: Priority | string,
-	vars?: {},
-	file?: targetFile,
-	// literalExpression?: boolean
-	// notImport?: boolean,
-	// allowImportedLinks?: boolean
-}
 
-export async function decodeAndRun(expression: string | undefined, opts: decodeAndRunOpts = {}) {
-	if (!expression || expression.trim() == '') return ''
-	const {vars = {}, file} = opts
-	var result = '', type = ''
-	var tFile:TFile
-	try {
-		var importTest = /^\s*import\s*/gm
-		imported: if (importTest.test(expression)) {
-			expression = expression.replace(importTest, '')
-			if (!isFileNotation(expression)) break imported
-			tFile = getTFile(expression)
-			if (!tFile) break imported
-			globalThis.live = api
-			if (tFile.path.endsWith('js')) {
-				var result = (await importJs(tFile))
-				type = 'imported'
-				return result.default ?? void 0
-			} else if (tFile.path.endsWith('md')) {
-				var content = await getTFileContent(tFile)
-				type = 'templater'
-				result = await templater(content, api)
-				return result
-			}
+
+
+export async function resolveExpression(data = {}, expression: string): Promise<Expression> {
+	const status = parseExpression(expression)
+	const {execute, type, file} = status
+
+	if (type == 'import') {
+		let object = await importJs(file!)
+		status.result = object.default ?? void 0
+	} else if (type == 'template') {
+		var content = await getTFileContent(file!)
+		status.result = await templater(content, api)
+	} else if (type == 'executed') {
+		try {
+			//@ts-ignore
+			globalThis.input = api
+			status.result = await asyncEval(execute, data, api, false)
+		} catch (e) {
+			status.type = 'literal'
+			status.result = execute
+		} finally {
+			//@ts-ignore
+			delete globalThis.input
 		}
 
-		type = 'executed'
-		result = await executeCode(expression, vars, file, void 0, false)
-			.catch(e => (type = 'literal', expression))
-		return result
-	} finally {
-		//@ts-ignore
-		delete globalThis.live
-		var strings = [`evaluate "${expression}"`]
-		if (type == 'imported') strings.push(`\n import "${tFile!.path}"`)
-		if (type == 'templater') strings.push(`\n templater "${tFile!.path}" content`)
-		if (type == 'executed') strings.push(`\n return ${result} `)
-		if (type == 'literal') strings.push(`\n return it as literal text`)
-
-		log('decodeAndRun', strings.join(''), result)
 	}
+	return status
+
 }
 
-export async function saveValue(text: string | number, target: Target) {
-	const {file, targetType, path, method} = target
-	if (text == void 0) return `no save because value is undefined`
+export async function saveValue(textValue: string | number, target: Target) {
+	if (textValue == void 0) return `no save because value is undefined`
 	// if (String(text).trim() == '' && !(targetType == 'file' || method == 'create')) {
 	// 	return 'no save because text value is empty'
 	// }
+	textValue = String(textValue)
+	const {file, targetType, path, method, pattern} = target
 	switch (targetType) {
 		case 'yaml':
-			return await setFrontmatter(text, path, method, file)
+			return await setFrontmatter(textValue, path, method, file)
 		case 'file':
-			return await quickFile(text, target, true)
+			return await quickFile(textValue, target, true)
 	}
 	var newContent = ''
 	var tFile = await letTFile(file)
 	var content = await getTFileContent(tFile)
 	switch (targetType) {
 		case 'field':
-			newContent = setInlineField(content, text, target)
+			var inlineFields = getInlineFields(content, path)
+			var inlineField = getClosesInlineFieldToPattern(inlineFields, pattern)
+			newContent = setInlineField(content, inlineField, textValue, method)
 			break
 
 		case 'header':
-			newContent = quickHeader(content, text, target)
+			newContent = await quickHeader(textValue, target)
 			break
 
 		case 'pattern':
-			newContent = quickText(content, text, target)
+			newContent = quickText(content, textValue, target)
 			break
 
 	}
+	if (content == newContent) return;
 	await modifyFileContent(tFile, newContent)
 	return
 }
 
-export async function processPattern(preExpression: string, preTarget: string, pattern: string, opts: decodeAndRunOpts = {}) {
-	const {vars = {}, file} = opts
+export async function processPattern(preExpression: string, preTarget: string, pattern: string, data = {}) {
+	let expression = await stringTemplate(preExpression, data)
+	let target = await stringTemplate(preTarget, data)
 
-	let expression = await stringTemplate(preExpression, vars, file)
-	let target = await stringTemplate(preTarget, vars, file)
 	const targetObject = parserTarget(target)
 	targetObject.pattern = pattern
-	let text = await decodeAndRun(expression.trim(), {
-		priority: targetObject.targetType,
-		...opts
-	})
-	await saveValue(text, targetObject)
+	let expressionObject = await resolveExpression(data, expression.trim())
+	traceExpression(expressionObject)
+	await saveValue(expressionObject.result, targetObject)
 
-	return {
-		targetObject, expression,
-		value: text
-	}
 }
-
+// patterns is a string of execution>target|execution>target|
 export async function runSequence(patterns: string, opts: decodeAndRunOpts = {}) {
-	for (let pattern of patterns.matchAll(/\|[^|]+/g)) {
-		let {expression, target} = parsePattern(String(pattern), PATTERN)!
-		if (expression.trim() == '')
-			if (opts.defaultExpertion) expression = opts.defaultExpertion
-			else return null
-		await processPattern(expression, target, String(pattern), opts)
+	const {vars = {}, file} = opts
+	const data = await getFileData(file, vars)
+	// type:setting | exe > trgt | exe>trgt
+	const patterns1 = patterns.split('|').slice(1)
+
+	for (let pattern of patterns1) {
+		let {expression, target} = parsePattern('|' + String(pattern), PATTERN)!
+		expression = (expression.trim() == '' && opts.defaultExpertion) ? opts.defaultExpertion : expression.trim()
+		await processPattern(expression, target, String(pattern), data)
 	}
 }
 

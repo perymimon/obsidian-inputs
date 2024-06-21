@@ -1,50 +1,34 @@
-// @ts-nocheck
-import {log, Target} from "./internalApi";
-import {manipulateValue, sliceRemover, spliceString} from "./strings";
-import {renameFile, removeFile, letTFile, getTFile, createTFile, modifyFileContent} from "./files"
-import {TFile} from "obsidian";
-import {objectSet} from "./objects";
+// @ts-nocheck1
+import {Target} from "./internalApi";
+import {manipulateValue, sliceRemover, spliceString} from "./basics/strings";
+import {createTFile, getTFile, letTFile, modifyFileContent, removeFile, renameFile} from "./files"
+import type {TFile} from "obsidian";
+import {objectSet} from "./basics/objects";
 import {InlineField, targetFile} from "./types";
-import {getFileStructure, getInlineFields} from "./fileData";
+import {getFileStructure} from "./data";
+import {log} from "./tracer";
 
 const app = globalThis.app
 
 export async function setFrontmatter(value: any, path: string, method: Target["method"] = 'replace', file: targetFile) {
 	const tFile = await letTFile(file)
+	// const frontmatter:FrontMatterInfo  = getFrontMatterInfo(content)
+	// const {from, to} = frontmatter
+	// yamlString = content.slice(from, to)
+	// yaml = parseYaml(yamlString)
+	// yaml = objectSet(obj, path, value, method)
+	// yamlString = stringifyYaml(yaml)
+	// content = spliceString2(content,from, to, yamlString)
+	// return content
 	await app.fileManager.processFrontMatter(tFile, obj => {
 		return objectSet(obj, path, value, method)
 	})
 }
 
-function  getClosesFieldByTargetPattern(target: Target, content: string) {
-	var {path, pattern} = target
-	var inlineFields = getInlineFields(content, path)
-	if (!inlineFields.length) return null
-	var targetOffset = (content).indexOf(pattern)
-
-	var result = inlineFields.map((desc) => {
-		var [s, e] = desc.offset
-		return {
-			dis: (e > targetOffset) ?
-				Math.abs(s - targetOffset) :
-				Math.abs(e - targetOffset),
-			desc
-		}
-
-	}).sort((a, b) => (a.dis - b.dis))
-		.at(0)
-
-	return result!.desc
-}
-
-export function setInlineField(content: string, value: string, target: Target, field: InlineField) {
-	const {method = 'replace', file, path} = target
-	var tFile = getTFile(file)
-
-	field = field ?? getClosesFieldByTargetPattern(target, content)
+export function setInlineField(content: string, inlineField:InlineField | null,value:string, method: Target["method"] = 'replace'): string {
 	var newContent = ''
-	if (field) { // field exist
-		let {outerField, oldValue, offset} = field as InlineField
+	if (inlineField) { // field exist
+		let {outerField, oldValue, offset} = inlineField
 		let [startIndex, endIndex] = offset
 		var newField
 		if (method == 'remove') newField = ''
@@ -53,7 +37,7 @@ export function setInlineField(content: string, value: string, target: Target, f
 			newField = outerField.replace(`::${oldValue}`, `::${value}`)
 		}
 		if (outerField == newField) return content
-		log('setInlineField', `inline field update from "${outerField}" to "${newField}"`)
+		// log('setInlineField', `inline field update from "${outerField}" to "${newField}"`)
 		newContent = [content.slice(0, startIndex), newField, content.slice(endIndex)].join('')
 	} else { // create field it not exist
 		if (method == 'remove') return content
@@ -64,6 +48,7 @@ export function setInlineField(content: string, value: string, target: Target, f
 	}
 	return newContent
 }
+
 
 
 /**
@@ -155,44 +140,3 @@ export async function quickFile(text: string, target: Target, createIfNotExist =
 	return tFile
 }
 
-/**
- * prepend or append or replace content under header
- * if header not exist stuff start be intersting
- * 1) append: create the header with the text on top file
- * 2) prepend: create the header iwht the text on bottom file
- * 3) replace : changed to prepend
- * @param text
- * @param target
- */
-export function quickHeader(content: string, text: string, target: Target) {
-	var {file, path, method = 'append', pattern} = target;
-	const {headings = [], frontmatterPosition} = getFileStructure(file);
-	var iHeader = headings?.findIndex((item) => item.heading.replace(`\`${pattern}\``, '').trim() == path.trim());
-	// If header not exist default is to add to start of file,unless method is append
-	if (iHeader == -1) text = `## ${path}\n${text}`;
-	if (iHeader == -1 && method == 'replace') method = 'prepend';
-	if (iHeader == -1 && method == 'append') iHeader = headings.length - 1;
-	if (iHeader == -1 && method == 'remove') return;
-
-	let [h, hNext] = headings.slice(iHeader)
-	let [startOffset, endOffset] = [
-		(h?.position.end.offset ?? frontmatterPosition?.end.offset ?? -1) + 1,
-		(hNext?.position.start.offset ?? content.length)
-	];
-	if (method == 'remove') startOffset = h?.position.start.offset;
-
-	const headerContent = content.slice(startOffset, endOffset).replace(/\n\s*$/g, '');
-	const headerContentLines = headerContent.split('\n')
-
-	if (method == "append") headerContentLines.push(text)
-	if (method == "prepend") headerContentLines.unshift(text)
-	if (method == "clear") headerContentLines.length = 0
-	if (method == "replace") headerContentLines.splice(0, Infinity, text)
-	if (method == "remove") headerContentLines.length = 0
-
-	var newContent = spliceString(content, startOffset, headerContent.length, headerContentLines.join('\n'))
-
-	log('quickHeader', `${file} ${path} ${method}`);
-
-	return newContent
-}

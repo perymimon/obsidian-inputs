@@ -1,13 +1,11 @@
 // @ts-nocheck1
-import {replaceAsync} from "../internalApi";
 import type {TFile} from "obsidian";
-import {targetFile} from "../types";
+import {replacer, targetFile} from "../types";
 import {objectGet} from "./objects";
 import {getTFile} from "../files";
 import {asyncEval} from "./jsEngine";
 
 type Dictionary = { [any: string]: any }
-declare const moment: (...args: any[]) => any;
 
 export const internalFunctions: any = {
 	'@date': (format = 'yyyy-MM-DD') => {
@@ -44,7 +42,7 @@ export async function stringTemplate(template: string | any, fields: Dictionary 
 		})
 
 	// run expression in {{exp}} or &exp
-	return await replaceAsync(template, /\{\{([^}]+)}}|&(.*?)(?:\s|`|$)/g, async (_, expr0, expr1) => {
+	return await replaceAsync(template, /\{\{([^}]+)}}|&(.*?)(?:\s|`|$)/g, async (_: string, expr0: string, expr1: string) => {
 		//exec:arg|mods
 		const {value, key} = processPattern(expr0 || expr1, fields)
 		return value ?? await asyncEval(key, fields, internalFunctions, false)
@@ -53,11 +51,8 @@ export async function stringTemplate(template: string | any, fields: Dictionary 
 
 }
 
-
-
-
-export function manipulateValue(oldValue: string, value: string, method: string) {
-	let array = oldValue.split(',').map((t: string) => t.trim()).filter(Boolean)
+export function manipulateStringifyValue(currentValue: string, value: string, method: string) {
+	let array = currentValue.split(',').map((t: string) => t.trim()).filter(Boolean)
 	switch (method) {
 		case 'replace':
 			array = [value]
@@ -144,10 +139,31 @@ export function link(path: targetFile): string {
 export function spliceString(string: string, index: number, del = 0, text = '') {
 	return [string.slice(0, index), text, string.slice(index + del)].join('')
 }
-export function spliceString2(string: string, fromIndex: number, toIndex:number, text = '') {
+
+export function spliceString2(string: string, fromIndex: number, toIndex: number, text = '') {
 	return [string.slice(0, fromIndex), text, string.slice(toIndex)].join('')
 }
 
 export function sliceRemover(string: string, indexStart: number, indexEnd: number, inject = '') {
 	return [string.slice(0, indexStart), inject, string.slice(indexEnd)].join('')
+}
+
+export async function replaceAsync(string: string, regexp: RegExp, replacer: replacer) {
+	const replacements = await Promise.all(
+		Array.from(string.matchAll(regexp), (match:string[]) => replacer(match[0],...match.slice(1)))
+	)
+	let i = 0;
+	return string.replace(regexp, () => replacements[i++]);
+}
+
+export function getFrontMatterPosition(content: string): [number, number] {
+	const regex = /^---\s*([\s\S]*?)\s*^---$/dm;
+	const match = content.match(regex);
+
+	if (match) {
+		const [start, end] = match.indices![0]
+		return [start, end];
+	}
+
+	return [0, 0];
 }

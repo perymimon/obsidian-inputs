@@ -48,16 +48,14 @@ export function getInlineFields(content: string, key?: string): InlineField[] {
 	return fields.sort((f1, f2) => f1.offset[0] - f2.offset[0])
 }
 
-export function getClosesInlineFieldToPattern(inlineFields:InlineField[], pattern: string): InlineField | null {
+export function getClosesInlineFieldToPattern(inlineFields:InlineField[], offset: number): InlineField | null {
 	if (!inlineFields.length) return null
 	if(inlineFields.length == 1) return inlineFields[0]
-
-	var targetOffset = (content).indexOf(pattern)
 
 	var closedInlineField = inlineFields.map((inlineField) => {
 		var [s, e] = inlineField.offset
 		return {
-			dis: Math.abs((e > targetOffset) ? s - targetOffset : e - targetOffset),
+			dis: Math.abs((e > offset) ? s - offset : e - offset),
 			desc: inlineField
 		}
 

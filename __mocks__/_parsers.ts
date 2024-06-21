@@ -1,11 +1,16 @@
 // Function to extract frontmatter from markdown content
-export function extractFrontmatter(content:string) {
+type frontMatterMock  = {
+	data: Record<string, any>;
+	length: number;
+	position: undefined | { start:{offset:number }, end:{offset:number } } ;
+}
+export function extractFrontmatter(content:string): frontMatterMock {
 	const frontmatterRegex = /^---\n([\s\S]*?)\n---/;
 	const match = content.match(frontmatterRegex);
-	const result = {
+	const result:frontMatterMock = {
 		data: {},
 		length: 0,
-		position: null,
+		position: undefined,
 	};
 
 	if (match) {
@@ -28,7 +33,7 @@ export function extractFrontmatter(content:string) {
 }
 
 // Function to extract headings from markdown content
-export function extractHeadings(content, offset) {
+export function extractHeadings(content:string, offset:number) {
 	const headingRegex = /^(#+)\s(.+)$/gm;
 	const headings = [];
 	let match;

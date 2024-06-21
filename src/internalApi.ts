@@ -1,7 +1,17 @@
 // @ts-nocheck1
 import {objectGet} from "./basics/objects";
-import {lastSliceFrom, stringTemplate} from "./basics/strings";
-import {decodeAndRunOpts, Expression, inputOption, Pattern, Target, targetFile} from "./types";
+import {lastSliceFrom} from "./basics/strings";
+import {
+	decodeAndRunOpts,
+	Expression,
+	inputOption,
+	targetMethod,
+	Pattern,
+	Target,
+	TargetArray,
+	targetFile,
+	targetType
+} from "./types";
 import {PATTERN} from "./consts";
 import {processPattern} from "./api";
 import type {TFile} from "obsidian";
@@ -62,24 +72,10 @@ export function getActiveFile(): TFile {
 	return app.workspace.activeEditor?.file ?? app.workspace.getActiveFile() as TFile;
 }
 
-
-type replacer = (substring: string, ...args: any[]) => Promise<string>
-
-export async function replaceAsync(string: string, regexp: RegExp, replacer: replacer) {
-	const replacements = await Promise.all(
-		Array.from(string.matchAll(regexp),
-			match => replacer(...match)));
-	let i = 0;
-	return string.replace(regexp, () => replacements[i++]);
-}
-
-
-type TargetArray = [string, Target['file'], Target['targetType'], Target['path'], Target['method']]
-
 export function parserTarget(pattern: string = '', defFile: targetFile = ''): Target {
 	//https://regex101.com/r/Z0v3rv/1
 	var targetPattern = lastSliceFrom(pattern, ">", false)
-	var [leftPattern = '', method = ''] = targetPattern
+	var [leftPattern = '', methodString = ''] = targetPattern
 		.split(/ (append|replace|prepend|create|clear|remove|rename)$/)
 	const fields = leftPattern
 		.match(/(^[^:#?*<>"]+?)?(?:(::|:|#)(.+?))?$/) || []
@@ -92,7 +88,8 @@ export function parserTarget(pattern: string = '', defFile: targetFile = ''): Ta
 		'::': 'field',
 		'#': 'header',
 	}
-	var type = (typeMap[targetType] ?? (file ? 'file' : 'pattern')) as Target['targetType']
+	var type = (typeMap[targetType] ?? (file ? 'file' : 'pattern')) as targetType
+	var method = methodString as targetMethod
 	// const tag = '`'
 	return {
 		file: file ?? defFile,
@@ -162,22 +159,22 @@ export async function dataviewQuery(queries: string[]) {
 	})
 }
 
-export async function loopPatterns(patterns: string, callback: (a: Pattern) => decodeAndRunOpts) {
-	var lastOpts = {}
-	for (let pattern of patterns.matchAll(/\|[^|]+/g)) {
-		let patternFields = parsePattern(String(pattern), PATTERN)!
-		let opts: decodeAndRunOpts = await callback(patternFields)
-		lastOpts = opts || lastOpts
-		const {vars = {}, file} = opts
-		const data = await getFileData(file, vars)
-		const {expression, target} = patternFields
-		await processPattern(expression, target, patterns, data)
-	}
-	return loopPatterns(patterns, callback)
-}
+// export async function loopPatterns(patterns: string, callback: (a: Pattern) => decodeAndRunOpts) {
+// 	var lastOpts = {}
+// 	for (let pattern of patterns.matchAll(/\|[^|]+/g)) {
+// 		let patternFields = parsePattern(String(pattern), PATTERN)!
+// 		let opts: decodeAndRunOpts = await callback(patternFields)
+// 		lastOpts = opts || lastOpts
+// 		const {vars = {}, file} = opts
+// 		const data = await getFileData(file, vars)
+// 		const {expression, target} = patternFields
+// 		await processPattern(expression, target, patterns, data)
+// 	}
+// 	return loopPatterns(patterns, callback)
+// }
 
-export async function resolveOptions(options: string) {
-	const optionsResults: inputOption = []
+export async function resolveOptions(options: string):Promise<inputOption[]> {
+	const optionsResults: inputOption[] = []
 	if (!options) return optionsResults
 	const prefix = DataviewAPI.settings.inlineQueryPrefix
 	for (let opt of options.split(',')) {

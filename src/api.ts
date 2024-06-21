@@ -3,8 +3,7 @@ import * as api from './api';
 import {parseExpression, parsePattern, parserTarget} from "./internalApi";
 
 export {stringTemplate, link} from "./basics/strings";
-import {decodeAndRunOpts, Expression, Target, targetFile} from "./types";
-import {moment} from "obsidian";
+import {decodeAndRunOpts, DynamicModule, Expression, Target, targetFile} from "./types";
 import {
 	getTFileContent, letTFile,
 	modifyFileContent
@@ -17,7 +16,6 @@ import {traceExpression} from "./tracer";
 import {getClosesInlineFieldToPattern, getInlineFields} from "./data.inlineFields";
 import {quickHeader} from "./data.headers";
 import { stringTemplate } from './basics/strings';
-
 
 var app = globalThis.app
 
@@ -81,8 +79,8 @@ export async function resolveExpression(data = {}, expression: string): Promise<
 	const {execute, type, file} = status
 
 	if (type == 'import') {
-		let object = await importJs(file!)
-		status.result = object.default ?? void 0
+		let object: DynamicModule = await importJs(file!)
+		status.result = object?.default ?? void 0
 	} else if (type == 'template') {
 		var content = await getTFileContent(file!)
 		status.result = await templater(content, api)
@@ -123,7 +121,8 @@ export async function saveValue(textValue: string | number, target: Target) {
 	switch (targetType) {
 		case 'field':
 			var inlineFields = getInlineFields(content, path)
-			var inlineField = getClosesInlineFieldToPattern(inlineFields, pattern)
+			var targetOffset = (content).indexOf(pattern)
+			var inlineField = getClosesInlineFieldToPattern(inlineFields, targetOffset)
 			newContent = setInlineField(content, inlineField, textValue, method)
 			break
 
@@ -161,7 +160,7 @@ export async function runSequence(patterns: string, opts: decodeAndRunOpts = {})
 
 	for (let pattern of patterns1) {
 		let {expression, target} = parsePattern('|' + String(pattern), PATTERN)!
-		expression = (expression.trim() == '' && opts.defaultExpertion) ? opts.defaultExpertion : expression.trim()
+		expression = (expression.trim() == '' && opts.defaultExpiration) ? opts.defaultExpiration : expression.trim()
 		await processPattern(expression, target, String(pattern), data)
 	}
 }

@@ -1,11 +1,10 @@
-// @ts-nocheck1
-import type {Target} from "../internalApi";
 import {link} from "./strings";
 import {TFile} from "obsidian";
 import {getTFile} from "../files";
 import {getFileData} from "../data";
+import {simpleDicObject, targetMethod} from "../types";
 
-export function deepAssign(target: object, ...sources: any[]) {
+export function deepAssign(target: simpleDicObject, ...sources: any[]) {
 	for (let source of sources) {
 		for (let k in source) {
 			let vs = source[k], vt = target[k]
@@ -19,11 +18,11 @@ export function deepAssign(target: object, ...sources: any[]) {
 	return target
 }
 
-export function flatObject(obj:object) {
-	const flatObject = {};
-	const path:string[] = []; // current path
+export function flatObject(obj: simpleDicObject) {
+	const flatObject:simpleDicObject = {};
+	const path: string[] = []; // current path
 
-	function dig(obj) {
+	function dig(obj:any) {
 		if (obj !== Object(obj))
 			/*is primitive, end of path*/
 			return flatObject[path.join('.')] = obj; /*<- value*/
@@ -40,7 +39,7 @@ export function flatObject(obj:object) {
 	return flatObject;
 }
 
-function unflattenObject(flattenObject) {
+function unflattenObject(flattenObject:simpleDicObject) {
 	const unFlatten = Object.create(null);
 	for (let [stringKeys, value] of Object.entries(flattenObject)) {
 		let chain = stringKeys.split('.')
@@ -53,8 +52,8 @@ function unflattenObject(flattenObject) {
 			}
 			object = object[key];
 		}
-		let lastkey = chain.pop();
-		object[lastkey] = value;
+		let lastKey = chain.pop()!;
+		object[lastKey] = value;
 	}
 	return unFlatten;
 }
@@ -66,13 +65,13 @@ function unflattenObject(flattenObject) {
  * @param value
  * @param method replace|append|prepend|remove|clear
  */
-export function objectSet(root:object, path:string, value:any, method:Target["method"] = 'replace') {
-	let paths = path.split(/\[(\w+)\]|\.|\["(\w+)"\]/).filter(Boolean)
-	let obj:object = root;
+export function objectSet(root: object, path: string, value: any, method: targetMethod = 'replace') {
+	let paths = path.split(/\[(\w+)]|\.|\["(\w+)"\]/).filter(Boolean)
+	let obj: simpleDicObject = root;
 	while (paths.length > 1) {
-        let p:string = paths.shift()!;
+		let p: string = paths.shift()!;
 		obj[p] = typeof obj[p] == 'object' ? obj[p] as any : {};
-        obj = obj[p] as Record<string, any>;
+		obj = obj[p] as Record<string, any>;
 	}
 	let p = paths[0]
 	// @ts-ignore
@@ -100,25 +99,25 @@ export function objectSet(root:object, path:string, value:any, method:Target["me
 
 }
 
-export function objectGet(root:object, path:string | string[]) {
-	let paths = Array.isArray(path)?
-		path:
+export function objectGet(root: object, path: string | string[]) {
+	let paths = Array.isArray(path) ?
+		path :
 		path.split(/\[([ \w]+)\]|\.|\["([ \w]+)"\]|\['([ \w]+)'\]/).filter(Boolean)
 	let current = root;
-	if(paths.length == 0) return current
+	if (paths.length == 0) return current
 	do {
 		if (current == void 0) return void 0;
-		if( typeof current == 'string')
-			current =  getTFile(current) || current
-		if( current instanceof TFile)
-			return objectGet( getFileData(current),paths)
+		if (typeof current == 'string')
+			current = getTFile(current) || current
+		if (current instanceof TFile)
+			return objectGet(getFileData(current), paths)
 
 		let p = paths.shift()
 		// @ts-ignore I count on undefined
 		current = current[p]
 	} while (paths.length)
-	if( current instanceof TFile) return link(current)
-	if(Number(current) ) return Number(current)
+	if (current instanceof TFile) return link(current)
+	if (Number(current)) return Number(current)
 	return current
 }
 
@@ -126,24 +125,24 @@ export function setPrototype(a: object, ...protos: object[]) {
 	// @ts-ignore
 	let lastProto = a
 	for (let proto of protos) {
-		lastProto.__proto__ = proto
+		Object.setPrototypeOf(lastProto, proto)
 		lastProto = proto
 	}
 	return a;
 }
 
-export function objectHaveKey(root:object, path:string | string[]) {
-	let paths = Array.isArray(path)?
-		path:
+export function objectHaveKey(root: object, path: string | string[]) {
+	let paths = Array.isArray(path) ?
+		path :
 		path.split(/\[([ \w]+)\]|\.|\["([ \w]+)"\]|\['([ \w]+)'\]/).filter(Boolean)
 	let current = root;
-	if(paths.length == 0) return current
+	if (paths.length == 0) return current
 	do {
 		if (current == void 0) return false
-		if( typeof current == 'string')
-			current =  getTFile(current) || current
-		if( current instanceof TFile)
-			return objectGet( getFileData(current),paths)
+		if (typeof current == 'string')
+			current = getTFile(current) || current
+		if (current instanceof TFile)
+			return objectGet(getFileData(current), paths)
 
 		let p = paths.shift()
 		// @ts-ignore I count on undefined

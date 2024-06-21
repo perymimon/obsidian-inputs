@@ -1,16 +1,16 @@
 // @ts-nocheck1
-import type {App, MarkdownPostProcessorContext, WorkspaceLeaf, ItemView, PluginManifest} from 'obsidian';
+import type {ItemView, MarkdownPostProcessorContext, PluginManifest, WorkspaceLeaf} from 'obsidian';
 import {Plugin} from 'obsidian';
 import {createForm, InputsComponent} from "./components/inputsComponent";
 import {ButtonsComponent, createButton} from "./components/buttonsComponent";
 import {parsePattern} from "./internalApi";
 import {refreshFileStructure} from "./data";
 import "./ui"
-import {Listener, VIEW_TYPE_PAGE_DATA_VIEW} from "./types";
-import PageDataView, { openInlineFieldModal} from "./ui";
-import {PATTERN} from "./consts";
+import type {ExtendedApp, Listener} from "./types";
+import PageDataView, {openInlineFieldModal} from "./ui";
+import {PATTERN, VIEW_TYPE_PAGE_DATA_VIEW} from "./consts";
 
-export let app: App
+export let app: ExtendedApp
 // https://regex101.com/r/FhEQ2Z/1
 // https://regex101.com/r/jC824J/1
 // https://regex101.com/r/GiYmUD/1
@@ -21,14 +21,14 @@ export default class InputsPlugin extends Plugin {
 	id = 1;
 	view: ItemView
 
-	constructor(app:App, manifest:PluginManifest) {
+	constructor(app:ExtendedApp, manifest:PluginManifest) {
 		super(app, manifest);
 		this.addChild(new InputsComponent)
 		this.addChild(new ButtonsComponent)
 		// this.addChild(new GlobalComponent)
 	}
 
-	handleGlobalEvent = (event: keyof DocumentEventMap , selector:string , listener:Listener) => {
+	handleGlobalEvent = (event: keyof DocumentEventMap , selector:string , listener:Listener<"click">) => {
 		this.registerDomEvent(document, event, (event: MouseEvent) => {
 			const target = event.target as HTMLElement;
 			if (target.matches(selector))
@@ -36,7 +36,7 @@ export default class InputsPlugin extends Plugin {
 		})
 	}
 	async onload() {
-		app = this.app;
+		app = this.app as ExtendedApp
 		console.log('loading Inputs plugin');
 		this.handleGlobalEvent('click', '.dataview.inline-field',openInlineFieldModal)
 		this.registerMarkdownPostProcessor(

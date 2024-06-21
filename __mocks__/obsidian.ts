@@ -1,10 +1,11 @@
 import {mock} from 'jest-mock-extended'
-import {App} from "obsidian";
-
-export app = globalThis.app = mock<App>()
+import {App, CachedMetadata, HeadingCache, Pos, TFolder} from "obsidian";
 import {extractFrontmatter, extractHeadings} from "./_parsers";
 import {targetFile} from "../src/types";
 import {getTFileContent} from "../src/__mocks__/files";
+
+
+export const app = globalThis.app = mock<App>()
 
 
 export class Notice {
@@ -32,16 +33,16 @@ export interface FileStats {
 	size: number;
 }
 
-export class TFolder extends TAbstractFile {
-	children: TAbstractFile[];
-	isRoot(): boolean;
-}
+// export class TFolder extends TAbstractFile {
+// 	children: TAbstractFile[];
+// 	isRoot(): boolean;
+// }
 
-app.metadataCache.getFileCache = function (file: TFile) {
+app.metadataCache.getFileCache = function (file: TFile):CachedMetadata | null {
 	const content = getTFileContent(file as targetFile)
 	const frontmatter = extractFrontmatter(content);
-	const headings = extractHeadings(content, frontmatter.length);
-	const frontmatterPosition = frontmatter.position;
+	const headings = extractHeadings(content, frontmatter.length) as HeadingCache[];
+	const frontmatterPosition = frontmatter.position as Pos;
 
 	return {
 		frontmatter: frontmatter.data,

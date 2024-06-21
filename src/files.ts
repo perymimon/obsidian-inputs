@@ -1,7 +1,7 @@
 // @ts-nocheck-cancel
 import {TFile} from "obsidian";
 import {addToContextList, getActiveFile} from "./internalApi";
-import {targetFile} from "./types";
+import {fileDesc, targetFile} from "./types";
 import {getFileStructure, waitFileStructureReady} from "./data";
 import {log} from "./tracer";
 
@@ -10,30 +10,42 @@ var app = globalThis.app
 export const lastTouchFiles: TFile[] = []
 export const lastCreatedFiles: TFile[] = []
 
-export async function getTFileContent(file?: targetFile) {
-	var tFile = getTFile(file)
+export async function getTFileContent(file?: targetFile): Promise<string> {
+	var tFile = getTFile(file!)
+	if (!tFile) throw `${file} file is not exist`
 	return await app.vault.read(tFile)
 }
 
-export function getFreeFileName(path: targetFile, root: targetFile = ''): string {
+export function getFileName(path: targetFile, root: targetFile = ''): fileDesc {
 	if (path instanceof TFile) path = path.path;
 	if (path.startsWith('[[') && path.endsWith(']]')) path = path.slice(2, -2)
+	if (root instanceof TFile) root = root.path
+	root = root.split('/').slice(0, -1).join('/')
+	var wholePath = joinPaths(root, path)
+	const [, pathMinusExt, ext] = wholePath.match(/(.*?)(\.\w*)?$/)!
+	var paths = pathMinusExt.split('/')
+	var filename = paths.pop() || ''
+	var folders = paths.join('/')
 
-	if (root instanceof TFile) {
-		//remove the name
-		root = root.path.split('/').slice(0, -1).join('/')
-	}
-	const [, joinPath, ext] = joinPaths(root, path).match(/(.*?)(\.\w*)?$/)!
+	return {folders, file: `${filename}${ext}`, filename, extname: ext, path: wholePath}
+}
+
+export function getFreeFileName(path: targetFile, root: targetFile = ''): fileDesc {
+	var folderDesc = getFileName(path, root)
 	// find a free name
-	let index = 0, pathName;
+	var {folders, filename, extname} = folderDesc
+	let index = 0
+	let newFileName, newPath, newFile
 	do {
-		pathName = index ? `${joinPath} ${index}` : joinPath
-		pathName += (ext || '.md')
+		newFileName = `${filename}${index ? ` ${index}` : ''}`
+		newFile = `${newFileName}${(extname || '.md')}`
+		newPath = joinPaths(folders, newFile)
 		index++
 		//@ts-ignore getFileByPath exist in vault
-		var file = app.vault.getFileByPath(pathName)
+		var file = app.vault.getFileByPath(newPath)
 	} while (file)
-	return pathName
+
+	return {folders, file: newFile, filename: newFileName, extname, path: newPath}
 }
 
 export function joinPaths(root: string, relative: string): string {
@@ -56,7 +68,6 @@ export function joinPaths(root: string, relative: string): string {
 }
 
 
-
 export function markFileAsDirty(tFile: TFile) {
 	var struct = getFileStructure(tFile)
 	if (struct) struct.dirty = true
@@ -65,10 +76,10 @@ export function markFileAsDirty(tFile: TFile) {
 export async function renameFile(file: targetFile, newPath: targetFile) {
 	var tFile = getTFile(file)
 	if (!tFile) return
-	newPath = getFreeFileName(newPath, tFile)
+	let {path} = getFreeFileName(newPath, tFile)
 	var originalPath = tFile.path
-	await app.vault.rename(tFile!, newPath)
-	log('renameFile', `"${originalPath}" rename to "${newPath}"`)
+	await app.vault.rename(tFile!, path)
+	log('renameFile', `"${originalPath}" to "${newPath}"`)
 }
 
 export async function removeFile(path: targetFile) {
@@ -76,8 +87,9 @@ export async function removeFile(path: targetFile) {
 	if (!tFile) return
 	await app.vault.trash(tFile!, false)
 }
+
 export function isFileNotation(path: string) {
-	if (path.startsWith('[[') && path.endsWith(']]')) return path.slice(2,-2)
+	if (path.startsWith('[[') && path.endsWith(']]')) return path.slice(2, -2)
 	if (/\.(js|md)$/.test(path)) return path
 	return ''
 }
@@ -90,26 +102,30 @@ export async function modifyFileContent(path: targetFile, content: string) {
 	addToContextList(tFile, lastTouchFiles)
 }
 
-export function getTFile(file?: targetFile):  TFile | null {
-	if (file instanceof TFile) return file as TFile;
+// Overloads
+export function getTFile(): TFile;
+export function getTFile(file?: targetFile): TFile | null;
+// Implementation
+export function getTFile(file?: targetFile): TFile | null {
+	if (file instanceof TFile) return file
 	file = (file || '').trim()
 	if (!file || file == 'activeFile') return getActiveFile()
-	let path:string = (file.startsWith('[[') && file.endsWith(']]')) ? file.slice(2, -2) : file
-	return app.metadataCache.getFirstLinkpathDest(path, "")
+	let path: string = (file.startsWith('[[') && file.endsWith(']]')) ? file.slice(2, -2) : file
+	return app.metadataCache.getFirstLinkpathDest(path, "") || null
 }
 
-export async function letTFile(path?: targetFile): Promise<TFile> {
-	let tFile = getTFile(path)
+export async function letTFile(file?: targetFile): Promise<TFile> {
+	let tFile = getTFile(file!)
 	if (tFile) return tFile
 	// if (!autoCreate) return null
-	return await createTFile(path as string)
+	return await createTFile(file as string)
 }
 
-export async function createTFile(path: targetFile, content: string = '') {
-	var pathName = getFreeFileName(path)
-	var folders = path.split('/').slice(0, -1).join('/')
+// if file is exiting tFile it create a new file with inc index in the end
+export async function createTFile(file: targetFile, content: string = '') {
+	var {path, folders} = getFreeFileName(file)
 	await app.vault.createFolder(folders).catch(_ => _)
-	const tFile = await app.vault.create(pathName, String(content))
+	const tFile = await app.vault.create(path, String(content))
 	await waitFileStructureReady(tFile)
 	addToContextList(tFile, lastCreatedFiles)
 	addToContextList(tFile, lastTouchFiles)

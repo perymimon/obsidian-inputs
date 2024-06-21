@@ -3,7 +3,7 @@ import {Expression} from "./types";
 
 export function traceExpression(expressionStatus:Expression){
 	const {execute, type, file,result} = expressionStatus
-	let text;
+	let text:string = '';
 	if (type == 'import') text = `resolve "${execute}" by import "${file}" file`
 	if (type == 'template') text = `resolve "${execute}" by import content of "${file}" to templater`
 	if (type == 'executed') text = `executed "${execute}" and got "${result}" `

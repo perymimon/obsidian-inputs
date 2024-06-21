@@ -2,9 +2,10 @@
 import {runSequence} from "../api";
 import {patternToTitle} from "../internalApi";
 import {Component} from "obsidian";
+import {Pattern} from "../types";
 
 export class ButtonsComponent extends Component {
-	async runSequence(e, delegateTarget) {
+	async runSequence(e:MouseEvent, delegateTarget:HTMLElement) {
 		await runSequence(delegateTarget.title.replaceAll('\n\t', '|'))
 	}
 
@@ -29,9 +30,9 @@ export function generateButtonNotation(fields: Record<string, any>, id = 0) {
 
 //  app: App, frontmatter:Record<string, any>
 // https://regex101.com/r/AN0SOC/1
-export function createButton(pattern: string, fields = {}) {
+export function createButton(pattern: string, fields:Pattern ) {
 	const buttonEl = createEl('button', {cls: 'live-form'})
-	const {name, target = ''} = fields
+	const {name, target = ''} = fields || {}
 	buttonEl.textContent = name || target || 'no name'
 	buttonEl.title = patternToTitle(pattern)
 	return buttonEl

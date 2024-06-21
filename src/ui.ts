@@ -1,16 +1,11 @@
 import {getTFile, getTFileContent, modifyFileContent} from "./files";
 import {refreshFileStructure} from "./data";
 import inputModal from "./components/inputModal";
-import {CachedStructure, fieldUpdate, TRIGGER_PAGE_DATA_OPEN, VIEW_TYPE_PAGE_DATA_VIEW} from "./types";
+import {CachedStructure, fieldUpdate} from "./types";
 import {setInlineField} from "./quicky";
-import {
-	Component,
-	ItemView,
-	stringifyYaml,
-	TFile,
-	WorkspaceLeaf
-} from "obsidian";
+import {ItemView, stringifyYaml, TFile, WorkspaceLeaf} from "obsidian";
 import {app} from "./main";
+import {VIEW_TYPE_PAGE_DATA_VIEW} from "./consts";
 
 // export class GlobalComponent extends Component{
 // 	onload() {
@@ -58,7 +53,7 @@ export async function openInlineFieldModal(e: MouseEvent, delegateTarget:HTMLBod
 	var result = (await modal)
 	let newContent = result.reduce((content: string, change: fieldUpdate) => {
 		let {field, value, method} = change
-		return setInlineField(content, value, {file: tFile, method}, field)
+		return setInlineField(content, field, value, method)
 	}, await getTFileContent(tFile))
 	await modifyFileContent(tFile, newContent)
 

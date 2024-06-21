@@ -1,5 +1,5 @@
 import type {App, MarkdownPostProcessorContext, MarkdownView, TFile} from "obsidian";
-import {MyPluginSettings} from "../draft/settings";
+import {MyPluginSettings} from "./settings";
 import {resolveExpression, saveValue} from "../api";
 import {log, parserTarget} from "../internalApi";
 import {getFileData} from "../data";
@@ -16,9 +16,9 @@ async function update(fileContent: string, file: targetFile) {
 		const pattern = match[0]
 		var target = parserTarget(pattern, file)
 		const fileData = await getFileData(file, {}, target.targetType )
-		let newText = await resolveExpression(match.groups?.expression, fileData)
-		if (newText) {
-			var isSaved = await saveValue(newText, target)
+		let expression = await resolveExpression(match.groups?.expression, fileData)
+		if (expression.result) {
+			var isSaved = await saveValue(expression.result, target)
 			log('update', 'isSaved', isSaved)
 		}
 	}

@@ -1,15 +1,9 @@
 // @ts-nocheck1
 import {InputSuggest} from "./InputSuggest";
-import {loopPatterns, runSequence, saveValue} from "../api";
-import {
-	parserTarget,
-	patternToTitle,
-	resolveOptions,
-	titleToPattern,
-} from "../internalApi";
+import {runSequence, saveValue} from "../api";
+import {parserTarget, patternToTitle, resolveOptions, titleToPattern,} from "../internalApi";
 import {app} from "../main";
-import {Component} from "obsidian";
-import {setIcon} from "obsidian";
+import {Component, setIcon} from "obsidian";
 
 import {inputOption, Pattern} from "../types";
 
@@ -25,8 +19,8 @@ export class InputsComponent extends Component {
 	}
 
 	clickOnHelperButton(e: MouseEvent, delegateTarget: HTMLElement): void {
-
-		if (e.target!.tagName == 'BUTTON') {
+		const targetElement = e.target as HTMLElement;
+		if (targetElement.tagName == 'BUTTON') {
 			const target = parserTarget(delegateTarget.title)
 			const button: HTMLButtonElement = e.target as HTMLButtonElement;
 			if (button.name == 'clear') target.method = 'clear'
@@ -49,7 +43,7 @@ export class InputsComponent extends Component {
 		}
 		const patterns = titleToPattern(delegateTarget.title)
 		await runSequence(patterns, {
-			defaultExpertion: '{{input}}',
+			defaultExpiration: '{{input}}',
 			vars: {input: value}
 		})
 
@@ -110,7 +104,7 @@ export function createForm(pattern: string, patternFields: Pattern) {
 		//
 		// 	})
 }
-function createRadioEls(label: string, pairs: inputOption) {
+function createRadioEls(label: string, pairs: inputOption[]) {
 	const fragment = createFragment()
 	if (!pairs.length) return fragment
 	if (label.trim()) fragment.createEl('label', {text: label + ": "})
@@ -135,7 +129,7 @@ function createInputEl(patternFields: Pattern, ) {
 	const inputEl = createEl(inputType, {type})
 	inputEl.id = id
 	inputEl.placeholder = name
-	if (options) new InputSuggest(app, inputEl, options)
+	if (options) new InputSuggest(app, inputEl as HTMLInputElement , options)
 	return inputEl
 }
 

@@ -13,8 +13,10 @@ export enum FileSuggestMode {
 }
 
 type Choice = SearchResult & inputOption
-export class InputSuggest extends AbstractInputSuggest<TFile> {
+
+export class InputSuggest extends AbstractInputSuggest<inputOption> {
 	options: string
+	textInputEl: HTMLInputElement | HTMLDivElement | HTMLTextAreaElement
 
 	constructor(app: App, textInputEl: HTMLInputElement | HTMLDivElement, options: string) {
 		super(app, textInputEl);
@@ -23,7 +25,7 @@ export class InputSuggest extends AbstractInputSuggest<TFile> {
 		// textInputEl.addEventListener('change', (event) => event.stopPropagation())
 	}
 
-	renderSuggestion(choice:Choice, el: HTMLElement) {
+	renderSuggestion(choice: Choice, el: HTMLElement) {
 		let {text, value, matches, score} = choice
 		for (let vec of matches.reverse()) {
 			text = text.slice(0, vec[0]) + '<b>' + text.slice(vec[0], vec[1]) + '</b>' + text.slice(vec[1])
@@ -34,8 +36,8 @@ export class InputSuggest extends AbstractInputSuggest<TFile> {
 			el.innerHTML = (text)
 	}
 
-	selectSuggestion(choice): void {
-		let {text, value, matches, score} = choice
+	selectSuggestion(choice: inputOption): void {
+		let {value} = choice
 		var v = 'path' in Object(value) ? link(value) : value
 		this.setValue(v)
 		this.textInputEl.trigger("change");

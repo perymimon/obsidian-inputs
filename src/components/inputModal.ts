@@ -1,19 +1,19 @@
 // @ts-nocheck-1
 import type {App, DropdownComponent} from "obsidian";
 import {Modal, Setting} from "obsidian"
-import {fieldUpdate, Target} from "../types";
+import {fieldUpdate, InlineField, reject, resolve} from "../types";
 
 export default class extends Modal {
 	result: string;
-	pageFields = []
+	pageFields: InlineField[] = []
 	workingFields: fieldUpdate[]
 	indexes: number[]
-	setting
+	setting: Setting
 
-	constructor(app: App, pageFields: Field[], indexes:number[] = []) {
+	constructor(app: App, inlineFields: InlineField[], indexes: number[] = []) {
 		super(app);
 		// this.pairs.push({key, value})
-		this.pageFields = pageFields
+		this.pageFields = inlineFields
 		this.indexes = indexes
 		this.workingFields = this.pageFields
 			.map((field) => ({value: field.value, method: 'replace', field}))
@@ -40,7 +40,7 @@ export default class extends Modal {
 					.onClick(() => {
 						var changed = indexes.map(i => workingFields[i])
 							.filter(wf => wf.value != wf.field.value)
-						this.resolve(changed)
+						this.resolve && this.resolve(changed)
 						this.close();
 					})
 			})
@@ -66,7 +66,7 @@ export default class extends Modal {
 				changerField.setValue(String(index))
 				changerField.onChange((newIndex: string) => {
 					var i = indexes.indexOf(index)
-					indexes[i] = newIndex
+					indexes[i] = Number(newIndex)
 					this.render()
 				})
 			})
@@ -79,6 +79,7 @@ export default class extends Modal {
 						workingField.value = value
 						workingField.method = 'replace'
 						let parent = text.inputEl.matchParent('.setting-item')
+						if (!parent) return
 						parent.classList.remove('method-remove')
 						parent.classList.remove('method-clear')
 					})
@@ -109,16 +110,16 @@ export default class extends Modal {
 
 	onClose() {
 		let {contentEl} = this;
-		// contentEl.empty();
-		this.reject('close')
+		// contentEl.emspty();
+		this.reject && this.reject('close')
 	}
 
-	resolve = (a: any) => {
+	resolve: resolve = (a: any) => {
 	}
-	reject = (e: any) => {
+	reject: reject = (e: any) => {
 	}
 
-	then(onFulfilled, onRejected) {
+	then(onFulfilled: resolve, onRejected: reject) {
 		this.resolve = onFulfilled
 		this.reject = onRejected
 	}

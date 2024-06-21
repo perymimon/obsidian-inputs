@@ -19,7 +19,7 @@ export function getTFile(file?: targetFile): TFile | null {
 	return tFile
 }
 
-export async function createTFile(file: targetFile, content: string = ''): TFile {
+export async function createTFile(file: targetFile, content: string = ''): Promise<TFile> {
 	const tFile = getTFile(file)!
 	content = alignString(content)
 	Files[tFile.path] = {content}

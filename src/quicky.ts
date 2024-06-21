@@ -1,16 +1,21 @@
 // @ts-nocheck1
-import {Target} from "./internalApi";
-import {manipulateValue, sliceRemover, spliceString} from "./basics/strings";
-import {createTFile, getTFile, letTFile, modifyFileContent, removeFile, renameFile} from "./files"
-import type {TFile} from "obsidian";
+import {
+	getFrontMatterPosition,
+	manipulateStringifyValue,
+	sliceRemover,
+	spliceString,
+	spliceString2
+} from "./basics/strings";
+import {createTFile, letTFile, modifyFileContent, removeFile, renameFile} from "./files"
 import {objectSet} from "./basics/objects";
-import {InlineField, targetFile} from "./types";
+import {InlineField, Target, targetFile, targetMethod} from "./types";
 import {getFileStructure} from "./data";
 import {log} from "./tracer";
+import {getInlineFields} from "./data.inlineFields";
 
 const app = globalThis.app
 
-export async function setFrontmatter(value: any, path: string, method: Target["method"] = 'replace', file: targetFile) {
+export async function setFrontmatter(value: any, path: string, method: Target["method"] = 'replace', file?: targetFile) {
 	const tFile = await letTFile(file)
 	// const frontmatter:FrontMatterInfo  = getFrontMatterInfo(content)
 	// const {from, to} = frontmatter
@@ -25,67 +30,46 @@ export async function setFrontmatter(value: any, path: string, method: Target["m
 	})
 }
 
-export function setInlineField(content: string, inlineField:InlineField | null,value:string, method: Target["method"] = 'replace'): string {
+export function setInlineField(content: string, inlineField: InlineField | null, value: string, method: targetMethod = 'replace'): string {
 	var newContent = ''
 	if (inlineField) { // field exist
-		let {outerField, oldValue, offset} = inlineField
-		let [startIndex, endIndex] = offset
-		var newField
+		const {outerField, value: currentValue, offset: [startIndex, endIndex]} = inlineField
+		let newField
 		if (method == 'remove') newField = ''
 		else {
-			value = manipulateValue(oldValue, value, method)
-			newField = outerField.replace(`::${oldValue}`, `::${value}`)
+			value = manipulateStringifyValue(currentValue, value, method)
+			newField = outerField.replace(`::${currentValue}`, `::${value}`)
 		}
 		if (outerField == newField) return content
-		// log('setInlineField', `inline field update from "${outerField}" to "${newField}"`)
-		newContent = [content.slice(0, startIndex), newField, content.slice(endIndex)].join('')
+		newContent = spliceString2(content, startIndex, endIndex, newField)
 	} else { // create field it not exist
 		if (method == 'remove') return content
-		var {frontmatterPosition} = getFileStructure(tFile)
-		var offset = frontmatterPosition?.end.offset + 1 ?? 0
-		newContent = spliceString(content, offset, 0, `[${path}::${value}]\n`)
-		// newContent = [content.slice(0, offset), field, content.slice(offset)].join('\n')
+		const [, end] = getFrontMatterPosition(content)
+		// @ts-ignore object is Possibly undefined but it takes care
+		newContent = spliceString(content, end, 0, `[${path}::${value}]\n`)
 	}
 	return newContent
 }
 
 
-
-/**
- * - if there is no header or file method related to textInput|button himself
- * append - add text after the current textInput|button
- * prepend - add text before the current textInput|button
- * replace - replace the notation of textInput|button with the given text
- *
- * - if there is header without file. file implicit is activefile
- * append - add text at the end of the header section
- * prepend - add text at the top of the header section
- * replace - replace the text of the under the section header
- * - if there is file without header.
- * append - add text at the bottom of the file
- * prepend - add text at the top of the file, under the section of frontmatter
- * replace - not care what it's do
- * @param content
- * @param text
- * @param target
- * @returns {Promise<string>}
- */
-export function quickText(content: string, text: string, target: Target) {
-	const {file, pattern, method = 'replace'} = target
-	var escaped = pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-	var eatSpaces = new RegExp(`\`\\s*${escaped}\\s*\``)
+export function quickText(content: string, text: string, target: Target): string {
+	const {pattern, method = 'replace'} = target
+	var patternEscaped = pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+	var eatSpaces = new RegExp(`\`\\s*${patternEscaped}\\s*\``)
 	if (method == "clear") {
-		var startPatternIndex = content.match(eatSpaces)?.index
-		var startLineIndex = content.lastIndexOf('\n', startPatternIndex) + 1
+		var startPatternIndex:number = content.match(eatSpaces)?.index!
+		if(!startPatternIndex) throw 'pattern not found into the content'
+		var startLineIndex:number = content.lastIndexOf('\n', startPatternIndex) + 1
 		var line = content.slice(startLineIndex, startPatternIndex)
 		var field = getInlineFields(line).pop()
 		var slice = [startLineIndex, startPatternIndex]
 		if (field) {
-			let {offset, valueOffset, value} = field
-			let stopPoints = [
-				[offset[1]], valueOffset, [offset[0]], [0]
+			let {offset, valueOffset} = field
+			let stopPoints = [offset[1], valueOffset[0], offset[0], 0]
+			slice = [
+				(stopPoints.find(stop => stop <= line.length) ?? 0) + startLineIndex,
+				startPatternIndex
 			]
-			slice = stopPoints.find(slice => slice[0] < line.length).map(i => i + startLineIndex)
 		}
 		let [indexStart, indexEnd = startPatternIndex] = slice
 		newContent = sliceRemover(content, indexStart, indexEnd)
@@ -113,7 +97,7 @@ export function quickText(content: string, text: string, target: Target) {
  */
 export async function quickFile(text: string, target: Target, createIfNotExist = false) {
 	var {file, method = 'append',} = target
-	var tFile = getTFile(file) as TFile
+	var tFile = await letTFile(file)
 	if (method == 'rename') {
 		if (tFile) return await renameFile(tFile, text)
 		log('quickFile', `file "${file}" is not exist for rename`)
@@ -123,7 +107,7 @@ export async function quickFile(text: string, target: Target, createIfNotExist =
 		if (createIfNotExist) method = 'create'
 		else return null
 
-	if (method == 'create') return await createTFile(file, text)
+	if (method == 'create') return await createTFile(tFile, text)
 	if (method == 'remove') return await removeFile(tFile)
 
 	const {frontmatterPosition} = getFileStructure(tFile);

@@ -1,6 +1,6 @@
 // update cache with inline-field meta data
 import type {TFile} from "obsidian";
-import {Priority, CachedStructure, targetFile} from "./types";
+import {CachedStructure, Priority, simpleDicObject, targetFile} from "./types";
 import {getTFile, lastCreatedFiles, lastTouchFiles} from "./files";
 import {setPrototype} from "./basics/objects";
 import {getInlineFields} from "./data.inlineFields";
@@ -44,8 +44,9 @@ export async function waitFileStructureReady(tFile: TFile) {
 	return data
 }
 
-export async function refreshFileStructure(targetFile?: targetFile) {
+export async function refreshFileStructure(targetFile?: targetFile): Promise<CachedStructure> {
 	let tFile = getTFile(targetFile)
+	if(!tFile) throw `targetFile are not exist in the vault`
 	let cache = await waitFileStructureReady(tFile)
 	if (!cache) throw `No cache found. for ${tFile.path}`;
 
@@ -53,12 +54,13 @@ export async function refreshFileStructure(targetFile?: targetFile) {
 	const inlineFields = getInlineFields(content)
 
 	const fieldsObject: object = inlineFields.reduce(
-		(obj, line) => (obj[line.key] = line.value, obj), {}
+		(obj: simpleDicObject, line) => (obj[line.key] = line.value, obj),
+		{}
 	)
 	cache.allInlineFields = inlineFields
 	cache.inlineFields = fieldsObject
 	cache.dirty = false
-	return cache as CachedStructure
+	return cache
 }
 
 

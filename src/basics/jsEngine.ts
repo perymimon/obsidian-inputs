@@ -1,15 +1,11 @@
-import type {TFile} from "obsidian";
-import {Priority, targetFile} from "../types";
-import {setPrototype} from "./objects";
-import {asyncEval} from "../internalApi";
-import * as api from "../api";
+import {TFile} from "obsidian";
 import {getTFile} from "../files";
-import {getFileData} from "../data";
+
 var app = globalThis.app
 
 export async function importJs(path: TFile | string): Promise<object> {
 	var tFile = getTFile(path)
-	if (!TFile) throw `${path} file is not exist`
+	if (!tFile) throw `${path} file is not exist`
 	let fullPath = app.vault.adapter.getResourcePath(tFile.path);
 	let timestamp = new Date().getTime();
 	let busterPath = fullPath.replace(/\?.*$/, `?${timestamp}`)

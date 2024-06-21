@@ -42,8 +42,21 @@
                     "source": false
                   }
                 }
+              },
+              {
+                "id": "6489e97acdf11297",
+                "type": "leaf",
+                "state": {
+                  "type": "markdown",
+                  "state": {
+                    "file": "תסריט מהמם לרילס על גאורגיה.md",
+                    "mode": "source",
+                    "source": false
+                  }
+                }
               }
-            ]
+            ],
+            "currentTab": 1
           }
         ],
         "direction": "horizontal"
@@ -96,8 +109,7 @@
       }
     ],
     "direction": "horizontal",
-    "width": 209.5,
-    "collapsed": true
+    "width": 209.5
   },
   "right": {
     "id": "73a0a0f491e3e4e0",
@@ -113,7 +125,7 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "file.md",
+                "file": "tests/test inlinefield.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -130,7 +142,7 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "file.md",
+                "file": "tests/test inlinefield.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               }
@@ -153,7 +165,7 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "file.md"
+                "file": "tests/test inlinefield.md"
               }
             }
           },
@@ -223,23 +235,60 @@
       "obsidian42-brat:BRAT": false
     }
   },
-  "active": "cc7c104e75ed065f",
+  "floating": {
+    "id": "f5da4cdd7b6bd134",
+    "type": "floating",
+    "children": [
+      {
+        "id": "20b2cfec5a20d7f7",
+        "type": "window",
+        "children": [
+          {
+            "id": "c21aefb3ff007d40",
+            "type": "tabs",
+            "children": [
+              {
+                "id": "5757562e329662dd",
+                "type": "leaf",
+                "state": {
+                  "type": "markdown",
+                  "state": {
+                    "file": "תסריט מהמם לרילס על גאורגיה.md",
+                    "mode": "source",
+                    "source": false
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "direction": "vertical",
+        "x": 256,
+        "y": 8,
+        "width": 1024,
+        "height": 800,
+        "maximize": false,
+        "zoom": 0
+      }
+    ]
+  },
+  "active": "da294ff039034c6a",
   "lastOpenFiles": [
+    "תסריט מהמם לרילס על גאורגיה.md",
+    "file.md",
+    "tests/test inlinefield.md",
     "template/file-template.md",
     "yaml.md",
-    "tests/test inlinefield.md",
     "template/test Quick File.md",
     "template/game-log-template.md",
     "tests/input buttons (clear,remove)test.md",
     "tests/input arrayies test.md",
     "tests/file.md",
     "note2.md",
-    "Untitled.md",
     "table.md",
     "Say Something.md",
     "pery.md",
     "note.md",
-    "file.md",
     "duration`.md",
     "error.md",
     "database/game-log/game-log@ undefined 1.md",

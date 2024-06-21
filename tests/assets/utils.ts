@@ -9,7 +9,7 @@ export function alignString(content: string) {
 	const minIndentation = cleanedLines
 		.filter((line: string) => line.trim().length > 0)
 		.reduce((minIndent: number, line: string) => {
-			const leadingSpaces = line.match(/^\s*/)[0].length;
+			const leadingSpaces = line.match(/^\s*/)![0].length;
 			return Math.min(minIndent, leadingSpaces);
 		}, Infinity);
 

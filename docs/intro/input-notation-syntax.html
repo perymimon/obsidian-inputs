@@ -190,7 +190,7 @@ can be:</p>
 examples:
 - <strong>placeholder:</strong> <code>I read today the book &amp;book-name</code> or <code>I read today the book {{book-name}} </code> can result to <code>I read today the book Harry Potter</code> if somewhere is the page
 <code>[book-name::Harry Potter] exist</code>
-- <strong>JS expression:</strong> <code>number + 1</code> if somewhere is the page <code>[number::2] exist the result to target will be </code>3<code>	- **JS import:**</code>import [[create-book.js]]<code>that import and run</code>create-book.js<code>if it exists in the vault 	- **md import:**</code>import [[create-book.md]]<code> that read and run throw templater</code>create-book.md<code>if it exists in the vault and return the result  see detail [here](../)</code>, opts`: comma separated values for created radio button or dataview query for  create autocomplete input, start with comma</p>
+- <strong>JS expression:</strong> <code>number + 1</code> if somewhere is the page <code>[number::2] exist the result to target will be </code>3<code> 	- **JS import:**</code>import [[create-book.js]]<code>that import and run</code>create-book.js<code>if it exists in the vault  	- **md import:**</code>import [[create-book.md]]<code> that read and run throw templater</code>create-book.md<code>if it exists in the vault and return the result   see detail [here](../) </code>, opts`: comma separated values for created radio button or dataview query for  create autocomplete input, start with comma</p>
 <p><code>&gt;target</code>: Specifies where and how the value of the expression part is stored or processed. including the target file or context and the method of saving or updating the target.
 Target own mini pattern
 <code>&lt;filename&gt;&lt;type&gt;&lt;path&gt; &lt;method&gt;</code>
@@ -225,22 +225,6 @@ Target own mini pattern
 
         </div>
 
-        <!-- Livereload script (if served using the cli tool) -->
-        <script>
-            const wsProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
-            const wsAddress = wsProtocol + "//" + location.host + "/" + "__livereload";
-            const socket = new WebSocket(wsAddress);
-            socket.onmessage = function (event) {
-                if (event.data === "reload") {
-                    socket.close();
-                    location.reload();
-                }
-            };
-
-            window.onbeforeunload = function() {
-                socket.close();
-            }
-        </script>
 
 
 

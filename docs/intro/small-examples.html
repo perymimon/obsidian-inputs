@@ -200,6 +200,10 @@
 <p><strong>Example 6: same, just clear the header content:</strong><br />
 <code>button: Delete section| &gt;::file#Section Name clear</code></p>
 </blockquote>
+<blockquote>
+<p><strong>Example 7: mood tracking</strong>
+<code>text:Mood| - (@time) {{input}} [reasone], ☺️,😑,🥰,😎,🤩,🤔,🫥,😮,😏,🤑 &gt;#Activities</code></p>
+</blockquote>
 
                     </main>
 
@@ -224,22 +228,6 @@
 
         </div>
 
-        <!-- Livereload script (if served using the cli tool) -->
-        <script>
-            const wsProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
-            const wsAddress = wsProtocol + "//" + location.host + "/" + "__livereload";
-            const socket = new WebSocket(wsAddress);
-            socket.onmessage = function (event) {
-                if (event.data === "reload") {
-                    socket.close();
-                    location.reload();
-                }
-            };
-
-            window.onbeforeunload = function() {
-                socket.close();
-            }
-        </script>
 
 
 

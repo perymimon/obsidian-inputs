@@ -1,0 +1,11 @@
+{
+	"id": "obsidian-inputs",
+	"name": "Inputs",
+	"version": "0.1.1",
+	"minAppVersion": "0.15.0",
+	"description": "Help to create inline inputs fields into note that change the actual note",
+	"author": "Pery mimon",
+	"authorUrl": "https://github.com/perymimon",
+	"fundingUrl": "",
+	"isDesktopOnly": false
+}

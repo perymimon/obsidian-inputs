@@ -1,21 +1,18 @@
 // @ts-nocheck1
 import * as api from './api';
 import {parseExpression, parsePattern, parserTarget} from "./internalApi";
-
-export {stringTemplate, link} from "./basics/strings";
 import {decodeAndRunOpts, DynamicModule, Expression, Target, targetFile} from "./types";
-import {
-	getTFileContent, letTFile,
-	modifyFileContent
-} from "./files";
+import {getTFileContent, letTFile, modifyFileContent} from "./files";
 import {quickFile, quickText, setFrontmatter, setInlineField} from "./quicky";
-import {importJs, asyncEval} from "./basics/jsEngine";
+import {asyncEval, importJs} from "./basics/jsEngine";
 import {PATTERN} from "./consts";
 import {getFileData} from "./data";
 import {traceExpression} from "./tracer";
 import {getClosesInlineFieldToPattern, getInlineFields} from "./data.inlineFields";
 import {quickHeader} from "./data.headers";
-import { stringTemplate } from './basics/strings';
+import {stringTemplate} from './basics/strings';
+
+export {stringTemplate, link} from "./basics/strings";
 
 var app = globalThis.app
 

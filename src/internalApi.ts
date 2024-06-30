@@ -1,21 +1,8 @@
 // @ts-nocheck1
 import {objectGet} from "./basics/objects";
 import {lastSliceFrom} from "./basics/strings";
-import {
-	decodeAndRunOpts,
-	Expression,
-	inputOption,
-	targetMethod,
-	Pattern,
-	Target,
-	TargetArray,
-	targetFile,
-	targetType
-} from "./types";
-import {PATTERN} from "./consts";
-import {processPattern} from "./api";
+import {Expression, inputOption, Pattern, Target, TargetArray, targetFile, targetMethod, targetType} from "./types";
 import type {TFile} from "obsidian";
-import {getFileData} from "./data";
 import {isFileNotation} from "./files";
 
 var app = globalThis.app
@@ -173,7 +160,7 @@ export async function dataviewQuery(queries: string[]) {
 // 	return loopPatterns(patterns, callback)
 // }
 
-export async function resolveOptions(options: string):Promise<inputOption[]> {
+export async function resolveOptions(options: string): Promise<inputOption[]> {
 	const optionsResults: inputOption[] = []
 	if (!options) return optionsResults
 	const prefix = DataviewAPI.settings.inlineQueryPrefix

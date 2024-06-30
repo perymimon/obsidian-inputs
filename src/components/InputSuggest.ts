@@ -1,16 +1,11 @@
 // @ts-nocheck1
 // Credits go to Liam's Periodic Notes Plugin: https://github.com/liamcain/obsidian-periodic-notes
 
-import type {App, TFile, SearchResult} from "obsidian";
+import type {App, SearchResult} from "obsidian";
 import {AbstractInputSuggest, prepareFuzzySearch} from "obsidian";
 import {link} from "../api";
 import {resolveOptions} from "../internalApi";
 import {inputOption} from "../types";
-
-export enum FileSuggestMode {
-	TemplateFiles,
-	ScriptFiles,
-}
 
 type Choice = SearchResult & inputOption
 

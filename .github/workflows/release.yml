@@ -26,7 +26,7 @@ jobs:
                   echo Building for version PACKAGE_VERSION
                   npm install
                   npm run build
-                  zip -jr ${{ env.PLUGIN_NAME }}-${{ env.PACKAGE_VERSION }}.zip dist/*
+                  zip -jr ${{ env.PLUGIN_NAME }}-${{ env.PACKAGE_VERSION }}.zip test_vault/.obsidian/plugins/obsidian-inputs/*
                   ls
                   echo Dist folder:
                   ls dist

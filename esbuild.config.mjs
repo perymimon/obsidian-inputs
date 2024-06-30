@@ -46,7 +46,7 @@ const context = await esbuild.context({
 			resolveFrom: "cwd",
 			assets: [
 				{ from: "src/styles.css", to: `test_vault/.obsidian/plugins/obsidian-inputs/styles.css` },
-				{ from: "src/manifest.json", to: `test_vault/.obsidian/plugins/obsidian-inputs/manifest.json` },
+				{ from: "manifest.json", to: `test_vault/.obsidian/plugins/obsidian-inputs/manifest.json` },
 				{ from: "data.json", to: `test_vault/.obsidian/plugins/obsidian-inputs/data.json` }
 			],
 			watch: false

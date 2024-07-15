@@ -1,6 +1,6 @@
 # Obsidian Inputs Plugin
 
-The Obsidian Inputs Plugin allows users to utilize custom inputs within their Obsidian notes, enhancing interactivity and dynamic content.
+The Obsidian Inputs Plugin allows users to utilize custom inputs component within their Obsidian notes, that can change the actual note.
 
 ## Features
 

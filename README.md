@@ -5,7 +5,7 @@ The Obsidian Inputs Plugin allows users to utilize custom inputs component withi
 ## Features
 
 - **Expression and Target**: Define expressions and their targets for dynamic content updates.
-- **Input Notation Syntax**: Use a specific syntax to define inputs, making it easier to create interactive notes.
+- **Input Notation Syntax**: Use a simple syntax to define inputs, making it easier to create interactive and template notes.
 
 ## Installation
 
